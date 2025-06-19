@@ -10,11 +10,13 @@ import kotlin.math.*
 
 /**
  * Generates and plays Morse code audio with configurable settings
+ * Improved version with continuous sequence generation and better envelope handling
  */
 class MorseCodeGenerator(private val context: Context) {
     
     companion object {
         private const val SAMPLE_RATE = 44100
+        private const val ENVELOPE_MS = 5 // 5ms envelope for smooth transitions
     }
     
     private var audioTrack: AudioTrack? = null
@@ -58,6 +60,7 @@ class MorseCodeGenerator(private val context: Context) {
     
     /**
      * Generate a sequence of characters and play as Morse code
+     * Now generates the entire sequence as one continuous audio buffer
      */
     fun playSequence(
         sequence: String, 
@@ -77,20 +80,14 @@ class MorseCodeGenerator(private val context: Context) {
             try {
                 android.util.Log.d("MorseCodeGenerator", "Starting playback of sequence: '$sequence' at ${settings.speedWpm}wpm, tone: ${settings.toneFrequencyHz}Hz")
                 
-                audioTrack?.play()
+                // Generate the entire sequence as one continuous audio buffer
+                val audioData = generateSequenceAudio(sequence, settings)
                 
-                for (i in 0 until settings.repeatCount) {
-                    if (shouldStop) break
-                    
-                    playSequenceOnce(sequence, settings)
-                    
-                    if (i < settings.repeatCount - 1 && !shouldStop) {
-                        val spacing = settings.repeatSpacingMs + settings.groupSpacingMs
-                        playSilence(spacing)
-                    }
+                if (audioData.isNotEmpty() && !shouldStop) {
+                    audioTrack?.play()
+                    playAudioBuffer(audioData)
+                    audioTrack?.stop()
                 }
-                
-                audioTrack?.stop()
                 
             } catch (e: InterruptedException) {
                 android.util.Log.d("MorseCodeGenerator", "Playback interrupted")
@@ -105,6 +102,304 @@ class MorseCodeGenerator(private val context: Context) {
         }
         
         playbackThread?.start()
+    }
+    
+    /**
+     * Generate the entire sequence as one continuous audio buffer
+     * This eliminates clicks between characters and provides smooth playback
+     */
+    private fun generateSequenceAudio(sequence: String, settings: TrainingSettings): ShortArray {
+        val dotDuration = calculateDotDuration(settings.speedWpm)
+        val dashDuration = dotDuration * 3
+        val symbolSpacing = dotDuration
+        val charSpacing = calculateCharacterSpacing(settings)
+        val wordSpacing = calculateWordSpacing(settings)
+        
+        // Calculate total duration for the entire sequence including repeats
+        val singleSequenceDuration = calculateSequenceDuration(sequence, settings)
+        val totalDuration = singleSequenceDuration * settings.repeatCount + 
+                           (settings.repeatSpacingMs + settings.groupSpacingMs) * (settings.repeatCount - 1)
+        
+        val totalSamples = (SAMPLE_RATE * totalDuration / 1000.0).toInt()
+        val audioBuffer = ShortArray(totalSamples)
+        
+        var bufferIndex = 0
+        
+        // Generate audio for each repeat
+        for (repeatIndex in 0 until settings.repeatCount) {
+            if (shouldStop) break
+            
+            // Generate audio for this sequence
+            bufferIndex = generateSequenceIntoBuffer(
+                audioBuffer, 
+                bufferIndex, 
+                sequence, 
+                dotDuration, 
+                dashDuration, 
+                symbolSpacing, 
+                charSpacing, 
+                wordSpacing, 
+                settings.toneFrequencyHz
+            )
+            
+            // Add repeat spacing if not the last repeat
+            if (repeatIndex < settings.repeatCount - 1) {
+                val spacingDuration = settings.repeatSpacingMs + settings.groupSpacingMs
+                bufferIndex = addSilenceToBuffer(audioBuffer, bufferIndex, spacingDuration)
+            }
+        }
+        
+        // Apply overall envelope to prevent any clicks at sequence start/end
+        applyOverallEnvelope(audioBuffer)
+        
+        return audioBuffer
+    }
+    
+    /**
+     * Generate audio for a single sequence into the buffer
+     */
+    private fun generateSequenceIntoBuffer(
+        buffer: ShortArray,
+        startIndex: Int,
+        sequence: String,
+        dotDuration: Int,
+        dashDuration: Int,
+        symbolSpacing: Int,
+        charSpacing: Int,
+        wordSpacing: Int,
+        toneFrequency: Int
+    ): Int {
+        var bufferIndex = startIndex
+        
+        for (i in sequence.indices) {
+            if (shouldStop || bufferIndex >= buffer.size) break
+            
+            val char = sequence[i]
+            val pattern = MorseCode.getPattern(char)
+            
+            if (pattern != null) {
+                android.util.Log.d("MorseCodeGenerator", "Generating character '$char' with pattern '$pattern'")
+                
+                // Generate pattern audio
+                bufferIndex = generatePatternIntoBuffer(
+                    buffer, 
+                    bufferIndex, 
+                    pattern, 
+                    dotDuration, 
+                    dashDuration, 
+                    symbolSpacing, 
+                    toneFrequency
+                )
+                
+                // Add character spacing (except after last character)
+                if (i < sequence.length - 1) {
+                    val spacing = if (char == ' ') wordSpacing else charSpacing
+                    bufferIndex = addSilenceToBuffer(buffer, bufferIndex, spacing)
+                }
+            }
+        }
+        
+        return bufferIndex
+    }
+    
+    /**
+     * Generate audio for a single Morse pattern into the buffer
+     */
+    private fun generatePatternIntoBuffer(
+        buffer: ShortArray,
+        startIndex: Int,
+        pattern: String,
+        dotDuration: Int,
+        dashDuration: Int,
+        symbolSpacing: Int,
+        toneFrequency: Int
+    ): Int {
+        var bufferIndex = startIndex
+        
+        for (i in pattern.indices) {
+            if (shouldStop || bufferIndex >= buffer.size) break
+            
+            val duration = when (pattern[i]) {
+                '.' -> dotDuration
+                '-' -> dashDuration
+                else -> continue
+            }
+            
+            // Generate tone with envelope
+            bufferIndex = generateToneIntoBuffer(
+                buffer, 
+                bufferIndex, 
+                duration, 
+                toneFrequency
+            )
+            
+            // Add symbol spacing (except after last symbol)
+            if (i < pattern.length - 1) {
+                bufferIndex = addSilenceToBuffer(buffer, bufferIndex, symbolSpacing)
+            }
+        }
+        
+        return bufferIndex
+    }
+    
+    /**
+     * Generate a tone with proper envelope into the buffer
+     */
+    private fun generateToneIntoBuffer(
+        buffer: ShortArray,
+        startIndex: Int,
+        durationMs: Int,
+        toneFrequency: Int
+    ): Int {
+        val samples = (SAMPLE_RATE * durationMs / 1000.0).toInt()
+        val endIndex = minOf(startIndex + samples, buffer.size)
+        
+        // Calculate envelope samples (minimum 1 sample, maximum 10% of duration)
+        val envelopeSamples = maxOf(1, minOf(samples / 10, SAMPLE_RATE * ENVELOPE_MS / 1000))
+        
+        for (i in startIndex until endIndex) {
+            val sampleIndex = i - startIndex
+            val angle = 2.0 * PI * sampleIndex * toneFrequency / SAMPLE_RATE
+            var amplitude = sin(angle) * 0.7 // 70% volume
+            
+            // Apply smooth envelope
+            when {
+                sampleIndex < envelopeSamples -> {
+                    // Smooth fade in using cosine curve
+                    val fadeRatio = sampleIndex.toDouble() / envelopeSamples
+                    amplitude *= 0.5 * (1.0 - cos(PI * fadeRatio))
+                }
+                sampleIndex >= samples - envelopeSamples -> {
+                    // Smooth fade out using cosine curve
+                    val fadeIndex = samples - 1 - sampleIndex
+                    val fadeRatio = fadeIndex.toDouble() / envelopeSamples
+                    amplitude *= 0.5 * (1.0 - cos(PI * fadeRatio))
+                }
+            }
+            
+            buffer[i] = (amplitude * Short.MAX_VALUE).toInt().toShort()
+        }
+        
+        return endIndex
+    }
+    
+    /**
+     * Add silence to the buffer
+     */
+    private fun addSilenceToBuffer(
+        buffer: ShortArray,
+        startIndex: Int,
+        durationMs: Int
+    ): Int {
+        if (durationMs <= 0) return startIndex
+        
+        val samples = (SAMPLE_RATE * durationMs / 1000.0).toInt()
+        val endIndex = minOf(startIndex + samples, buffer.size)
+        
+        // Fill with zeros (silence)
+        for (i in startIndex until endIndex) {
+            buffer[i] = 0
+        }
+        
+        return endIndex
+    }
+    
+    /**
+     * Apply overall envelope to the entire sequence to prevent any clicks
+     */
+    private fun applyOverallEnvelope(buffer: ShortArray) {
+        if (buffer.isEmpty()) return
+        
+        val envelopeSamples = SAMPLE_RATE * ENVELOPE_MS * 2 / 1000 // 10ms envelope
+        val actualEnvelopeSamples = minOf(envelopeSamples, buffer.size / 10)
+        
+        // Fade in at the very beginning
+        for (i in 0 until minOf(actualEnvelopeSamples, buffer.size)) {
+            val fadeRatio = i.toDouble() / actualEnvelopeSamples
+            val envelope = 0.5 * (1.0 - cos(PI * fadeRatio))
+            buffer[i] = (buffer[i] * envelope).toInt().toShort()
+        }
+        
+        // Fade out at the very end
+        for (i in maxOf(0, buffer.size - actualEnvelopeSamples) until buffer.size) {
+            val fadeIndex = buffer.size - 1 - i
+            val fadeRatio = fadeIndex.toDouble() / actualEnvelopeSamples
+            val envelope = 0.5 * (1.0 - cos(PI * fadeRatio))
+            buffer[i] = (buffer[i] * envelope).toInt().toShort()
+        }
+    }
+    
+    /**
+     * Play the generated audio buffer
+     */
+    private fun playAudioBuffer(buffer: ShortArray) {
+        var offset = 0
+        val chunkSize = 4096 // Write in chunks for smooth playback
+        
+        while (offset < buffer.size && !shouldStop) {
+            // Handle pause
+            while (shouldPause && !shouldStop) {
+                Thread.sleep(50)
+            }
+            
+            if (shouldStop) break
+            
+            val remainingSamples = buffer.size - offset
+            val samplesToWrite = minOf(chunkSize, remainingSamples)
+            
+            try {
+                val bytesWritten = audioTrack!!.write(buffer, offset, samplesToWrite)
+                if (bytesWritten > 0) {
+                    offset += bytesWritten
+                } else {
+                    // If write fails, wait a bit and try again
+                    Thread.sleep(1)
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("MorseCodeGenerator", "Error writing to AudioTrack: ${e.message}")
+                break
+            }
+        }
+    }
+    
+    /**
+     * Calculate the total duration of a sequence in milliseconds
+     */
+    private fun calculateSequenceDuration(sequence: String, settings: TrainingSettings): Int {
+        val dotDuration = calculateDotDuration(settings.speedWpm)
+        val dashDuration = dotDuration * 3
+        val symbolSpacing = dotDuration
+        val charSpacing = calculateCharacterSpacing(settings)
+        val wordSpacing = calculateWordSpacing(settings)
+        
+        var totalDuration = 0
+        
+        for (i in sequence.indices) {
+            val char = sequence[i]
+            val pattern = MorseCode.getPattern(char)
+            
+            if (pattern != null) {
+                // Add pattern duration
+                for (symbol in pattern) {
+                    when (symbol) {
+                        '.' -> totalDuration += dotDuration
+                        '-' -> totalDuration += dashDuration
+                    }
+                }
+                
+                // Add symbol spacing within pattern
+                if (pattern.length > 1) {
+                    totalDuration += symbolSpacing * (pattern.length - 1)
+                }
+                
+                // Add character spacing (except after last character)
+                if (i < sequence.length - 1) {
+                    totalDuration += if (char == ' ') wordSpacing else charSpacing
+                }
+            }
+        }
+        
+        return totalDuration
     }
     
     /**
@@ -185,144 +480,6 @@ class MorseCodeGenerator(private val context: Context) {
             audioTrack = null
         } catch (e: Exception) {
             android.util.Log.e("MorseCodeGenerator", "Error releasing AudioTrack: ${e.message}")
-        }
-    }
-    
-    /**
-     * Play a sequence once
-     */
-    private fun playSequenceOnce(sequence: String, settings: TrainingSettings) {
-        val dotDuration = calculateDotDuration(settings.speedWpm)
-        val dashDuration = dotDuration * 3
-        val symbolSpacing = dotDuration
-        val charSpacing = calculateCharacterSpacing(settings)
-        val wordSpacing = calculateWordSpacing(settings)
-        
-        for (i in sequence.indices) {
-            if (shouldStop) break
-            
-            // Handle pause
-            while (shouldPause && !shouldStop) {
-                Thread.sleep(50)
-            }
-            
-            val char = sequence[i]
-            val pattern = MorseCode.getPattern(char)
-            
-            if (pattern != null) {
-                android.util.Log.d("MorseCodeGenerator", "Playing character '$char' with pattern '$pattern'")
-                playPattern(pattern, dotDuration, dashDuration, symbolSpacing, settings.toneFrequencyHz)
-                
-                // Add character spacing (except after last character)
-                if (i < sequence.length - 1 && !shouldStop) {
-                    if (char == ' ') {
-                        playSilence(wordSpacing)
-                    } else {
-                        playSilence(charSpacing)
-                    }
-                }
-            }
-        }
-    }
-    
-    /**
-     * Play a single Morse pattern (e.g., ".-")
-     */
-    private fun playPattern(pattern: String, dotDuration: Int, dashDuration: Int, symbolSpacing: Int, toneFrequency: Int) {
-        for (i in pattern.indices) {
-            if (shouldStop) break
-            
-            // Handle pause
-            while (shouldPause && !shouldStop) {
-                Thread.sleep(50)
-            }
-            
-            when (pattern[i]) {
-                '.' -> playToneWithEnvelope(dotDuration, toneFrequency)
-                '-' -> playToneWithEnvelope(dashDuration, toneFrequency)
-            }
-            
-            // Add symbol spacing (except after last symbol)
-            if (i < pattern.length - 1 && !shouldStop) {
-                playSilence(symbolSpacing)
-            }
-        }
-    }
-    
-    /**
-     * Play a tone with proper envelope to prevent clicks
-     */
-    private fun playToneWithEnvelope(durationMs: Int, toneFrequency: Int) {
-        if (shouldStop || audioTrack == null) return
-        
-        val samples = (SAMPLE_RATE * durationMs / 1000.0).toInt()
-        val buffer = ShortArray(samples)
-        
-        // Generate sine wave with envelope
-        val envelopeLength = minOf(samples / 10, SAMPLE_RATE / 100) // 10ms envelope
-        
-        for (i in buffer.indices) {
-            val angle = 2.0 * PI * i * toneFrequency / SAMPLE_RATE
-            var amplitude = sin(angle) * 0.7 // 70% volume
-            
-            // Apply envelope
-            when {
-                i < envelopeLength -> {
-                    // Fade in
-                    amplitude *= (i.toDouble() / envelopeLength)
-                }
-                i >= samples - envelopeLength -> {
-                    // Fade out
-                    val fadeIndex = samples - 1 - i
-                    amplitude *= (fadeIndex.toDouble() / envelopeLength)
-                }
-            }
-            
-            buffer[i] = (amplitude * Short.MAX_VALUE).toInt().toShort()
-        }
-        
-        // Write to AudioTrack in streaming mode
-        writeToAudioTrack(buffer)
-    }
-    
-    /**
-     * Play silence for the specified duration
-     */
-    private fun playSilence(durationMs: Int) {
-        if (shouldStop || audioTrack == null || durationMs <= 0) return
-        
-        val samples = (SAMPLE_RATE * durationMs / 1000.0).toInt()
-        val buffer = ShortArray(samples) // All zeros = silence
-        
-        writeToAudioTrack(buffer)
-    }
-    
-    /**
-     * Write buffer to AudioTrack in streaming mode
-     */
-    private fun writeToAudioTrack(buffer: ShortArray) {
-        if (shouldStop || audioTrack == null) return
-        
-        try {
-            var offset = 0
-            while (offset < buffer.size && !shouldStop) {
-                // Handle pause during writing
-                while (shouldPause && !shouldStop) {
-                    Thread.sleep(50)
-                }
-                
-                if (shouldStop) break
-                
-                val bytesWritten = audioTrack!!.write(buffer, offset, buffer.size - offset)
-                if (bytesWritten > 0) {
-                    offset += bytesWritten
-                } else {
-                    // If write fails, wait a bit and try again
-                    Thread.sleep(1)
-                }
-            }
-        } catch (e: Exception) {
-            android.util.Log.e("MorseCodeGenerator", "Error writing to AudioTrack: ${e.message}")
         }
     }
     

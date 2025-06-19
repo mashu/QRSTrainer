@@ -51,8 +51,24 @@ class ProgressFragment : Fragment() {
     }
 
     private fun updateStatistics() {
-        // Update character statistics only (removed overall stats from UI)
+        // Update both overall and character statistics
+        updateOverallStatistics()
         updateCharacterStatistics()
+    }
+
+    private fun updateOverallStatistics() {
+        // Overall accuracy across all characters
+        val overallAccuracy = progressTracker.getOverallAccuracy()
+        binding.textOverallAccuracy.text = String.format("%.1f%%", overallAccuracy)
+        
+        // Session statistics
+        val sessionCorrect = progressTracker.sessionCorrect
+        val sessionTotal = progressTracker.sessionTotal
+        binding.textSessionStats.text = "$sessionCorrect/$sessionTotal"
+        
+        // Current streak
+        val currentStreak = progressTracker.sessionStreak
+        binding.textCurrentStreak.text = currentStreak.toString()
     }
 
     private fun updateCharacterStatistics() {

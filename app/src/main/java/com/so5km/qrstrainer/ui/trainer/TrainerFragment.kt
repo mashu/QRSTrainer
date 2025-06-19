@@ -360,7 +360,19 @@ class TrainerFragment : Fragment() {
         userInput += char
         updateAnswerDisplay()
         
-        // Check if we have enough characters
+        // Check immediately if this character is wrong
+        val currentIndex = userInput.length - 1
+        if (currentIndex < currentSequence.length) {
+            val isCorrectChar = userInput[currentIndex].equals(currentSequence[currentIndex], ignoreCase = true)
+            
+            if (!isCorrectChar) {
+                // Wrong character entered - immediately check answer (which will be marked as incorrect)
+                checkAnswer()
+                return
+            }
+        }
+        
+        // Check if we have entered the complete correct sequence
         if (userInput.length >= currentSequence.length) {
             checkAnswer()
         }
