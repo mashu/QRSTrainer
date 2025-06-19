@@ -23,8 +23,8 @@
             android:background="@drawable/character_circle"
             android:gravity="center"
             android:text="A"
-            android:textColor="@color/white"
-            android:textSize="20sp"
+            android:textColor="@color/primary_blue"
+            android:textSize="22sp"
             android:textStyle="bold" />
 
         <!-- Character Info -->
@@ -43,7 +43,8 @@
                 android:fontFamily="monospace"
                 android:text="·−"
                 android:textSize="16sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:textColor="@color/grey_800" />
 
             <TextView
                 android:id="@+id/textAccuracy"
