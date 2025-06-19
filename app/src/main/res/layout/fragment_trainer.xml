@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    tools:context=".ui.trainer.TrainerFragment">
+
+    <!-- Progress Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="16dp">
+        
+        <TextView
+            android:id="@+id/text_level"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/level_label"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+            
+        <TextView
+            android:id="@+id/text_wpm"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/wpm_label"
+            android:textSize="16sp"
+            android:gravity="center" />
+            
+        <TextView
+            android:id="@+id/text_score"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/score_label"
+            android:textSize="16sp"
+            android:gravity="end" />
+    </LinearLayout>
+
+    <!-- Progress Bar -->
+    <ProgressBar
+        android:id="@+id/progress_level"
+        style="@android:style/Widget.ProgressBar.Horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp" />
+        
+    <TextView
+        android:id="@+id/text_next_level"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/next_level_label"
+        android:textSize="12sp"
+        android:gravity="center"
+        android:layout_marginBottom="24dp" />
+
+    <!-- Training Area -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <!-- Status Display -->
+        <TextView
+            android:id="@+id/text_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/listening_prompt"
+            android:textSize="18sp"
+            android:gravity="center"
+            android:layout_marginBottom="16dp"
+            android:minHeight="48dp" />
+
+        <!-- Current Sequence Display -->
+        <TextView
+            android:id="@+id/text_current_sequence"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginBottom="16dp"
+            android:minHeight="48dp"
+            android:background="@drawable/sequence_background"
+            android:padding="12dp" />
+
+        <!-- Answer Input Display -->
+        <TextView
+            android:id="@+id/text_answer_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="20sp"
+            android:gravity="center"
+            android:layout_marginBottom="24dp"
+            android:minHeight="32dp"
+            android:text="" />
+
+    </LinearLayout>
+
+    <!-- Control Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="16dp">
+        
+        <Button
+            android:id="@+id/button_play_again"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/play_again"
+            android:layout_marginEnd="8dp" />
+            
+        <Button
+            android:id="@+id/button_next"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/next_sequence"
+            android:layout_marginStart="8dp" />
+    </LinearLayout>
+
+    <!-- Character Keyboard -->
+    <GridLayout
+        android:id="@+id/keyboard_grid"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:columnCount="8"
+        android:rowCount="6"
+        android:layout_gravity="center" />
+
+</LinearLayout> 

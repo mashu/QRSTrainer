@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mobile_navigation"
+    app:startDestination="@+id/nav_trainer">
+
+    <fragment
+        android:id="@+id/nav_trainer"
+        android:name="com.so5km.qrstrainer.ui.trainer.TrainerFragment"
+        android:label="@string/menu_trainer"
+        tools:layout="@layout/fragment_trainer" />
+
+    <fragment
+        android:id="@+id/nav_progress"
+        android:name="com.so5km.qrstrainer.ui.progress.ProgressFragment"
+        android:label="@string/menu_progress"
+        tools:layout="@layout/fragment_progress" />
+
+    <fragment
+        android:id="@+id/nav_settings"
+        android:name="com.so5km.qrstrainer.ui.settings.SettingsFragment"
+        android:label="@string/menu_settings"
+        tools:layout="@layout/fragment_settings" />
+</navigation>
