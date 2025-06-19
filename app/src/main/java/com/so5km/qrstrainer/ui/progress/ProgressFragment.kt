@@ -46,27 +46,12 @@ class ProgressFragment : Fragment() {
 
     private fun setupRecyclerView() {
         adapter = CharacterStatsAdapter()
-        binding.recyclerCharacterStats.layoutManager = LinearLayoutManager(requireContext())
-        binding.recyclerCharacterStats.adapter = adapter
+        binding.recyclerViewStats.layoutManager = LinearLayoutManager(requireContext())
+        binding.recyclerViewStats.adapter = adapter
     }
 
     private fun updateStatistics() {
-        // Update overall statistics
-        val overallAccuracy = progressTracker.getOverallAccuracy()
-        binding.textOverallAccuracy.text = getString(R.string.accuracy_label, overallAccuracy)
-        
-        val sessionCorrect = progressTracker.sessionCorrect
-        val sessionTotal = progressTracker.sessionTotal
-        val sessionStreak = progressTracker.sessionStreak
-        
-        binding.textSessionStreak.text = "Streak: $sessionStreak"
-        binding.textSessionScore.text = "Session: $sessionCorrect/$sessionTotal"
-        
-        // Calculate total attempts across all characters
-        val totalAttempts = progressTracker.characterStats.values.sumOf { it.totalAttempts }
-        binding.textTotalAttempts.text = getString(R.string.attempts_label, totalAttempts)
-        
-        // Update character statistics
+        // Update character statistics only (removed overall stats from UI)
         updateCharacterStatistics()
     }
 

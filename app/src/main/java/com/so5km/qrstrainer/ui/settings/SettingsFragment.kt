@@ -40,12 +40,11 @@ class SettingsFragment : Fragment() {
 
     private fun setupUI() {
         // Speed settings
-        binding.seekbarSpeed.min = 5
-        binding.seekbarSpeed.max = 50
-        binding.seekbarSpeed.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+        binding.seekBarSpeed.max = 35  // 5-40 WPM
+        binding.seekBarSpeed.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val speed = maxOf(5, progress)
-                binding.textSpeedValue.text = "$speed WPM"
+                val speed = progress + 5  // 5-40 WPM
+                binding.textSpeedDisplay.text = "$speed WPM"
                 if (fromUser) saveSettings()
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -53,33 +52,32 @@ class SettingsFragment : Fragment() {
         })
 
         // Level settings
-        binding.seekbarLevel.min = 1
-        binding.seekbarLevel.max = MorseCode.getMaxLevel()
-        binding.seekbarLevel.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+        binding.seekBarLevel.max = MorseCode.getMaxLevel() - 1  // 0-based
+        binding.seekBarLevel.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val level = maxOf(1, progress)
-                binding.textLevelValue.text = "Level $level"
+                val level = progress + 1  // 1-based display
+                binding.textLevelDisplay.text = "Level $level"
                 if (fromUser) saveSettings()
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
-        binding.checkboxLockLevel.setOnCheckedChangeListener { _, _ ->
+        binding.checkBoxLockLevel.setOnCheckedChangeListener { _, _ ->
             saveSettings()
         }
 
         // Group size settings
-        binding.seekbarGroupMin.min = 1
-        binding.seekbarGroupMin.max = 10
-        binding.seekbarGroupMin.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+        binding.seekBarGroupMin.max = 8  // 1-9 characters
+        binding.seekBarGroupMin.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val min = maxOf(1, progress)
-                binding.textGroupMinValue.text = min.toString()
+                val min = progress + 1  // 1-9
+                binding.textGroupMinDisplay.text = min.toString()
                 
                 // Ensure max is at least equal to min
-                if (binding.seekbarGroupMax.progress < min) {
-                    binding.seekbarGroupMax.progress = min
+                if (binding.seekBarGroupMax.progress < progress) {
+                    binding.seekBarGroupMax.progress = progress
+                    binding.textGroupMaxDisplay.text = min.toString()
                 }
                 
                 if (fromUser) saveSettings()
@@ -88,16 +86,16 @@ class SettingsFragment : Fragment() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
-        binding.seekbarGroupMax.min = 1
-        binding.seekbarGroupMax.max = 15
-        binding.seekbarGroupMax.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+        binding.seekBarGroupMax.max = 8  // 1-9 characters
+        binding.seekBarGroupMax.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val max = maxOf(1, progress)
-                binding.textGroupMaxValue.text = max.toString()
+                val max = progress + 1  // 1-9
+                binding.textGroupMaxDisplay.text = max.toString()
                 
                 // Ensure min is not greater than max
-                if (binding.seekbarGroupMin.progress > max) {
-                    binding.seekbarGroupMin.progress = max
+                if (binding.seekBarGroupMin.progress > progress) {
+                    binding.seekBarGroupMin.progress = progress
+                    binding.textGroupMinDisplay.text = max.toString()
                 }
                 
                 if (fromUser) saveSettings()
@@ -106,25 +104,13 @@ class SettingsFragment : Fragment() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
-        // Timing settings
-        binding.seekbarTimeout.min = 3
-        binding.seekbarTimeout.max = 30
-        binding.seekbarTimeout.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+        // Repeat count settings
+        binding.seekBarRepeatCount.max = 9  // 1-10 times
+        binding.seekBarRepeatCount.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val timeout = maxOf(3, progress)
-                binding.textTimeoutValue.text = "${timeout}s"
-                if (fromUser) saveSettings()
-            }
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-        })
-
-        binding.seekbarRepeat.min = 1
-        binding.seekbarRepeat.max = 5
-        binding.seekbarRepeat.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val repeat = maxOf(1, progress)
-                binding.textRepeatValue.text = "${repeat}x"
+                val repeat = progress + 1  // 1-10
+                val timesText = if (repeat == 1) "time" else "times"
+                binding.textRepeatCountDisplay.text = "$repeat $timesText"
                 if (fromUser) saveSettings()
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -132,25 +118,35 @@ class SettingsFragment : Fragment() {
         })
 
         // Repeat spacing settings
-        binding.seekbarRepeatSpacing.min = 5  // 0.5 seconds minimum
-        binding.seekbarRepeatSpacing.max = 100  // 10 seconds maximum
-        binding.seekbarRepeatSpacing.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+        binding.seekBarRepeatSpacing.max = 95  // 0.5-10 seconds
+        binding.seekBarRepeatSpacing.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val spacing = maxOf(5, progress) / 10.0  // Convert to seconds with 0.1s precision
-                binding.textRepeatSpacingValue.text = "${String.format("%.1f", spacing)}s"
+                val spacing = (progress + 5) / 10.0  // 0.5-10.0 seconds
+                binding.textRepeatSpacingDisplay.text = "${String.format("%.1f", spacing)} seconds"
                 if (fromUser) saveSettings()
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
-        // Progression settings
-        binding.seekbarRequiredCorrect.min = 1
-        binding.seekbarRequiredCorrect.max = 50
-        binding.seekbarRequiredCorrect.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+        // Answer timeout settings
+        binding.seekBarTimeout.max = 25  // 5-30 seconds
+        binding.seekBarTimeout.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val required = maxOf(1, progress)
-                binding.textRequiredCorrectValue.text = required.toString()
+                val timeout = progress + 5  // 5-30 seconds
+                binding.textTimeoutDisplay.text = "$timeout seconds"
+                if (fromUser) saveSettings()
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        // Required correct answers settings
+        binding.seekBarRequiredCorrect.max = 25  // 5-30 correct
+        binding.seekBarRequiredCorrect.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val required = progress + 5  // 5-30
+                binding.textRequiredCorrectDisplay.text = "$required correct per character"
                 if (fromUser) saveSettings()
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -164,46 +160,62 @@ class SettingsFragment : Fragment() {
     }
 
     private fun loadCurrentSettings() {
-        binding.seekbarSpeed.progress = settings.speedWpm
-        binding.textSpeedValue.text = "${settings.speedWpm} WPM"
+        // Load speed settings
+        binding.seekBarSpeed.progress = settings.speedWpm - 5  // Convert to 0-based
+        binding.textSpeedDisplay.text = "${settings.speedWpm} WPM"
         
-        binding.seekbarLevel.progress = settings.kochLevel
-        binding.textLevelValue.text = "Level ${settings.kochLevel}"
+        // Load level settings
+        binding.seekBarLevel.progress = settings.kochLevel - 1  // Convert to 0-based
+        binding.textLevelDisplay.text = "Level ${settings.kochLevel}"
         
-        binding.checkboxLockLevel.isChecked = settings.isLevelLocked
+        binding.checkBoxLockLevel.isChecked = settings.isLevelLocked
         
-        binding.seekbarGroupMin.progress = settings.groupSizeMin
-        binding.textGroupMinValue.text = settings.groupSizeMin.toString()
+        // Load group size settings
+        binding.seekBarGroupMin.progress = settings.groupSizeMin - 1  // Convert to 0-based
+        binding.textGroupMinDisplay.text = settings.groupSizeMin.toString()
         
-        binding.seekbarGroupMax.progress = settings.groupSizeMax
-        binding.textGroupMaxValue.text = settings.groupSizeMax.toString()
+        binding.seekBarGroupMax.progress = settings.groupSizeMax - 1  // Convert to 0-based
+        binding.textGroupMaxDisplay.text = settings.groupSizeMax.toString()
         
-        binding.seekbarTimeout.progress = settings.answerTimeoutSeconds
-        binding.textTimeoutValue.text = "${settings.answerTimeoutSeconds}s"
+        // Load repeat count settings
+        binding.seekBarRepeatCount.progress = settings.repeatCount - 1  // Convert to 0-based
+        val timesText = if (settings.repeatCount == 1) "time" else "times"
+        binding.textRepeatCountDisplay.text = "${settings.repeatCount} $timesText"
         
-        binding.seekbarRepeat.progress = settings.repeatCount
-        binding.textRepeatValue.text = "${settings.repeatCount}x"
+        // Load repeat spacing settings
+        val spacingSeconds = settings.repeatSpacingMs / 1000.0
+        binding.seekBarRepeatSpacing.progress = ((spacingSeconds * 10) - 5).toInt()  // Convert to 0-based
+        binding.textRepeatSpacingDisplay.text = "${String.format("%.1f", spacingSeconds)} seconds"
         
-        binding.seekbarRepeatSpacing.progress = (settings.repeatSpacingMs / 100)  // Convert from ms to deciseconds
-        binding.textRepeatSpacingValue.text = "${String.format("%.1f", settings.repeatSpacingMs / 1000.0)}s"
+        // Load timeout settings
+        binding.seekBarTimeout.progress = settings.answerTimeoutSeconds - 5  // Convert to 0-based
+        binding.textTimeoutDisplay.text = "${settings.answerTimeoutSeconds} seconds"
         
-        binding.seekbarRequiredCorrect.progress = settings.requiredCorrectToAdvance
-        binding.textRequiredCorrectValue.text = settings.requiredCorrectToAdvance.toString()
+        // Load required correct settings
+        binding.seekBarRequiredCorrect.progress = settings.requiredCorrectToAdvance - 5  // Convert to 0-based
+        binding.textRequiredCorrectDisplay.text = "${settings.requiredCorrectToAdvance} correct per character"
     }
 
     private fun saveSettings() {
-        val repeatSpacingMs = maxOf(5, binding.seekbarRepeatSpacing.progress) * 100  // Convert deciseconds to ms
+        val speed = binding.seekBarSpeed.progress + 5  // 5-40
+        val level = binding.seekBarLevel.progress + 1  // 1-40
+        val groupMin = binding.seekBarGroupMin.progress + 1  // 1-9
+        val groupMax = binding.seekBarGroupMax.progress + 1  // 1-9
+        val repeatCount = binding.seekBarRepeatCount.progress + 1  // 1-10
+        val repeatSpacingMs = ((binding.seekBarRepeatSpacing.progress + 5) * 100)  // 500-10000ms
+        val timeout = binding.seekBarTimeout.progress + 5  // 5-30
+        val requiredCorrect = binding.seekBarRequiredCorrect.progress + 5  // 5-30
         
         settings = TrainingSettings(
-            speedWpm = maxOf(5, binding.seekbarSpeed.progress),
-            kochLevel = maxOf(1, binding.seekbarLevel.progress),
-            isLevelLocked = binding.checkboxLockLevel.isChecked,
-            groupSizeMin = maxOf(1, binding.seekbarGroupMin.progress),
-            groupSizeMax = maxOf(1, binding.seekbarGroupMax.progress),
-            answerTimeoutSeconds = maxOf(3, binding.seekbarTimeout.progress),
-            repeatCount = maxOf(1, binding.seekbarRepeat.progress),
+            speedWpm = speed,
+            kochLevel = level,
+            isLevelLocked = binding.checkBoxLockLevel.isChecked,
+            groupSizeMin = groupMin,
+            groupSizeMax = groupMax,
+            answerTimeoutSeconds = timeout,
+            repeatCount = repeatCount,
             repeatSpacingMs = repeatSpacingMs,
-            requiredCorrectToAdvance = maxOf(1, binding.seekbarRequiredCorrect.progress)
+            requiredCorrectToAdvance = requiredCorrect
         )
         
         settings.save(requireContext())
@@ -211,13 +223,18 @@ class SettingsFragment : Fragment() {
 
     private fun showResetConfirmation() {
         AlertDialog.Builder(requireContext())
-            .setTitle(getString(R.string.settings_reset_progress))
-            .setMessage(getString(R.string.settings_reset_confirmation))
-            .setPositiveButton(android.R.string.yes) { _, _ ->
+            .setTitle("Reset All Progress")
+            .setMessage("Are you sure you want to reset all training progress? This cannot be undone.")
+            .setPositiveButton("Yes, Reset") { _, _ ->
                 progressTracker.resetProgress()
-                // Optionally show a confirmation message
+                // Show success message
+                AlertDialog.Builder(requireContext())
+                    .setTitle("Progress Reset")
+                    .setMessage("All training progress has been reset successfully.")
+                    .setPositiveButton("OK", null)
+                    .show()
             }
-            .setNegativeButton(android.R.string.no, null)
+            .setNegativeButton("Cancel", null)
             .show()
     }
 

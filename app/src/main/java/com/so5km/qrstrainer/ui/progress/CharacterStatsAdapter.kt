@@ -5,6 +5,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.so5km.qrstrainer.R
 import com.so5km.qrstrainer.data.CharacterStats
+import com.so5km.qrstrainer.data.MorseCode
 import com.so5km.qrstrainer.databinding.ItemCharacterStatBinding
 
 class CharacterStatsAdapter : RecyclerView.Adapter<CharacterStatsAdapter.ViewHolder>() {
@@ -14,34 +15,10 @@ class CharacterStatsAdapter : RecyclerView.Adapter<CharacterStatsAdapter.ViewHol
     class ViewHolder(private val binding: ItemCharacterStatBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(stats: CharacterStats) {
             binding.textCharacter.text = stats.character.toString()
-            binding.textAccuracy.text = binding.root.context.getString(
-                R.string.accuracy_label, 
-                stats.accuracy
-            )
-            binding.textCorrect.text = binding.root.context.getString(
-                R.string.correct_label, 
-                stats.correctCount
-            )
-            binding.textIncorrect.text = binding.root.context.getString(
-                R.string.incorrect_label, 
-                stats.incorrectCount
-            )
-            binding.textWeight.text = "Weight: ${"%.1f".format(stats.weight)}"
-            
-            // Set progress bar
-            binding.progressAccuracy.progress = stats.accuracy.toInt()
-            
-            // Color coding based on accuracy
-            val backgroundColor = when {
-                stats.totalAttempts == 0 -> "#EEEEEE"
-                stats.accuracy >= 90 -> "#C8E6C9" // Light green
-                stats.accuracy >= 70 -> "#FFF9C4" // Light yellow
-                else -> "#FFCDD2" // Light red
-            }
-            
-            binding.textCharacter.setBackgroundColor(
-                android.graphics.Color.parseColor(backgroundColor)
-            )
+            binding.textMorsePattern.text = MorseCode.getPattern(stats.character)
+            binding.textAccuracy.text = "Accuracy: ${String.format("%.1f", stats.accuracy)}%"
+            binding.textCorrectCount.text = "✓ ${stats.correctCount}"
+            binding.textIncorrectCount.text = "✗ ${stats.incorrectCount}"
         }
     }
 

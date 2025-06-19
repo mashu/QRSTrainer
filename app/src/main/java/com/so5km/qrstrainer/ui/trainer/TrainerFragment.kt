@@ -123,13 +123,13 @@ class TrainerFragment : Fragment() {
         val requiredCorrect = settings.requiredCorrectToAdvance
         
         // Update level and WPM display
-        binding.textLevel.text = getString(R.string.level_label, currentLevel)
-        binding.textWpm.text = getString(R.string.wpm_label, settings.speedWpm)
+        binding.textLevel.text = "Level $currentLevel"
+        binding.textWpm.text = "${settings.speedWpm} WPM"
         
         // Update score display
         val sessionCorrect = progressTracker.sessionCorrect
         val sessionTotal = progressTracker.sessionTotal
-        binding.textScore.text = getString(R.string.score_label, sessionCorrect, sessionTotal)
+        binding.textScore.text = "Score: $sessionCorrect/$sessionTotal"
         
         // Update progress bar for level advancement
         val characters = MorseCode.getCharactersForLevel(currentLevel)
@@ -141,7 +141,7 @@ class TrainerFragment : Fragment() {
         binding.progressLevel.progress = minCorrectCount
         
         val remaining = maxOf(0, requiredCorrect - minCorrectCount)
-        binding.textNextLevel.text = getString(R.string.next_level_label, remaining)
+        binding.textNextLevel.text = if (remaining > 0) "$remaining more correct to advance" else "Ready to advance!"
     }
 
     private fun createKeyboard() {
@@ -156,21 +156,30 @@ class TrainerFragment : Fragment() {
                 text = char.toString()
                 layoutParams = GridLayout.LayoutParams().apply {
                     width = 0
-                    height = ViewGroup.LayoutParams.WRAP_CONTENT
+                    height = 80  // More compact height
                     columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
-                    setMargins(4, 4, 4, 4)
+                    setMargins(3, 3, 3, 3)
                 }
                 
+                // Apply modern styling
+                textSize = 16f
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                
                 if (char in availableChars) {
-                    // Available character
+                    // Available character - modern blue styling
+                    background = ContextCompat.getDrawable(requireContext(), R.drawable.button_keyboard_selector)
+                    setTextColor(ContextCompat.getColor(requireContext(), R.color.keyboard_text_available))
                     setOnClickListener { onCharacterPressed(char) }
                     alpha = 1.0f
                     isEnabled = true
+                    elevation = 4f
                 } else {
-                    // Unavailable character (greyed out)
-                    alpha = 0.3f
+                    // Unavailable character - disabled styling
+                    background = ContextCompat.getDrawable(requireContext(), R.drawable.button_keyboard_selector)
+                    setTextColor(ContextCompat.getColor(requireContext(), R.color.keyboard_text_disabled))
+                    alpha = 0.6f
                     isEnabled = false
-                    setBackgroundColor(ContextCompat.getColor(requireContext(), android.R.color.darker_gray))
+                    elevation = 0f
                 }
             }
             

@@ -4,6 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/background_light"
+    android:fillViewport="true"
     tools:context=".ui.settings.SettingsFragment">
 
     <LinearLayout
@@ -12,273 +14,365 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- Speed Settings -->
-        <TextView
+        <!-- Training Settings Card -->
+        <androidx.cardview.widget.CardView
+            style="@style/Card.Modern"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/settings_speed"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="24dp">
-
-            <SeekBar
-                android:id="@+id/seekbar_speed"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:max="50"
-                android:progress="20" />
-
-            <TextView
-                android:id="@+id/text_speed_value"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="20 WPM"
-                android:layout_marginStart="16dp"
-                android:minWidth="70dp" />
-        </LinearLayout>
-
-        <!-- Level Settings -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/settings_level"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="8dp">
-
-            <SeekBar
-                android:id="@+id/seekbar_level"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:max="40"
-                android:progress="2" />
-
-            <TextView
-                android:id="@+id/text_level_value"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Level 2"
-                android:layout_marginStart="16dp"
-                android:minWidth="70dp" />
-        </LinearLayout>
-
-        <CheckBox
-            android:id="@+id/checkbox_lock_level"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/settings_lock_level"
-            android:layout_marginBottom="24dp" />
-
-        <!-- Group Size Settings -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/settings_group_size_min"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
             android:layout_marginBottom="16dp">
 
-            <SeekBar
-                android:id="@+id/seekbar_group_min"
-                android:layout_width="0dp"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:max="10"
-                android:progress="1" />
+                android:orientation="vertical"
+                android:padding="20dp">
 
-            <TextView
-                android:id="@+id/text_group_min_value"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="1"
-                android:layout_marginStart="16dp"
-                android:minWidth="70dp" />
-        </LinearLayout>
+                <TextView
+                    style="@style/Text.Title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:drawableStart="@drawable/ic_menu_slideshow"
+                    android:drawablePadding="12dp"
+                    android:text="Training Settings"
+                    android:textSize="20sp" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/settings_group_size_max"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
+                <!-- Speed Settings -->
+                <TextView
+                    style="@style/Text.Subtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="Speed (WPM)"
+                    android:textSize="16sp" />
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="24dp">
+                <SeekBar
+                    android:id="@+id/seekBarSpeed"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:max="35"
+                    android:progress="10"
+                    android:progressTint="@color/primary_blue"
+                    android:thumbTint="@color/primary_blue" />
 
-            <SeekBar
-                android:id="@+id/seekbar_group_max"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:max="15"
-                android:progress="5" />
+                <TextView
+                    android:id="@+id/textSpeedDisplay"
+                    style="@style/Text.Caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginBottom="24dp"
+                    android:text="15 WPM"
+                    android:textSize="14sp" />
 
-            <TextView
-                android:id="@+id/text_group_max_value"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="5"
-                android:layout_marginStart="16dp"
-                android:minWidth="70dp" />
-        </LinearLayout>
+                <!-- Koch Level Settings -->
+                <TextView
+                    style="@style/Text.Subtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="Koch Training Level"
+                    android:textSize="16sp" />
 
-        <!-- Timing Settings -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/settings_answer_timeout"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
+                <SeekBar
+                    android:id="@+id/seekBarLevel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:max="39"
+                    android:progress="0"
+                    android:progressTint="@color/secondary_purple"
+                    android:thumbTint="@color/secondary_purple" />
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="16dp">
+                <TextView
+                    android:id="@+id/textLevelDisplay"
+                    style="@style/Text.Caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginBottom="16dp"
+                    android:text="Level 1"
+                    android:textSize="14sp" />
 
-            <SeekBar
-                android:id="@+id/seekbar_timeout"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:max="30"
-                android:progress="10" />
+                <CheckBox
+                    android:id="@+id/checkBoxLockLevel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="24dp"
+                    android:buttonTint="@color/primary_blue"
+                    android:text="Lock level (prevent auto-advance)"
+                    android:textColor="@color/grey_800"
+                    android:textSize="14sp" />
 
-            <TextView
-                android:id="@+id/text_timeout_value"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="10s"
-                android:layout_marginStart="16dp"
-                android:minWidth="70dp" />
-        </LinearLayout>
+                <!-- Group Size Settings -->
+                <TextView
+                    style="@style/Text.Subtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:text="Sequence Length"
+                    android:textSize="16sp" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/settings_repeat_count"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="24dp">
-
-            <SeekBar
-                android:id="@+id/seekbar_repeat"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:max="5"
-                android:progress="2" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:orientation="horizontal">
 
                     <TextView
-            android:id="@+id/text_repeat_value"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="2x"
-            android:layout_marginStart="16dp"
-            android:minWidth="70dp" />
-        </LinearLayout>
+                        style="@style/Text.Body"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical"
+                        android:text="Min: "
+                        android:textSize="14sp" />
 
-        <TextView
+                    <SeekBar
+                        android:id="@+id/seekBarGroupMin"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:max="8"
+                        android:progress="2"
+                        android:progressTint="@color/accent_orange"
+                        android:thumbTint="@color/accent_orange" />
+
+                    <TextView
+                        android:id="@+id/textGroupMinDisplay"
+                        style="@style/Text.Body"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical"
+                        android:layout_marginStart="8dp"
+                        android:minWidth="32dp"
+                        android:text="3"
+                        android:textAlignment="center"
+                        android:textSize="14sp" />
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="24dp"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        style="@style/Text.Body"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical"
+                        android:text="Max: "
+                        android:textSize="14sp" />
+
+                    <SeekBar
+                        android:id="@+id/seekBarGroupMax"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:max="8"
+                        android:progress="4"
+                        android:progressTint="@color/accent_orange"
+                        android:thumbTint="@color/accent_orange" />
+
+                    <TextView
+                        android:id="@+id/textGroupMaxDisplay"
+                        style="@style/Text.Body"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical"
+                        android:layout_marginStart="8dp"
+                        android:minWidth="32dp"
+                        android:text="5"
+                        android:textAlignment="center"
+                        android:textSize="14sp" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </androidx.cardview.widget.CardView>
+
+        <!-- Audio Settings Card -->
+        <androidx.cardview.widget.CardView
+            style="@style/Card.Modern"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/settings_repeat_spacing"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
+            android:layout_marginBottom="16dp">
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="24dp">
-
-            <SeekBar
-                android:id="@+id/seekbar_repeat_spacing"
-                android:layout_width="0dp"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:max="10"
-                android:progress="2" />
+                android:orientation="vertical"
+                android:padding="20dp">
 
-            <TextView
-                android:id="@+id/text_repeat_spacing_value"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="2.0s"
-                android:layout_marginStart="16dp"
-                android:minWidth="70dp" />
-        </LinearLayout>
+                <TextView
+                    style="@style/Text.Title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:drawableStart="@drawable/ic_menu_camera"
+                    android:drawablePadding="12dp"
+                    android:text="Audio Settings"
+                    android:textSize="20sp" />
 
-        <!-- Progression Settings -->
-        <TextView
+                <!-- Repeat Count -->
+                <TextView
+                    style="@style/Text.Subtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="Repeat Count"
+                    android:textSize="16sp" />
+
+                <SeekBar
+                    android:id="@+id/seekBarRepeatCount"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:max="9"
+                    android:progress="2"
+                    android:progressTint="@color/accent_cyan"
+                    android:thumbTint="@color/accent_cyan" />
+
+                <TextView
+                    android:id="@+id/textRepeatCountDisplay"
+                    style="@style/Text.Caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginBottom="24dp"
+                    android:text="3 times"
+                    android:textSize="14sp" />
+
+                <!-- Repeat Spacing -->
+                <TextView
+                    style="@style/Text.Subtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="Spacing Between Repeats"
+                    android:textSize="16sp" />
+
+                <SeekBar
+                    android:id="@+id/seekBarRepeatSpacing"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:max="95"
+                    android:progress="25"
+                    android:progressTint="@color/accent_cyan"
+                    android:thumbTint="@color/accent_cyan" />
+
+                <TextView
+                    android:id="@+id/textRepeatSpacingDisplay"
+                    style="@style/Text.Caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginBottom="24dp"
+                    android:text="3.0 seconds"
+                    android:textSize="14sp" />
+
+                <!-- Answer Timeout -->
+                <TextView
+                    style="@style/Text.Subtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="Answer Timeout"
+                    android:textSize="16sp" />
+
+                <SeekBar
+                    android:id="@+id/seekBarTimeout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:max="25"
+                    android:progress="5"
+                    android:progressTint="@color/accent_green"
+                    android:thumbTint="@color/accent_green" />
+
+                <TextView
+                    android:id="@+id/textTimeoutDisplay"
+                    style="@style/Text.Caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginBottom="24dp"
+                    android:text="10 seconds"
+                    android:textSize="14sp" />
+
+            </LinearLayout>
+
+        </androidx.cardview.widget.CardView>
+
+        <!-- Progress Settings Card -->
+        <androidx.cardview.widget.CardView
+            style="@style/Card.Modern"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/settings_required_correct"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
+            android:layout_marginBottom="16dp">
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="32dp">
-
-            <SeekBar
-                android:id="@+id/seekbar_required_correct"
-                android:layout_width="0dp"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:max="50"
-                android:progress="10" />
+                android:orientation="vertical"
+                android:padding="20dp">
 
-            <TextView
-                android:id="@+id/text_required_correct_value"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="10"
-                android:layout_marginStart="16dp"
-                android:minWidth="70dp" />
-        </LinearLayout>
+                <TextView
+                    style="@style/Text.Title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:drawableStart="@drawable/ic_menu_gallery"
+                    android:drawablePadding="12dp"
+                    android:text="Progress Settings"
+                    android:textSize="20sp" />
 
-        <!-- Reset Progress -->
-        <Button
-            android:id="@+id/button_reset_progress"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/settings_reset_progress"
-            android:layout_marginTop="16dp" />
+                <!-- Required Correct Answers -->
+                <TextView
+                    style="@style/Text.Subtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="Correct Answers to Advance"
+                    android:textSize="16sp" />
+
+                <SeekBar
+                    android:id="@+id/seekBarRequiredCorrect"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:max="25"
+                    android:progress="5"
+                    android:progressTint="@color/accent_green"
+                    android:thumbTint="@color/accent_green" />
+
+                <TextView
+                    android:id="@+id/textRequiredCorrectDisplay"
+                    style="@style/Text.Caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginBottom="24dp"
+                    android:text="10 correct per character"
+                    android:textSize="14sp" />
+
+                <!-- Reset Progress Button -->
+                <Button
+                    android:id="@+id/buttonResetProgress"
+                    style="@style/Button.Accent"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="Reset All Progress"
+                    android:textSize="16sp" />
+
+            </LinearLayout>
+
+        </androidx.cardview.widget.CardView>
 
     </LinearLayout>
+
 </ScrollView> 
