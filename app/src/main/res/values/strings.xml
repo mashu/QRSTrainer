@@ -16,8 +16,8 @@
     <string name="wpm_label">Speed: %1$d WPM</string>
     <string name="score_label">Score: %1$d/%2$d</string>
     <string name="next_level_label">Next Level: %1$d correct</string>
-    <string name="listening_prompt">Listen and type the character...</string>
-    <string name="playing_status">Playing...</string>
+    <string name="listening_prompt">Listen and type the characters...</string>
+    <string name="playing_status">Playing... (you can start typing)</string>
     <string name="correct_answer">Correct!</string>
     <string name="incorrect_answer">Incorrect. The answer was: %1$s</string>
     <string name="timeout_answer">Time\'s up! The answer was: %1$s</string>

@@ -32,6 +32,7 @@ class TrainerFragment : Fragment() {
     private var currentSequence: String = ""
     private var userInput: String = ""
     private var isWaitingForAnswer = false
+    private var isAudioPlaying = false
     private var timeoutHandler: Handler? = null
     private var timeoutRunnable: Runnable? = null
 
@@ -133,7 +134,8 @@ class TrainerFragment : Fragment() {
     }
 
     private fun onCharacterPressed(char: Char) {
-        if (!isWaitingForAnswer) return
+        // Allow input during audio playback and while waiting for answer
+        if (!isWaitingForAnswer && !isAudioPlaying) return
         
         userInput += char
         binding.textAnswerInput.text = userInput
@@ -168,6 +170,7 @@ class TrainerFragment : Fragment() {
     private fun resetInputState() {
         userInput = ""
         isWaitingForAnswer = false
+        isAudioPlaying = false
         binding.textAnswerInput.text = ""
         binding.textCurrentSequence.text = "?"
         binding.textStatus.text = getString(R.string.listening_prompt)
@@ -179,8 +182,12 @@ class TrainerFragment : Fragment() {
         
         // Update UI state
         binding.textStatus.text = getString(R.string.playing_status)
-        isWaitingForAnswer = false
-        updateButtonStates(false)
+        isAudioPlaying = true
+        isWaitingForAnswer = true  // Allow input immediately when playback starts
+        updateControlButtonStates()
+        
+        // Start answer timeout immediately when playback begins
+        startAnswerTimeout()
         
         morseGenerator.playSequence(
             currentSequence,
@@ -190,27 +197,34 @@ class TrainerFragment : Fragment() {
             // On playback complete
             Handler(Looper.getMainLooper()).post {
                 if (!isDetached && _binding != null) {
-                    isWaitingForAnswer = true
+                    isAudioPlaying = false
+                    // Keep isWaitingForAnswer = true so user can still input after audio ends
                     binding.textStatus.text = getString(R.string.listening_prompt)
-                    updateButtonStates(true)
-                    startAnswerTimeout()
+                    updateControlButtonStates()
+                    // Don't restart timeout here - it already started when playback began
                 }
             }
         }
     }
 
-    private fun updateButtonStates(enabled: Boolean) {
-        binding.buttonPlayAgain.isEnabled = enabled
-        binding.buttonNext.isEnabled = enabled
+    private fun updateControlButtonStates() {
+        // Only disable control buttons during audio playback, keep keyboard enabled
+        val buttonsEnabled = !isAudioPlaying
         
-        // Also update button text to indicate state
-        if (enabled) {
+        binding.buttonPlayAgain.isEnabled = buttonsEnabled
+        binding.buttonNext.isEnabled = buttonsEnabled
+        
+        // Update button text to indicate state
+        if (buttonsEnabled) {
             binding.buttonPlayAgain.text = getString(R.string.play_again)
             binding.buttonNext.text = getString(R.string.next_sequence)
         } else {
             binding.buttonPlayAgain.text = getString(R.string.playing_button)
             binding.buttonNext.text = getString(R.string.playing_button)
         }
+        
+        // Keyboard stays enabled - users can type during and after audio playback
+        // No need to disable keyboard buttons
     }
 
     private fun startAnswerTimeout() {
@@ -235,7 +249,12 @@ class TrainerFragment : Fragment() {
     private fun checkAnswer() {
         cancelTimeout()
         isWaitingForAnswer = false
-        updateButtonStates(true)
+        isAudioPlaying = false  // Make sure we're not in playing state
+        
+        // Stop any ongoing audio since user has submitted answer
+        morseGenerator.stop()
+        
+        updateControlButtonStates()
         
         val isCorrect = userInput.equals(currentSequence, ignoreCase = true)
         
@@ -273,7 +292,12 @@ class TrainerFragment : Fragment() {
 
     private fun handleTimeout() {
         isWaitingForAnswer = false
-        updateButtonStates(true)
+        isAudioPlaying = false
+        
+        // Stop any ongoing audio
+        morseGenerator.stop()
+        
+        updateControlButtonStates()
         
         // Record incorrect for unanswered characters
         currentSequence.forEach { char ->

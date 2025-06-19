@@ -42,11 +42,12 @@ A comprehensive Android application for learning Morse code using the Koch metho
 ## How to Use
 
 1. **Start Training**: Open the app and navigate to the "Trainer" section
-2. **Listen**: Audio plays automatically with the configured repeat count
-3. **Input**: Use the on-screen keyboard to enter the characters you heard
-4. **Progress**: Correct answers advance your progress toward the next level
-5. **Review**: Check the "Progress" section to see detailed statistics
-6. **Configure**: Adjust settings in the "Settings" section to customize your experience
+2. **Listen & Type**: Audio plays automatically - you can start typing immediately as you recognize characters
+3. **Real-time Input**: Use the on-screen keyboard during or after audio playback
+4. **Submit**: Answer is checked automatically when you've entered enough characters
+5. **Progress**: Correct answers advance your progress toward the next level
+6. **Review**: Check the "Progress" section to see detailed statistics
+7. **Configure**: Adjust settings in the "Settings" section to customize your experience
 
 ## Koch Method Sequence
 
