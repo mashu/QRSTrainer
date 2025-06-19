@@ -7,15 +7,16 @@ import android.content.SharedPreferences
  * Training settings for the Morse code trainer
  */
 data class TrainingSettings(
-    val speedWpm: Int = 20,                    // Words per minute
+    val speedWpm: Int = 25,                    // Words per minute (updated default for new range)
     val kochLevel: Int = 2,                    // Current Koch level (1-based)
     val isLevelLocked: Boolean = false,        // Whether to lock at current level
     val groupSizeMin: Int = 1,                 // Minimum group size
     val groupSizeMax: Int = 5,                 // Maximum group size
-    val answerTimeoutSeconds: Int = 10,        // Timeout for answers
-    val repeatCount: Int = 2,                  // How many times to repeat
-    val repeatSpacingMs: Int = 2000,           // Milliseconds between repeats
-    val requiredCorrectToAdvance: Int = 10,    // Required correct answers to advance level
+    val answerTimeoutSeconds: Int = 3,         // Timeout for answers (much shorter default)
+    val repeatCount: Int = 1,                  // How many times to repeat (faster default)
+    val repeatSpacingMs: Int = 0,              // Milliseconds between repeats (no delay default)
+    val requiredCorrectToAdvance: Int = 3,     // Required correct answers to advance level (faster progression)
+    val sequenceDelayMs: Int = 0,              // Delay between sequences after answering (immediate default)
     
     // New audio settings
     val toneFrequencyHz: Int = 600,            // Tone frequency in Hz (300-1000)
@@ -34,6 +35,7 @@ data class TrainingSettings(
         private const val KEY_REPEAT_COUNT = "repeat_count"
         private const val KEY_REPEAT_SPACING = "repeat_spacing"
         private const val KEY_REQUIRED_CORRECT = "required_correct"
+        private const val KEY_SEQUENCE_DELAY = "sequence_delay"
         
         // New keys for audio settings
         private const val KEY_TONE_FREQUENCY = "tone_frequency"
@@ -47,15 +49,16 @@ data class TrainingSettings(
         fun load(context: Context): TrainingSettings {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             return TrainingSettings(
-                speedWpm = prefs.getInt(KEY_SPEED_WPM, 20),
+                speedWpm = prefs.getInt(KEY_SPEED_WPM, 25),
                 kochLevel = prefs.getInt(KEY_KOCH_LEVEL, 2),
                 isLevelLocked = prefs.getBoolean(KEY_LEVEL_LOCKED, false),
                 groupSizeMin = prefs.getInt(KEY_GROUP_SIZE_MIN, 1),
                 groupSizeMax = prefs.getInt(KEY_GROUP_SIZE_MAX, 5),
-                answerTimeoutSeconds = prefs.getInt(KEY_ANSWER_TIMEOUT, 10),
-                repeatCount = prefs.getInt(KEY_REPEAT_COUNT, 2),
-                repeatSpacingMs = prefs.getInt(KEY_REPEAT_SPACING, 2000),
-                requiredCorrectToAdvance = prefs.getInt(KEY_REQUIRED_CORRECT, 10),
+                answerTimeoutSeconds = prefs.getInt(KEY_ANSWER_TIMEOUT, 3),
+                repeatCount = prefs.getInt(KEY_REPEAT_COUNT, 1),
+                repeatSpacingMs = prefs.getInt(KEY_REPEAT_SPACING, 0),
+                requiredCorrectToAdvance = prefs.getInt(KEY_REQUIRED_CORRECT, 3),
+                sequenceDelayMs = prefs.getInt(KEY_SEQUENCE_DELAY, 0),
                 
                 // New audio settings
                 toneFrequencyHz = prefs.getInt(KEY_TONE_FREQUENCY, 600),
@@ -81,6 +84,7 @@ data class TrainingSettings(
             putInt(KEY_REPEAT_COUNT, repeatCount)
             putInt(KEY_REPEAT_SPACING, repeatSpacingMs)
             putInt(KEY_REQUIRED_CORRECT, requiredCorrectToAdvance)
+            putInt(KEY_SEQUENCE_DELAY, sequenceDelayMs)
             
             // New audio settings
             putInt(KEY_TONE_FREQUENCY, toneFrequencyHz)

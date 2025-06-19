@@ -39,11 +39,11 @@ class SettingsFragment : Fragment() {
     }
 
     private fun setupUI() {
-        // Speed settings
-        binding.seekBarSpeed.max = 35  // 5-40 WPM
+        // Speed settings (increased range for faster training)
+        binding.seekBarSpeed.max = 55  // 10-65 WPM
         binding.seekBarSpeed.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val speed = progress + 5  // 5-40 WPM
+                val speed = progress + 10  // 10-65 WPM (much faster minimum)
                 binding.textSpeedDisplay.text = "$speed WPM"
                 if (fromUser) saveSettings()
             }
@@ -117,11 +117,11 @@ class SettingsFragment : Fragment() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
-        // Repeat spacing settings
-        binding.seekBarRepeatSpacing.max = 95  // 0.5-10 seconds
+        // Repeat spacing settings (reduced minimum from 0.5s to 0.0s)
+        binding.seekBarRepeatSpacing.max = 100  // 0-10 seconds
         binding.seekBarRepeatSpacing.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val spacing = (progress + 5) / 10.0  // 0.5-10.0 seconds
+                val spacing = progress / 10.0  // 0.0-10.0 seconds
                 binding.textRepeatSpacingDisplay.text = "${String.format("%.1f", spacing)} seconds"
                 if (fromUser) saveSettings()
             }
@@ -129,11 +129,11 @@ class SettingsFragment : Fragment() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
-        // Answer timeout settings
-        binding.seekBarTimeout.max = 25  // 5-30 seconds
+        // Answer timeout settings (much faster for rapid training)
+        binding.seekBarTimeout.max = 30  // 1-31 seconds
         binding.seekBarTimeout.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val timeout = progress + 5  // 5-30 seconds
+                val timeout = progress + 1  // 1-31 seconds (minimum 1s for rapid training!)
                 binding.textTimeoutDisplay.text = "$timeout seconds"
                 if (fromUser) saveSettings()
             }
@@ -141,12 +141,25 @@ class SettingsFragment : Fragment() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
-        // Required correct answers settings
-        binding.seekBarRequiredCorrect.max = 25  // 5-30 correct
+        // Required correct answers settings (allow much lower for faster progression)
+        binding.seekBarRequiredCorrect.max = 29  // 1-30 correct
         binding.seekBarRequiredCorrect.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val required = progress + 5  // 5-30
+                val required = progress + 1  // 1-30 (minimum 1 for fastest progression!)
                 binding.textRequiredCorrectDisplay.text = "$required correct per character"
+                if (fromUser) saveSettings()
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        // Sequence delay settings (0-5 seconds)
+        binding.seekBarSequenceDelay.max = 50  // 0-5 seconds
+        binding.seekBarSequenceDelay.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val delay = progress / 10.0  // 0.0-5.0 seconds
+                val displayText = if (delay == 0.0) "No delay (immediate)" else "${String.format("%.1f", delay)} seconds"
+                binding.textSequenceDelayDisplay.text = displayText
                 if (fromUser) saveSettings()
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -211,7 +224,7 @@ class SettingsFragment : Fragment() {
 
     private fun loadCurrentSettings() {
         // Load speed settings
-        binding.seekBarSpeed.progress = settings.speedWpm - 5  // Convert to 0-based
+        binding.seekBarSpeed.progress = settings.speedWpm - 10  // Convert to 0-based (updated for new range)
         binding.textSpeedDisplay.text = "${settings.speedWpm} WPM"
         
         // Load level settings
@@ -234,16 +247,22 @@ class SettingsFragment : Fragment() {
         
         // Load repeat spacing settings
         val spacingSeconds = settings.repeatSpacingMs / 1000.0
-        binding.seekBarRepeatSpacing.progress = ((spacingSeconds * 10) - 5).toInt()  // Convert to 0-based
+        binding.seekBarRepeatSpacing.progress = (spacingSeconds * 10).toInt()  // Convert to 0-based (updated for new range)
         binding.textRepeatSpacingDisplay.text = "${String.format("%.1f", spacingSeconds)} seconds"
         
         // Load timeout settings
-        binding.seekBarTimeout.progress = settings.answerTimeoutSeconds - 5  // Convert to 0-based
+        binding.seekBarTimeout.progress = settings.answerTimeoutSeconds - 1  // Convert to 0-based (updated for new range)
         binding.textTimeoutDisplay.text = "${settings.answerTimeoutSeconds} seconds"
         
         // Load required correct settings
-        binding.seekBarRequiredCorrect.progress = settings.requiredCorrectToAdvance - 5  // Convert to 0-based
+        binding.seekBarRequiredCorrect.progress = settings.requiredCorrectToAdvance - 1  // Convert to 0-based (updated for new range)
         binding.textRequiredCorrectDisplay.text = "${settings.requiredCorrectToAdvance} correct per character"
+        
+        // Load sequence delay settings
+        val delaySeconds = settings.sequenceDelayMs / 1000.0
+        binding.seekBarSequenceDelay.progress = (delaySeconds * 10).toInt()  // Convert to 0-based
+        val delayDisplayText = if (delaySeconds == 0.0) "No delay (immediate)" else "${String.format("%.1f", delaySeconds)} seconds"
+        binding.textSequenceDelayDisplay.text = delayDisplayText
         
         // Load new audio settings
         // Tone frequency (300-1000 Hz)
@@ -265,14 +284,15 @@ class SettingsFragment : Fragment() {
     }
 
     private fun saveSettings() {
-        val speed = binding.seekBarSpeed.progress + 5  // 5-40
+        val speed = binding.seekBarSpeed.progress + 10  // 10-65 (updated for new range)
         val level = binding.seekBarLevel.progress + 1  // 1-40
         val groupMin = binding.seekBarGroupMin.progress + 1  // 1-9
         val groupMax = binding.seekBarGroupMax.progress + 1  // 1-9
         val repeatCount = binding.seekBarRepeatCount.progress + 1  // 1-10
-        val repeatSpacingMs = ((binding.seekBarRepeatSpacing.progress + 5) * 100)  // 500-10000ms
-        val timeout = binding.seekBarTimeout.progress + 5  // 5-30
-        val requiredCorrect = binding.seekBarRequiredCorrect.progress + 5  // 5-30
+        val repeatSpacingMs = (binding.seekBarRepeatSpacing.progress * 100)  // 0-10000ms (updated for new range)
+        val timeout = binding.seekBarTimeout.progress + 1  // 1-31 (updated for new range)
+        val requiredCorrect = binding.seekBarRequiredCorrect.progress + 1  // 1-30 (updated for new range)
+        val sequenceDelayMs = (binding.seekBarSequenceDelay.progress * 100)  // 0-5000ms
         
         settings = TrainingSettings(
             speedWpm = speed,
@@ -284,6 +304,7 @@ class SettingsFragment : Fragment() {
             repeatCount = repeatCount,
             repeatSpacingMs = repeatSpacingMs,
             requiredCorrectToAdvance = requiredCorrect,
+            sequenceDelayMs = sequenceDelayMs,
             
             // Keep existing audio settings values for now
             // These will be configurable when UI is added

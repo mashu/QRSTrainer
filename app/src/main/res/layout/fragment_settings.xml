@@ -476,6 +476,35 @@
                     android:text="10 correct per character"
                     android:textSize="14sp" />
 
+                <!-- Sequence Delay -->
+                <TextView
+                    style="@style/Text.Subtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="Delay Between Sequences"
+                    android:textSize="16sp" />
+
+                <SeekBar
+                    android:id="@+id/seekBarSequenceDelay"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:max="50"
+                    android:progress="10"
+                    android:progressTint="@color/secondary_purple"
+                    android:thumbTint="@color/secondary_purple" />
+
+                <TextView
+                    android:id="@+id/textSequenceDelayDisplay"
+                    style="@style/Text.Caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginBottom="24dp"
+                    android:text="1.0 seconds"
+                    android:textSize="14sp" />
+
                 <!-- Reset Progress Button -->
                 <Button
                     android:id="@+id/buttonResetProgress"

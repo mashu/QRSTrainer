@@ -596,7 +596,8 @@ class TrainerFragment : Fragment() {
             updateUIState()
             
             // Use different delay if level advanced to give user time to see the advancement
-            val delay = if (levelAdvanced) 3000L else 2000L
+            val baseDelay = settings.sequenceDelayMs.toLong()
+            val delay = if (levelAdvanced) maxOf(baseDelay, 2000L) else baseDelay // Minimum 2s for level advancement
             scheduleNextSequence(delay)
             
         } else {
@@ -611,7 +612,7 @@ class TrainerFragment : Fragment() {
             updateProgressDisplay()
             updateUIState()
             
-            scheduleNextSequence(2000L)
+            scheduleNextSequence(settings.sequenceDelayMs.toLong())
         }
     }
 
@@ -641,8 +642,9 @@ class TrainerFragment : Fragment() {
         updateProgressDisplay()
         updateUIState()
         
-        // Schedule next sequence
-        scheduleNextSequence(3000L)
+        // Schedule next sequence (timeout gets longer delay)
+        val timeoutDelay = maxOf(settings.sequenceDelayMs.toLong(), 2000L) // Minimum 2s for timeout
+        scheduleNextSequence(timeoutDelay)
     }
 
     private fun checkLevelAdvancement(): Boolean {
@@ -684,12 +686,19 @@ class TrainerFragment : Fragment() {
         // Cancel any existing scheduled sequence
         timeoutHandler?.removeCallbacksAndMessages(null)
         
-        // Schedule next sequence
-        Handler(Looper.getMainLooper()).postDelayed({
+        if (delayMs == 0L) {
+            // No delay - start immediately
             if (!isDetached && _binding != null && currentState == TrainingState.FINISHED) {
                 startNewSequence()
             }
-        }, delayMs)
+        } else {
+            // Schedule next sequence with delay
+            Handler(Looper.getMainLooper()).postDelayed({
+                if (!isDetached && _binding != null && currentState == TrainingState.FINISHED) {
+                    startNewSequence()
+                }
+            }, delayMs)
+        }
     }
 
     override fun onDestroyView() {
