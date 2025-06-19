@@ -105,7 +105,7 @@ class TrainerFragment : Fragment() {
     private fun initializeComponents() {
         progressTracker = ProgressTracker(requireContext())
         sequenceGenerator = SequenceGenerator(progressTracker)
-        morseGenerator = MorseCodeGenerator()
+        morseGenerator = MorseCodeGenerator(requireContext())
         settings = TrainingSettings.load(requireContext())
     }
 
@@ -214,41 +214,47 @@ class TrainerFragment : Fragment() {
 
     private fun createKeyboard() {
         val availableChars = MorseCode.getCharactersForLevel(settings.kochLevel)
-        val allKochChars = MorseCode.KOCH_SEQUENCE
+        
+        // Debug: Log what characters we're trying to create
+        android.util.Log.d("TrainerFragment", "Creating keyboard for level ${settings.kochLevel}")
+        android.util.Log.d("TrainerFragment", "Available chars: ${availableChars.joinToString()}")
         
         binding.keyboardGrid.removeAllViews()
         
-        // Create buttons for all Koch characters
-        allKochChars.forEach { char ->
+        // Create buttons only for characters available at current Koch level
+        availableChars.forEach { char ->
             val button = Button(requireContext()).apply {
-                text = char.toString()
+                // Debug: Set text explicitly and log it
+                val buttonText = char.toString()
+                text = buttonText
+                android.util.Log.d("TrainerFragment", "Creating button with text: '$buttonText' for char: '$char'")
+                
                 layoutParams = GridLayout.LayoutParams().apply {
                     width = 0
-                    height = 80  // More compact height
+                    height = 120  // Increased height for better visibility
                     columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
-                    setMargins(3, 3, 3, 3)
+                    setMargins(8, 8, 8, 8)  // Increased margins
                 }
                 
-                // Apply modern styling
-                textSize = 16f
+                // Apply modern styling with better visibility
+                textSize = 24f  // Larger text size
                 typeface = android.graphics.Typeface.DEFAULT_BOLD
                 
-                if (char in availableChars) {
-                    // Available character - modern blue styling
-                    background = ContextCompat.getDrawable(requireContext(), R.drawable.button_keyboard_selector)
-                    setTextColor(ContextCompat.getColor(requireContext(), R.color.keyboard_text_available))
-                    setOnClickListener { onCharacterPressed(char) }
-                    alpha = 1.0f
-                    isEnabled = true
-                    elevation = 4f
-                } else {
-                    // Unavailable character - disabled styling
-                    background = ContextCompat.getDrawable(requireContext(), R.drawable.button_keyboard_selector)
-                    setTextColor(ContextCompat.getColor(requireContext(), R.color.keyboard_text_disabled))
-                    alpha = 0.6f
-                    isEnabled = false
-                    elevation = 0f
-                }
+                // Set colors explicitly to ensure visibility
+                background = ContextCompat.getDrawable(requireContext(), R.drawable.button_keyboard_selector)
+                setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white))
+                
+                // Ensure text is always visible
+                setAllCaps(false)
+                includeFontPadding = false
+                
+                setOnClickListener { onCharacterPressed(char) }
+                alpha = 1.0f
+                isEnabled = true
+                elevation = 6f
+                
+                // Force text to be visible
+                visibility = android.view.View.VISIBLE
             }
             
             binding.keyboardGrid.addView(button)
@@ -398,18 +404,34 @@ class TrainerFragment : Fragment() {
     }
 
     private fun stopTraining() {
-        // Stop any ongoing operations
+        // Stop any ongoing operations immediately
         morseGenerator.stop()
         cancelTimeout()
         
-        // Reset to ready state
+        // Reset all state variables
         currentState = TrainingState.READY
         isAudioPlaying = false
         isPaused = false
         isWaitingForAnswer = false
         wasPlayingWhenPaused = false
         
+        // Clear user input
+        userInput = ""
+        binding.textAnswerInput.text = ""
+        binding.textCurrentSequence.text = "?"
+        
+        // Update UI to reflect stopped state
         updateUIState()
+        
+        // Brief status message
+        binding.textStatus.text = "Training stopped"
+        
+        // Clear status message after a short delay
+        Handler(Looper.getMainLooper()).postDelayed({
+            if (!isDetached && _binding != null && currentState == TrainingState.READY) {
+                binding.textStatus.text = "Ready to start training"
+            }
+        }, 1000)
     }
 
     private fun startAnswerTimeout() {
@@ -535,6 +557,7 @@ class TrainerFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         morseGenerator.stop()
+        morseGenerator.release()  // Clean up ToneGenerator resources
         cancelTimeout()
         _binding = null
     }

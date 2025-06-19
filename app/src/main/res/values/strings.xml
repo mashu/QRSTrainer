@@ -1,48 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Morse Code Trainer</string>
+    <string name="app_name">QRS Trainer</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
-    <string name="nav_header_title">Morse Code Trainer</string>
-    <string name="nav_header_subtitle">Practice with Koch Method</string>
+    <string name="nav_header_title">QRS Trainer</string>
+    <string name="nav_header_subtitle">Morse Code Training</string>
     <string name="nav_header_desc">Navigation header</string>
     <string name="action_settings">Settings</string>
 
+    <!-- Menu items -->
+    <string name="menu_home">Home</string>
     <string name="menu_trainer">Trainer</string>
     <string name="menu_progress">Progress</string>
     <string name="menu_settings">Settings</string>
-    
-    <!-- Training Interface -->
-    <string name="level_label">Level: %1$d</string>
-    <string name="wpm_label">Speed: %1$d WPM</string>
-    <string name="score_label">Score: %1$d/%2$d</string>
-    <string name="next_level_label">Next Level: %1$d correct</string>
-    <string name="listening_prompt">Listen and type the characters...</string>
-    <string name="playing_status">Playing... (you can start typing)</string>
+    <string name="menu_gallery">Gallery</string>
+    <string name="menu_slideshow">Slideshow</string>
+
+    <!-- Trainer Fragment -->
+    <string name="trainer_title">Morse Code Trainer</string>
+    <string name="start_training">Start Training</string>
+    <string name="stop_training">Stop Training</string>
+    <string name="play_sequence">Play Sequence</string>
+    <string name="test_audio">Test Audio</string>
+    <string name="sequence_label">Current Sequence:</string>
+    <string name="wpm_label">WPM: %d</string>
+    <string name="character_label">Character: %s</string>
+
+    <!-- Settings Fragment -->
+    <string name="settings_title">Training Settings</string>
+    <string name="wpm_setting">Words Per Minute</string>
+    <string name="character_set_setting">Character Set</string>
+    <string name="tone_frequency_setting">Tone Frequency (Hz)</string>
+    <string name="sequence_length_setting">Sequence Length</string>
+
+    <!-- Progress Fragment -->
+    <string name="progress_title">Training Progress</string>
+    <string name="accuracy_label">Accuracy: %.1f%%</string>
+    <string name="total_attempts_label">Total Attempts: %d</string>
+    <string name="correct_answers_label">Correct: %d</string>
+    <string name="character_stats_title">Character Statistics</string>
+
+    <!-- Messages and feedback -->
     <string name="correct_answer">Correct!</string>
-    <string name="incorrect_answer">Incorrect. The answer was: %1$s</string>
-    <string name="timeout_answer">Time\'s up! The answer was: %1$s</string>
+    <string name="incorrect_answer_simple">Incorrect. Try again.</string>
+    <string name="audio_test_message">Playing test tone...</string>
+    <string name="audio_error">Audio playback error</string>
+    <string name="training_started">Training started</string>
+    <string name="training_stopped">Training stopped</string>
+
+    <!-- Default values -->
+    <string name="default_character_set">ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789</string>
+    
+    <!-- Missing strings from layout -->
     <string name="play_again">Play Again</string>
     <string name="next_sequence">Next</string>
-    <string name="playing_button">Playing...</string>
     
-    <!-- Settings -->
-    <string name="settings_speed">Speed (WPM)</string>
-    <string name="settings_level">Koch Level</string>
-    <string name="settings_lock_level">Lock at Current Level</string>
-    <string name="settings_group_size_min">Minimum Group Size</string>
-    <string name="settings_group_size_max">Maximum Group Size</string>
-    <string name="settings_answer_timeout">Answer Timeout (seconds)</string>
-    <string name="settings_repeat_count">Repeat Count</string>
-    <string name="settings_repeat_spacing">Repeat Spacing (seconds)</string>
-    <string name="settings_required_correct">Required Correct to Advance</string>
-    <string name="settings_reset_progress">Reset All Progress</string>
-    <string name="settings_reset_confirmation">Are you sure you want to reset all progress?</string>
-    
-    <!-- Progress -->
-    <string name="progress_overview">Progress Overview</string>
-    <string name="character_stats">Character Statistics</string>
-    <string name="accuracy_label">Accuracy: %1$.1f%%</string>
-    <string name="attempts_label">Attempts: %1$d</string>
-    <string name="correct_label">Correct: %1$d</string>
-    <string name="incorrect_label">Incorrect: %1$d</string>
+    <!-- Missing strings from TrainerFragment -->
+    <string name="listening_prompt">Listen and type what you hear</string>
+    <string name="timeout_answer">Time\'s up! The answer was: %s</string>
+    <string name="incorrect_answer">Incorrect! The answer was: %s</string>
 </resources>

@@ -4,6 +4,10 @@
 
     <!-- Permissions for audio playback -->
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    
+    <!-- Audio hardware feature (optional) -->
+    <uses-feature android:name="android.hardware.audio.output" android:required="false" />
 
     <application
         android:allowBackup="true"

@@ -1,5 +1,6 @@
 package com.so5km.qrstrainer.audio
 
+import android.content.Context
 import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioTrack
@@ -7,20 +8,48 @@ import com.so5km.qrstrainer.data.MorseCode
 import kotlin.math.*
 
 /**
- * Generates and plays Morse code audio
+ * Generates and plays Morse code audio using efficient streaming AudioTrack
  */
-class MorseCodeGenerator {
+class MorseCodeGenerator(private val context: Context) {
     
     companion object {
         private const val SAMPLE_RATE = 44100
-        private const val TONE_FREQUENCY = 600.0 // Hz
+        private const val TONE_FREQUENCY = 600.0 // Hz - proper CW tone
         private const val FARNSWORTH_RATIO = 0.6 // Ratio for character spacing in Farnsworth timing
     }
     
     private var audioTrack: AudioTrack? = null
     private var playbackThread: Thread? = null
     private var isPlaying = false
+    @Volatile
     private var shouldStop = false
+    
+    init {
+        initializeAudioTrack()
+    }
+    
+    private fun initializeAudioTrack() {
+        try {
+            val bufferSize = AudioTrack.getMinBufferSize(
+                SAMPLE_RATE,
+                AudioFormat.CHANNEL_OUT_MONO,
+                AudioFormat.ENCODING_PCM_16BIT
+            ) * 4 // Larger buffer for smooth playback
+            
+            audioTrack = AudioTrack(
+                AudioManager.STREAM_MUSIC,
+                SAMPLE_RATE,
+                AudioFormat.CHANNEL_OUT_MONO,
+                AudioFormat.ENCODING_PCM_16BIT,
+                bufferSize,
+                AudioTrack.MODE_STREAM
+            )
+            
+            android.util.Log.d("MorseCodeGenerator", "AudioTrack initialized in streaming mode, buffer size: $bufferSize")
+        } catch (e: Exception) {
+            android.util.Log.e("MorseCodeGenerator", "Failed to initialize AudioTrack: ${e.message}")
+        }
+    }
     
     /**
      * Generate a sequence of characters and play as Morse code
@@ -40,19 +69,26 @@ class MorseCodeGenerator {
         
         playbackThread = Thread {
             try {
+                android.util.Log.d("MorseCodeGenerator", "Starting playback of sequence: '$sequence' at ${wpm}wpm")
+                
+                audioTrack?.play()
+                
                 for (i in 0 until repeatCount) {
                     if (shouldStop) break
                     
                     playSequenceOnce(sequence, wpm)
                     
                     if (i < repeatCount - 1 && !shouldStop) {
-                        // Use configurable repeat spacing instead of character spacing
-                        safeSleep(repeatSpacingMs.toLong())
+                        playSilence(repeatSpacingMs)
                     }
                 }
+                
+                audioTrack?.stop()
+                
             } catch (e: InterruptedException) {
-                // Thread was interrupted, which is expected when stopping
+                android.util.Log.d("MorseCodeGenerator", "Playback interrupted")
             } catch (e: Exception) {
+                android.util.Log.e("MorseCodeGenerator", "Error during playback: ${e.message}")
                 e.printStackTrace()
             } finally {
                 isPlaying = false
@@ -69,10 +105,11 @@ class MorseCodeGenerator {
     fun stop() {
         shouldStop = true
         
-        // Stop current audio track
-        audioTrack?.stop()
-        audioTrack?.release()
-        audioTrack = null
+        try {
+            audioTrack?.stop()
+        } catch (e: Exception) {
+            android.util.Log.e("MorseCodeGenerator", "Error stopping AudioTrack: ${e.message}")
+        }
         
         // Interrupt and wait for playback thread to finish
         playbackThread?.interrupt()
@@ -92,6 +129,19 @@ class MorseCodeGenerator {
     fun isPlaying(): Boolean = isPlaying
     
     /**
+     * Clean up resources
+     */
+    fun release() {
+        stop()
+        try {
+            audioTrack?.release()
+            audioTrack = null
+        } catch (e: Exception) {
+            android.util.Log.e("MorseCodeGenerator", "Error releasing AudioTrack: ${e.message}")
+        }
+    }
+    
+    /**
      * Play a sequence once
      */
     private fun playSequenceOnce(sequence: String, wpm: Int) {
@@ -108,14 +158,15 @@ class MorseCodeGenerator {
             val pattern = MorseCode.getPattern(char)
             
             if (pattern != null) {
+                android.util.Log.d("MorseCodeGenerator", "Playing character '$char' with pattern '$pattern'")
                 playPattern(pattern, dotDuration, dashDuration, symbolSpacing)
                 
                 // Add character spacing (except after last character)
                 if (i < sequence.length - 1 && !shouldStop) {
                     if (char == ' ') {
-                        safeSleep(wordSpacing.toLong())
+                        playSilence(wordSpacing)
                     } else {
-                        safeSleep(charSpacing.toLong())
+                        playSilence(charSpacing)
                     }
                 }
             }
@@ -130,89 +181,84 @@ class MorseCodeGenerator {
             if (shouldStop) break
             
             when (pattern[i]) {
-                '.' -> playTone(dotDuration)
-                '-' -> playTone(dashDuration)
+                '.' -> playToneWithEnvelope(dotDuration)
+                '-' -> playToneWithEnvelope(dashDuration)
             }
             
             // Add symbol spacing (except after last symbol)
             if (i < pattern.length - 1 && !shouldStop) {
-                safeSleep(symbolSpacing.toLong())
+                playSilence(symbolSpacing)
             }
         }
     }
     
     /**
-     * Play a tone for the specified duration
+     * Play a tone with proper envelope to prevent clicks
      */
-    private fun playTone(durationMs: Int) {
-        if (shouldStop) return
+    private fun playToneWithEnvelope(durationMs: Int) {
+        if (shouldStop || audioTrack == null) return
         
         val samples = (SAMPLE_RATE * durationMs / 1000.0).toInt()
         val buffer = ShortArray(samples)
         
-        // Generate sine wave
+        // Generate sine wave with envelope
+        val envelopeLength = minOf(samples / 10, SAMPLE_RATE / 100) // 10ms envelope
+        
         for (i in buffer.indices) {
-            val sample = sin(2.0 * PI * i * TONE_FREQUENCY / SAMPLE_RATE)
-            buffer[i] = (sample * Short.MAX_VALUE * 0.5).toInt().toShort()
+            val angle = 2.0 * PI * i * TONE_FREQUENCY / SAMPLE_RATE
+            var amplitude = sin(angle) * 0.7 // 70% volume
+            
+            // Apply envelope
+            when {
+                i < envelopeLength -> {
+                    // Fade in
+                    amplitude *= (i.toDouble() / envelopeLength)
+                }
+                i >= samples - envelopeLength -> {
+                    // Fade out
+                    val fadeIndex = samples - 1 - i
+                    amplitude *= (fadeIndex.toDouble() / envelopeLength)
+                }
+            }
+            
+            buffer[i] = (amplitude * Short.MAX_VALUE).toInt().toShort()
         }
         
-        // Apply envelope to avoid clicks
-        applyEnvelope(buffer)
-        
-        if (shouldStop) return
-        
-        // Create and play audio track
-        val audioTrack = AudioTrack(
-            AudioManager.STREAM_MUSIC,
-            SAMPLE_RATE,
-            AudioFormat.CHANNEL_OUT_MONO,
-            AudioFormat.ENCODING_PCM_16BIT,
-            buffer.size * 2,
-            AudioTrack.MODE_STATIC
-        )
-        
-        this.audioTrack = audioTrack
-        
-        audioTrack.write(buffer, 0, buffer.size)
-        audioTrack.play()
-        
-        // Wait for playback to complete, but check for stop signal
-        safeSleep(durationMs.toLong())
-        
-        audioTrack.stop()
-        audioTrack.release()
-        this.audioTrack = null
+        // Write to AudioTrack in streaming mode
+        writeToAudioTrack(buffer)
     }
     
     /**
-     * Safe sleep that can be interrupted
+     * Play silence for the specified duration
      */
-    private fun safeSleep(millis: Long) {
+    private fun playSilence(durationMs: Int) {
+        if (shouldStop || audioTrack == null) return
+        
+        val samples = (SAMPLE_RATE * durationMs / 1000.0).toInt()
+        val buffer = ShortArray(samples) // All zeros = silence
+        
+        writeToAudioTrack(buffer)
+    }
+    
+    /**
+     * Write buffer to AudioTrack in streaming mode
+     */
+    private fun writeToAudioTrack(buffer: ShortArray) {
+        if (shouldStop || audioTrack == null) return
+        
         try {
-            Thread.sleep(millis)
-        } catch (e: InterruptedException) {
-            Thread.currentThread().interrupt()
-            shouldStop = true
-        }
-    }
-    
-    /**
-     * Apply envelope to prevent audio clicks
-     */
-    private fun applyEnvelope(buffer: ShortArray) {
-        val rampSamples = minOf(buffer.size / 10, SAMPLE_RATE / 100) // 10ms ramp or 10% of buffer
-        
-        // Fade in
-        for (i in 0 until rampSamples) {
-            val factor = i.toDouble() / rampSamples
-            buffer[i] = (buffer[i] * factor).toInt().toShort()
-        }
-        
-        // Fade out
-        for (i in 0 until rampSamples) {
-            val idx = buffer.size - 1 - i
-            val factor = i.toDouble() / rampSamples
-            buffer[idx] = (buffer[idx] * factor).toInt().toShort()
+            var offset = 0
+            while (offset < buffer.size && !shouldStop) {
+                val bytesWritten = audioTrack!!.write(buffer, offset, buffer.size - offset)
+                if (bytesWritten > 0) {
+                    offset += bytesWritten
+                } else {
+                    // If write fails, wait a bit and try again
+                    Thread.sleep(1)
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("MorseCodeGenerator", "Error writing to AudioTrack: ${e.message}")
         }
     }
     
