@@ -25,7 +25,13 @@ class MorseCodeGenerator {
     /**
      * Generate a sequence of characters and play as Morse code
      */
-    fun playSequence(sequence: String, wpm: Int, repeatCount: Int = 1, onComplete: (() -> Unit)? = null) {
+    fun playSequence(
+        sequence: String, 
+        wpm: Int, 
+        repeatCount: Int = 1, 
+        repeatSpacingMs: Int = 2000,
+        onComplete: (() -> Unit)? = null
+    ) {
         // Stop any current playback before starting new one
         stop()
         
@@ -40,7 +46,8 @@ class MorseCodeGenerator {
                     playSequenceOnce(sequence, wpm)
                     
                     if (i < repeatCount - 1 && !shouldStop) {
-                        Thread.sleep(calculateCharacterSpacing(wpm).toLong())
+                        // Use configurable repeat spacing instead of character spacing
+                        safeSleep(repeatSpacingMs.toLong())
                     }
                 }
             } catch (e: InterruptedException) {

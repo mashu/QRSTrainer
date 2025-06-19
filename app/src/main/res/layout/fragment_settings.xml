@@ -200,11 +200,42 @@
                 android:max="5"
                 android:progress="2" />
 
+                    <TextView
+            android:id="@+id/text_repeat_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="2x"
+            android:layout_marginStart="16dp"
+            android:minWidth="70dp" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_repeat_spacing"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="24dp">
+
+            <SeekBar
+                android:id="@+id/seekbar_repeat_spacing"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:max="10"
+                android:progress="2" />
+
             <TextView
-                android:id="@+id/text_repeat_value"
+                android:id="@+id/text_repeat_spacing_value"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="2x"
+                android:text="2.0s"
                 android:layout_marginStart="16dp"
                 android:minWidth="70dp" />
         </LinearLayout>

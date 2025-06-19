@@ -29,6 +29,7 @@ A comprehensive Android application for learning Morse code using the Koch metho
 - **Level Management**: Manual level selection or automatic progression
 - **Group Size**: Configurable minimum (1-10) and maximum (1-15) character groups
 - **Timing**: Answer timeout (3-30 seconds)
+- **Repeat Spacing**: Configurable pause between repeats (0.5-10 seconds)
 - **Progression**: Required correct answers to advance (1-50)
 - **Level Locking**: Option to stay at current level for focused practice
 
@@ -38,16 +39,19 @@ A comprehensive Android application for learning Morse code using the Koch metho
 - Visual progress bars
 - Streak tracking
 - Weighted character selection based on performance
+- **Real-time validation**: Instant character-by-character feedback with color coding
+- **Previous answer display**: Brief history of last answer for reference
 
 ## How to Use
 
 1. **Start Training**: Open the app and navigate to the "Trainer" section
 2. **Listen & Type**: Audio plays automatically - you can start typing immediately as you recognize characters
-3. **Real-time Input**: Use the on-screen keyboard during or after audio playback
-4. **Submit**: Answer is checked automatically when you've entered enough characters
-5. **Progress**: Correct answers advance your progress toward the next level
-6. **Review**: Check the "Progress" section to see detailed statistics
-7. **Configure**: Adjust settings in the "Settings" section to customize your experience
+3. **Real-time Feedback**: Characters turn green (correct) or red (incorrect) as you type
+4. **Flexible Input**: Use the on-screen keyboard during or after audio playback
+5. **Auto-submit**: Answer is checked automatically when you've entered enough characters
+6. **Progress**: Correct answers advance your progress toward the next level
+7. **Review**: Check the "Progress" section to see detailed statistics
+8. **Configure**: Adjust settings in the "Settings" section to customize your experience
 
 ## Koch Method Sequence
 

@@ -33,6 +33,7 @@
     <string name="settings_group_size_max">Maximum Group Size</string>
     <string name="settings_answer_timeout">Answer Timeout (seconds)</string>
     <string name="settings_repeat_count">Repeat Count</string>
+    <string name="settings_repeat_spacing">Repeat Spacing (seconds)</string>
     <string name="settings_required_correct">Required Correct to Advance</string>
     <string name="settings_reset_progress">Reset All Progress</string>
     <string name="settings_reset_confirmation">Are you sure you want to reset all progress?</string>

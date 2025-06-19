@@ -131,6 +131,19 @@ class SettingsFragment : Fragment() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
+        // Repeat spacing settings
+        binding.seekbarRepeatSpacing.min = 5  // 0.5 seconds minimum
+        binding.seekbarRepeatSpacing.max = 100  // 10 seconds maximum
+        binding.seekbarRepeatSpacing.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val spacing = maxOf(5, progress) / 10.0  // Convert to seconds with 0.1s precision
+                binding.textRepeatSpacingValue.text = "${String.format("%.1f", spacing)}s"
+                if (fromUser) saveSettings()
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
         // Progression settings
         binding.seekbarRequiredCorrect.min = 1
         binding.seekbarRequiredCorrect.max = 50
@@ -171,11 +184,16 @@ class SettingsFragment : Fragment() {
         binding.seekbarRepeat.progress = settings.repeatCount
         binding.textRepeatValue.text = "${settings.repeatCount}x"
         
+        binding.seekbarRepeatSpacing.progress = (settings.repeatSpacingMs / 100)  // Convert from ms to deciseconds
+        binding.textRepeatSpacingValue.text = "${String.format("%.1f", settings.repeatSpacingMs / 1000.0)}s"
+        
         binding.seekbarRequiredCorrect.progress = settings.requiredCorrectToAdvance
         binding.textRequiredCorrectValue.text = settings.requiredCorrectToAdvance.toString()
     }
 
     private fun saveSettings() {
+        val repeatSpacingMs = maxOf(5, binding.seekbarRepeatSpacing.progress) * 100  // Convert deciseconds to ms
+        
         settings = TrainingSettings(
             speedWpm = maxOf(5, binding.seekbarSpeed.progress),
             kochLevel = maxOf(1, binding.seekbarLevel.progress),
@@ -184,6 +202,7 @@ class SettingsFragment : Fragment() {
             groupSizeMax = maxOf(1, binding.seekbarGroupMax.progress),
             answerTimeoutSeconds = maxOf(3, binding.seekbarTimeout.progress),
             repeatCount = maxOf(1, binding.seekbarRepeat.progress),
+            repeatSpacingMs = repeatSpacingMs,
             requiredCorrectToAdvance = maxOf(1, binding.seekbarRequiredCorrect.progress)
         )
         

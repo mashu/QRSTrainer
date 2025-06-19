@@ -1,8 +1,12 @@
 package com.so5km.qrstrainer.ui.trainer
 
+import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -35,6 +39,11 @@ class TrainerFragment : Fragment() {
     private var isAudioPlaying = false
     private var timeoutHandler: Handler? = null
     private var timeoutRunnable: Runnable? = null
+    
+    // Previous answer tracking
+    private var previousSequence: String = ""
+    private var previousUserInput: String = ""
+    private var previousWasCorrect: Boolean = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -49,6 +58,14 @@ class TrainerFragment : Fragment() {
         startNewSequence()
 
         return root
+    }
+    
+    override fun onResume() {
+        super.onResume()
+        // Reload settings when returning to trainer (e.g., from settings screen)
+        settings = TrainingSettings.load(requireContext())
+        updateProgressDisplay()
+        createKeyboard()  // Update keyboard in case level changed
     }
 
     private fun initializeComponents() {
@@ -138,11 +155,58 @@ class TrainerFragment : Fragment() {
         if (!isWaitingForAnswer && !isAudioPlaying) return
         
         userInput += char
-        binding.textAnswerInput.text = userInput
+        updateAnswerDisplay()
         
         // Check if we have enough characters
         if (userInput.length >= currentSequence.length) {
             checkAnswer()
+        }
+    }
+
+    private fun updateAnswerDisplay() {
+        val spannable = SpannableString(userInput)
+        
+        // Color each character based on correctness
+        for (i in userInput.indices) {
+            val color = if (i < currentSequence.length && userInput[i].equals(currentSequence[i], ignoreCase = true)) {
+                Color.parseColor("#4CAF50") // Green for correct
+            } else {
+                Color.parseColor("#F44336") // Red for incorrect
+            }
+            spannable.setSpan(
+                ForegroundColorSpan(color),
+                i, i + 1,
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+        }
+        
+        binding.textAnswerInput.text = spannable
+    }
+
+    private fun updatePreviousAnswerDisplay() {
+        if (previousSequence.isNotEmpty()) {
+            val displayText = "Previous: $previousSequence → $previousUserInput"
+            val spannable = SpannableString(displayText)
+            
+            // Color the arrow and user input part
+            val arrowIndex = displayText.indexOf("→")
+            if (arrowIndex != -1) {
+                val userInputStart = arrowIndex + 2
+                val color = if (previousWasCorrect) {
+                    Color.parseColor("#4CAF50") // Green for correct
+                } else {
+                    Color.parseColor("#F44336") // Red for incorrect
+                }
+                spannable.setSpan(
+                    ForegroundColorSpan(color),
+                    userInputStart, displayText.length,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            }
+            
+            binding.textPreviousAnswer.text = spannable
+        } else {
+            binding.textPreviousAnswer.text = ""
         }
     }
 
@@ -162,6 +226,9 @@ class TrainerFragment : Fragment() {
         
         // Reset input and UI state
         resetInputState()
+        
+        // Show previous answer briefly during new sequence
+        updatePreviousAnswerDisplay()
         
         // Play the sequence
         playCurrentSequence()
@@ -192,7 +259,8 @@ class TrainerFragment : Fragment() {
         morseGenerator.playSequence(
             currentSequence,
             settings.speedWpm,
-            settings.repeatCount
+            settings.repeatCount,
+            settings.repeatSpacingMs
         ) {
             // On playback complete
             Handler(Looper.getMainLooper()).post {
@@ -258,6 +326,11 @@ class TrainerFragment : Fragment() {
         
         val isCorrect = userInput.equals(currentSequence, ignoreCase = true)
         
+        // Store previous answer for next round
+        previousSequence = currentSequence
+        previousUserInput = userInput
+        previousWasCorrect = isCorrect
+        
         if (isCorrect) {
             // Record correct answers for each character
             currentSequence.forEach { char ->
@@ -298,6 +371,11 @@ class TrainerFragment : Fragment() {
         morseGenerator.stop()
         
         updateControlButtonStates()
+        
+        // Store previous answer for next round
+        previousSequence = currentSequence
+        previousUserInput = userInput.ifEmpty { "(no answer)" }
+        previousWasCorrect = false
         
         // Record incorrect for unanswered characters
         currentSequence.forEach { char ->

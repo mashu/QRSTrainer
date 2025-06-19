@@ -14,6 +14,7 @@ data class TrainingSettings(
     val groupSizeMax: Int = 5,                 // Maximum group size
     val answerTimeoutSeconds: Int = 10,        // Timeout for answers
     val repeatCount: Int = 2,                  // How many times to repeat
+    val repeatSpacingMs: Int = 2000,           // Milliseconds between repeats
     val requiredCorrectToAdvance: Int = 10     // Required correct answers to advance level
 ) {
     companion object {
@@ -25,6 +26,7 @@ data class TrainingSettings(
         private const val KEY_GROUP_SIZE_MAX = "group_size_max"
         private const val KEY_ANSWER_TIMEOUT = "answer_timeout"
         private const val KEY_REPEAT_COUNT = "repeat_count"
+        private const val KEY_REPEAT_SPACING = "repeat_spacing"
         private const val KEY_REQUIRED_CORRECT = "required_correct"
         
         /**
@@ -40,6 +42,7 @@ data class TrainingSettings(
                 groupSizeMax = prefs.getInt(KEY_GROUP_SIZE_MAX, 5),
                 answerTimeoutSeconds = prefs.getInt(KEY_ANSWER_TIMEOUT, 10),
                 repeatCount = prefs.getInt(KEY_REPEAT_COUNT, 2),
+                repeatSpacingMs = prefs.getInt(KEY_REPEAT_SPACING, 2000),
                 requiredCorrectToAdvance = prefs.getInt(KEY_REQUIRED_CORRECT, 10)
             )
         }
@@ -58,6 +61,7 @@ data class TrainingSettings(
             putInt(KEY_GROUP_SIZE_MAX, groupSizeMax)
             putInt(KEY_ANSWER_TIMEOUT, answerTimeoutSeconds)
             putInt(KEY_REPEAT_COUNT, repeatCount)
+            putInt(KEY_REPEAT_SPACING, repeatSpacingMs)
             putInt(KEY_REQUIRED_CORRECT, requiredCorrectToAdvance)
             apply()
         }
