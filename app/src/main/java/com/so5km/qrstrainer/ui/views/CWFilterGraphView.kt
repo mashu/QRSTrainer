@@ -23,9 +23,12 @@ class CWFilterGraphView @JvmOverloads constructor(
     
     // Filter parameters
     var centerFrequency = 600f  // Hz
-    var bandwidthHz = 500f
+    var bandwidthHz = 500f  // Primary filter bandwidth
+    var secondaryBandwidthHz = 500f  // Secondary filter bandwidth
     var qFactor = 5.0f
     var backgroundNoise = 0.1f
+    var primaryFilterOffset = 0f  // Hz offset from center
+    var secondaryFilterOffset = 0f  // Hz offset from center
     
     // Colors
     private var primaryFilterColor = Color.parseColor("#4CAF50")
@@ -100,7 +103,8 @@ class CWFilterGraphView @JvmOverloads constructor(
         // Generate filter response curve (bandpass with Q factor)
         for (i in 0 until width.toInt()) {
             val freq = (i / width) * 2000f // 0-2000 Hz range
-            val response = calculateFilterResponse(freq, centerFrequency, bandwidthHz, qFactor)
+            val primaryCenterFreq = centerFrequency + primaryFilterOffset
+            val response = calculateFilterResponse(freq, primaryCenterFreq, bandwidthHz, qFactor)
             val x = i.toFloat()
             val y = graphTop + graphHeight * (1f - response)
             points.add(PointF(x, y))
@@ -124,13 +128,14 @@ class CWFilterGraphView @JvmOverloads constructor(
             pathEffect = DashPathEffect(floatArrayOf(10f, 5f), 0f)
         }
         
-        // Secondary filter with different characteristics (wider, lower Q)
-        val secondaryBandwidth = bandwidthHz * 1.5f
-        val secondaryQ = qFactor * 0.7f
+        // Secondary filter - independent bandwidth, same Q factor
+        val secondaryBandwidth = secondaryBandwidthHz  // Independent bandwidth
+        val secondaryQ = qFactor  // Same Q factor as primary
         
         for (i in 0 until width.toInt()) {
             val freq = (i / width) * 2000f
-            val response = calculateFilterResponse(freq, centerFrequency, secondaryBandwidth, secondaryQ)
+            val secondaryCenterFreq = centerFrequency + secondaryFilterOffset
+            val response = calculateFilterResponse(freq, secondaryCenterFreq, secondaryBandwidth, secondaryQ)
             val x = i.toFloat()
             val y = graphTop + graphHeight * (1f - response)
             
@@ -154,13 +159,15 @@ class CWFilterGraphView @JvmOverloads constructor(
         }
         
         // Combined response (multiplication of both filters)
-        val secondaryBandwidth = bandwidthHz * 1.5f
-        val secondaryQ = qFactor * 0.7f
+        val secondaryBandwidth = secondaryBandwidthHz  // Independent bandwidth
+        val secondaryQ = qFactor  // Same Q factor
         
         for (i in 0 until width.toInt()) {
             val freq = (i / width) * 2000f
-            val response1 = calculateFilterResponse(freq, centerFrequency, bandwidthHz, qFactor)
-            val response2 = calculateFilterResponse(freq, centerFrequency, secondaryBandwidth, secondaryQ)
+            val primaryCenterFreq = centerFrequency + primaryFilterOffset
+            val secondaryCenterFreq = centerFrequency + secondaryFilterOffset
+            val response1 = calculateFilterResponse(freq, primaryCenterFreq, bandwidthHz, qFactor)
+            val response2 = calculateFilterResponse(freq, secondaryCenterFreq, secondaryBandwidth, secondaryQ)
             val combinedResponse = response1 * response2
             val x = i.toFloat()
             val y = graphTop + graphHeight * (1f - combinedResponse)
@@ -189,17 +196,27 @@ class CWFilterGraphView @JvmOverloads constructor(
     }
     
     private fun calculateFilterResponse(freq: Float, centerFreq: Float, bandwidth: Float, q: Float): Float {
-        // Calculate bandpass filter response with Q factor
-        val normalizedFreq = (freq - centerFreq) / (bandwidth / 2f)
-        val response = 1f / sqrt(1f + (q * normalizedFreq).pow(2))
+        // Clean filter response - flat top with smooth rolloff, no artifacts
+        val freqDiff = abs(freq - centerFreq)
+        val halfBandwidth = bandwidth / 2f
         
-        // Add some ringing characteristics for high Q
-        if (q > 10f && abs(normalizedFreq) < 2f) {
-            val ringingFactor = 1f + 0.1f * sin(normalizedFreq * PI * 4).toFloat()
-            return (response * ringingFactor).coerceIn(0f, 1f)
-        }
-        
-        return response.coerceIn(0f, 1f)
+        return when {
+            // Completely flat passband in the center
+            freqDiff <= halfBandwidth * 0.8f -> {
+                1f  // Perfectly flat, no ripples
+            }
+            // Smooth transition region - gradual rolloff
+            freqDiff <= halfBandwidth * 1.2f -> {
+                val transitionRatio = (freqDiff - halfBandwidth * 0.8f) / (halfBandwidth * 0.4f)
+                1f - (transitionRatio * transitionRatio * 0.3f)  // Smooth quadratic transition
+            }
+            // Steeper rolloff controlled by Q factor
+            else -> {
+                val rolloffRatio = (freqDiff - halfBandwidth * 1.2f) / halfBandwidth
+                val response = 1f / (1f + (rolloffRatio * q).pow(2))
+                (response * 0.7f).coerceAtLeast(0.001f)  // Scale down and set minimum
+            }
+        }.coerceIn(0f, 1f)
     }
     
     private fun drawLabels(canvas: Canvas, width: Float, height: Float) {
@@ -218,6 +235,13 @@ class CWFilterGraphView @JvmOverloads constructor(
         canvas.rotate(-90f, 30f, height/2)
         canvas.drawText("Response", 30f, height/2, textPaint)
         canvas.restore()
+        
+        // Combined filter info
+        textPaint.textSize = 16f
+        textPaint.color = combinedFilterColor
+        val combinedInfo = "Combined: ${calculateCombinedBandwidth().toInt()} Hz BW"
+        canvas.drawText(combinedInfo, 10f, 30f, textPaint)
+        textPaint.color = textColor // Reset color
     }
     
     private fun drawLegend(canvas: Canvas, width: Float, height: Float) {
@@ -269,10 +293,39 @@ class CWFilterGraphView @JvmOverloads constructor(
     /**
      * Update filter parameters and redraw
      */
-    fun updateFilter(bandwidth: Int, qFactor: Float, noiseLevel: Float) {
+    fun updateFilter(bandwidth: Int, secondaryBandwidth: Int, qFactor: Float, noiseLevel: Float, primaryOffset: Int = 0, secondaryOffset: Int = 0) {
         this.bandwidthHz = bandwidth.toFloat()
+        this.secondaryBandwidthHz = secondaryBandwidth.toFloat()
         this.qFactor = qFactor
         this.backgroundNoise = noiseLevel
+        this.primaryFilterOffset = primaryOffset.toFloat()
+        this.secondaryFilterOffset = secondaryOffset.toFloat()
         invalidate()
+    }
+    
+    /**
+     * Calculate the effective combined bandwidth of the cascaded filters
+     */
+    private fun calculateCombinedBandwidth(): Float {
+        // For cascaded filters, the combined response is narrower than either individual filter
+        // This is an approximation - in reality it depends on the overlap and offset
+        val primaryCenter = centerFrequency + primaryFilterOffset
+        val secondaryCenter = centerFrequency + secondaryFilterOffset
+        val centerOffset = abs(primaryCenter - secondaryCenter)
+        
+        return when {
+            centerOffset < 50f -> {
+                // Overlapping filters - combined BW is narrower than the narrower filter
+                minOf(bandwidthHz, secondaryBandwidthHz) * 0.7f
+            }
+            centerOffset < 150f -> {
+                // Partially overlapping - combined BW is between the two
+                (bandwidthHz + secondaryBandwidthHz) * 0.6f
+            }
+            else -> {
+                // Widely separated - combined BW approaches the sum
+                bandwidthHz + secondaryBandwidthHz - centerOffset * 0.5f
+            }
+        }.coerceAtLeast(50f) // Minimum realistic bandwidth
     }
 } 

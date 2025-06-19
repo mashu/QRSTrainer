@@ -237,6 +237,21 @@ class SettingsFragment : Fragment() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
+        // Secondary filter bandwidth (100-2000 Hz)
+        binding.seekBarSecondaryFilterBandwidth.max = 190  // 100-2000 Hz
+        binding.seekBarSecondaryFilterBandwidth.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val bandwidth = progress * 10 + 100  // 100-2000 Hz
+                binding.textSecondaryFilterBandwidthDisplay.text = "$bandwidth Hz"
+                if (fromUser) {
+                    updateFilterGraph()
+                    saveSettings()
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
         // Filter Q factor (1.0-20.0)
         binding.seekBarFilterQ.max = 190  // 1.0-20.0
         binding.seekBarFilterQ.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -258,6 +273,38 @@ class SettingsFragment : Fragment() {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 val noiseLevel = progress  // 0-100%
                 binding.textBackgroundNoiseDisplay.text = "$noiseLevel%"
+                if (fromUser) {
+                    updateFilterGraph()
+                    saveSettings()
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        // Primary filter offset (-200 to +200 Hz)
+        binding.seekBarPrimaryFilterOffset.max = 400  // -200 to +200 Hz
+        binding.seekBarPrimaryFilterOffset.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val offset = progress - 200  // -200 to +200 Hz
+                val sign = if (offset >= 0) "+" else ""
+                binding.textPrimaryFilterOffsetDisplay.text = "$sign$offset Hz"
+                if (fromUser) {
+                    updateFilterGraph()
+                    saveSettings()
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        // Secondary filter offset (-200 to +200 Hz)
+        binding.seekBarSecondaryFilterOffset.max = 400  // -200 to +200 Hz
+        binding.seekBarSecondaryFilterOffset.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val offset = progress - 200  // -200 to +200 Hz
+                val sign = if (offset >= 0) "+" else ""
+                binding.textSecondaryFilterOffsetDisplay.text = "$sign$offset Hz"
                 if (fromUser) {
                     updateFilterGraph()
                     saveSettings()
@@ -338,6 +385,10 @@ class SettingsFragment : Fragment() {
         binding.seekBarFilterBandwidth.progress = (settings.filterBandwidthHz - 100) / 10  // Convert to 0-based
         binding.textFilterBandwidthDisplay.text = "${settings.filterBandwidthHz} Hz"
         
+        // Secondary filter bandwidth (100-2000 Hz)
+        binding.seekBarSecondaryFilterBandwidth.progress = (settings.secondaryFilterBandwidthHz - 100) / 10  // Convert to 0-based
+        binding.textSecondaryFilterBandwidthDisplay.text = "${settings.secondaryFilterBandwidthHz} Hz"
+        
         // Filter Q factor (1.0-20.0)
         binding.seekBarFilterQ.progress = ((settings.filterQFactor - 1.0f) * 10).toInt()  // Convert to 0-based
         binding.textFilterQDisplay.text = "Q = ${String.format("%.1f", settings.filterQFactor)}"
@@ -345,6 +396,17 @@ class SettingsFragment : Fragment() {
         // Background noise level (0-100%)
         binding.seekBarBackgroundNoise.progress = (settings.backgroundNoiseLevel * 100).toInt()  // Convert to 0-based
         binding.textBackgroundNoiseDisplay.text = "${(settings.backgroundNoiseLevel * 100).toInt()}%"
+        
+        // Filter offset settings
+        // Primary filter offset (-200 to +200 Hz)
+        binding.seekBarPrimaryFilterOffset.progress = settings.primaryFilterOffset + 200  // Convert to 0-based
+        val primarySign = if (settings.primaryFilterOffset >= 0) "+" else ""
+        binding.textPrimaryFilterOffsetDisplay.text = "$primarySign${settings.primaryFilterOffset} Hz"
+        
+        // Secondary filter offset (-200 to +200 Hz)
+        binding.seekBarSecondaryFilterOffset.progress = settings.secondaryFilterOffset + 200  // Convert to 0-based
+        val secondarySign = if (settings.secondaryFilterOffset >= 0) "+" else ""
+        binding.textSecondaryFilterOffsetDisplay.text = "$secondarySign${settings.secondaryFilterOffset} Hz"
         
         // Filter ringing checkbox
         binding.checkBoxFilterRinging.isChecked = settings.filterRingingEnabled
@@ -366,8 +428,11 @@ class SettingsFragment : Fragment() {
         
         // CW Filter settings
         val filterBandwidth = binding.seekBarFilterBandwidth.progress * 10 + 100  // 100-2000 Hz
+        val secondaryFilterBandwidth = binding.seekBarSecondaryFilterBandwidth.progress * 10 + 100  // 100-2000 Hz
         val filterQ = (binding.seekBarFilterQ.progress / 10.0f) + 1.0f  // 1.0-20.0
         val backgroundNoise = binding.seekBarBackgroundNoise.progress / 100.0f  // 0.0-1.0
+        val primaryOffset = binding.seekBarPrimaryFilterOffset.progress - 200  // -200 to +200 Hz
+        val secondaryOffset = binding.seekBarSecondaryFilterOffset.progress - 200  // -200 to +200 Hz
         
         settings = TrainingSettings(
             speedWpm = speed,
@@ -389,9 +454,12 @@ class SettingsFragment : Fragment() {
             
             // CW Filter settings
             filterBandwidthHz = filterBandwidth,
+            secondaryFilterBandwidthHz = secondaryFilterBandwidth,
             filterQFactor = filterQ,
             backgroundNoiseLevel = backgroundNoise,
-            filterRingingEnabled = binding.checkBoxFilterRinging.isChecked
+            filterRingingEnabled = binding.checkBoxFilterRinging.isChecked,
+            primaryFilterOffset = primaryOffset,
+            secondaryFilterOffset = secondaryOffset
         )
         
         settings.save(requireContext())
@@ -399,10 +467,13 @@ class SettingsFragment : Fragment() {
     
     private fun updateFilterGraph() {
         val bandwidth = binding.seekBarFilterBandwidth.progress * 10 + 100  // 100-2000 Hz
+        val secondaryBandwidth = binding.seekBarSecondaryFilterBandwidth.progress * 10 + 100  // 100-2000 Hz
         val qFactor = (binding.seekBarFilterQ.progress / 10.0f) + 1.0f  // 1.0-20.0
         val noiseLevel = binding.seekBarBackgroundNoise.progress / 100.0f  // 0.0-1.0
+        val primaryOffset = binding.seekBarPrimaryFilterOffset.progress - 200  // -200 to +200 Hz
+        val secondaryOffset = binding.seekBarSecondaryFilterOffset.progress - 200  // -200 to +200 Hz
         
-        binding.filterGraphView.updateFilter(bandwidth, qFactor, noiseLevel)
+        binding.filterGraphView.updateFilter(bandwidth, secondaryBandwidth, qFactor, noiseLevel, primaryOffset, secondaryOffset)
     }
 
     private fun showResetConfirmation() {

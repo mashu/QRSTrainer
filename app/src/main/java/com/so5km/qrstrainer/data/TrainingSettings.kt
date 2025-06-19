@@ -25,10 +25,13 @@ data class TrainingSettings(
     val groupSpacingMs: Int = 0,               // Extra group spacing in ms (0 = default)
     
     // CW Filter settings
-    val filterBandwidthHz: Int = 500,          // Filter bandwidth in Hz (100-2000)
+    val filterBandwidthHz: Int = 500,          // Primary filter bandwidth in Hz (100-2000)
+    val secondaryFilterBandwidthHz: Int = 500, // Secondary filter bandwidth in Hz (100-2000)
     val filterQFactor: Float = 5.0f,           // Q factor for filter ringing (1.0-20.0)
     val backgroundNoiseLevel: Float = 0.1f,    // Background noise level (0.0-1.0)
-    val filterRingingEnabled: Boolean = true   // Enable/disable filter ringing effect
+    val filterRingingEnabled: Boolean = true,  // Enable/disable filter ringing effect
+    val primaryFilterOffset: Int = 0,          // Primary filter offset from tone freq (-200 to +200 Hz)
+    val secondaryFilterOffset: Int = 0         // Secondary filter offset from tone freq (-200 to +200 Hz)
 ) {
     companion object {
         private const val PREFS_NAME = "morse_trainer_settings"
@@ -51,9 +54,12 @@ data class TrainingSettings(
         
         // CW Filter settings keys
         private const val KEY_FILTER_BANDWIDTH = "filter_bandwidth"
+        private const val KEY_SECONDARY_FILTER_BANDWIDTH = "secondary_filter_bandwidth"
         private const val KEY_FILTER_Q_FACTOR = "filter_q_factor"
         private const val KEY_BACKGROUND_NOISE = "background_noise"
         private const val KEY_FILTER_RINGING = "filter_ringing"
+        private const val KEY_PRIMARY_FILTER_OFFSET = "primary_filter_offset"
+        private const val KEY_SECONDARY_FILTER_OFFSET = "secondary_filter_offset"
         
         /**
          * Load settings from SharedPreferences
@@ -80,9 +86,12 @@ data class TrainingSettings(
                 
                 // CW Filter settings
                 filterBandwidthHz = prefs.getInt(KEY_FILTER_BANDWIDTH, 500),
+                secondaryFilterBandwidthHz = prefs.getInt(KEY_SECONDARY_FILTER_BANDWIDTH, 500),
                 filterQFactor = prefs.getFloat(KEY_FILTER_Q_FACTOR, 5.0f),
                 backgroundNoiseLevel = prefs.getFloat(KEY_BACKGROUND_NOISE, 0.1f),
-                filterRingingEnabled = prefs.getBoolean(KEY_FILTER_RINGING, true)
+                filterRingingEnabled = prefs.getBoolean(KEY_FILTER_RINGING, true),
+                primaryFilterOffset = prefs.getInt(KEY_PRIMARY_FILTER_OFFSET, 0),
+                secondaryFilterOffset = prefs.getInt(KEY_SECONDARY_FILTER_OFFSET, 0)
             )
         }
     }
@@ -112,9 +121,12 @@ data class TrainingSettings(
             
             // CW Filter settings
             putInt(KEY_FILTER_BANDWIDTH, filterBandwidthHz)
+            putInt(KEY_SECONDARY_FILTER_BANDWIDTH, secondaryFilterBandwidthHz)
             putFloat(KEY_FILTER_Q_FACTOR, filterQFactor)
             putFloat(KEY_BACKGROUND_NOISE, backgroundNoiseLevel)
             putBoolean(KEY_FILTER_RINGING, filterRingingEnabled)
+            putInt(KEY_PRIMARY_FILTER_OFFSET, primaryFilterOffset)
+            putInt(KEY_SECONDARY_FILTER_OFFSET, secondaryFilterOffset)
             apply()
         }
     }
