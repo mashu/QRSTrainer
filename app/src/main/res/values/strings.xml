@@ -59,4 +59,14 @@
     <string name="listening_prompt">Listen and type what you hear</string>
     <string name="timeout_answer">Time\'s up! The answer was: %s</string>
     <string name="incorrect_answer">Incorrect! The answer was: %s</string>
+    
+    <!-- New audio settings strings -->
+    <string name="tone_frequency_label">Tone Frequency</string>
+    <string name="farnsworth_timing_label">Farnsworth Timing</string>
+    <string name="word_spacing_label">Extra Word Spacing</string>
+    <string name="group_spacing_label">Extra Group Spacing</string>
+    <string name="tone_frequency_display">%d Hz</string>
+    <string name="farnsworth_timing_display">%d WPM (disabled if 0)</string>
+    <string name="word_spacing_display">+%d ms</string>
+    <string name="group_spacing_display">+%d ms</string>
 </resources>

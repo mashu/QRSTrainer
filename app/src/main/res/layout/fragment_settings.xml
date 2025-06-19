@@ -304,6 +304,122 @@
                     android:text="10 seconds"
                     android:textSize="14sp" />
 
+                <!-- Tone Frequency -->
+                <TextView
+                    style="@style/Text.Subtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/tone_frequency_label"
+                    android:textSize="16sp" />
+
+                <SeekBar
+                    android:id="@+id/seekBarToneFrequency"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:max="70"
+                    android:progress="30"
+                    android:progressTint="@color/primary_blue"
+                    android:thumbTint="@color/primary_blue" />
+
+                <TextView
+                    android:id="@+id/textToneFrequencyDisplay"
+                    style="@style/Text.Caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginBottom="24dp"
+                    android:text="600 Hz"
+                    android:textSize="14sp" />
+
+                <!-- Farnsworth Timing -->
+                <TextView
+                    style="@style/Text.Subtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/farnsworth_timing_label"
+                    android:textSize="16sp" />
+
+                <SeekBar
+                    android:id="@+id/seekBarFarnsworth"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:max="35"
+                    android:progress="0"
+                    android:progressTint="@color/secondary_purple"
+                    android:thumbTint="@color/secondary_purple" />
+
+                <TextView
+                    android:id="@+id/textFarnsworthDisplay"
+                    style="@style/Text.Caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginBottom="24dp"
+                    android:text="0 WPM (disabled)"
+                    android:textSize="14sp" />
+
+                <!-- Word Spacing -->
+                <TextView
+                    style="@style/Text.Subtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/word_spacing_label"
+                    android:textSize="16sp" />
+
+                <SeekBar
+                    android:id="@+id/seekBarWordSpacing"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:max="100"
+                    android:progress="0"
+                    android:progressTint="@color/accent_orange"
+                    android:thumbTint="@color/accent_orange" />
+
+                <TextView
+                    android:id="@+id/textWordSpacingDisplay"
+                    style="@style/Text.Caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginBottom="24dp"
+                    android:text="+0 ms"
+                    android:textSize="14sp" />
+
+                <!-- Group Spacing -->
+                <TextView
+                    style="@style/Text.Subtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/group_spacing_label"
+                    android:textSize="16sp" />
+
+                <SeekBar
+                    android:id="@+id/seekBarGroupSpacing"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:max="100"
+                    android:progress="0"
+                    android:progressTint="@color/accent_cyan"
+                    android:thumbTint="@color/accent_cyan" />
+
+                <TextView
+                    android:id="@+id/textGroupSpacingDisplay"
+                    style="@style/Text.Caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginBottom="24dp"
+                    android:text="+0 ms"
+                    android:textSize="14sp" />
+
             </LinearLayout>
 
         </androidx.cardview.widget.CardView>

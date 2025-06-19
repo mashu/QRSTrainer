@@ -157,6 +157,56 @@ class SettingsFragment : Fragment() {
         binding.buttonResetProgress.setOnClickListener {
             showResetConfirmation()
         }
+        
+        // New audio settings
+        // Tone frequency settings (300-1000 Hz)
+        binding.seekBarToneFrequency.max = 70  // 300-1000 Hz
+        binding.seekBarToneFrequency.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val frequency = progress * 10 + 300  // 300-1000 Hz
+                binding.textToneFrequencyDisplay.text = "$frequency Hz"
+                if (fromUser) saveSettings()
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        // Farnsworth timing settings (0-35 WPM, 0 = disabled)
+        binding.seekBarFarnsworth.max = 35  // 0-35 WPM
+        binding.seekBarFarnsworth.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val farnsworth = progress  // 0-35 WPM
+                val display = if (farnsworth == 0) "0 WPM (disabled)" else "$farnsworth WPM"
+                binding.textFarnsworthDisplay.text = display
+                if (fromUser) saveSettings()
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        // Word spacing settings (0-1000 ms)
+        binding.seekBarWordSpacing.max = 100  // 0-1000 ms
+        binding.seekBarWordSpacing.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val spacing = progress * 10  // 0-1000 ms
+                binding.textWordSpacingDisplay.text = "+$spacing ms"
+                if (fromUser) saveSettings()
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        // Group spacing settings (0-1000 ms)
+        binding.seekBarGroupSpacing.max = 100  // 0-1000 ms
+        binding.seekBarGroupSpacing.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val spacing = progress * 10  // 0-1000 ms
+                binding.textGroupSpacingDisplay.text = "+$spacing ms"
+                if (fromUser) saveSettings()
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
     }
 
     private fun loadCurrentSettings() {
@@ -194,6 +244,24 @@ class SettingsFragment : Fragment() {
         // Load required correct settings
         binding.seekBarRequiredCorrect.progress = settings.requiredCorrectToAdvance - 5  // Convert to 0-based
         binding.textRequiredCorrectDisplay.text = "${settings.requiredCorrectToAdvance} correct per character"
+        
+        // Load new audio settings
+        // Tone frequency (300-1000 Hz)
+        binding.seekBarToneFrequency.progress = (settings.toneFrequencyHz - 300) / 10  // Convert to 0-based
+        binding.textToneFrequencyDisplay.text = "${settings.toneFrequencyHz} Hz"
+        
+        // Farnsworth timing (0-35 WPM)
+        binding.seekBarFarnsworth.progress = settings.farnsworthWpm  // Already 0-based
+        val farnsworthDisplay = if (settings.farnsworthWpm == 0) "0 WPM (disabled)" else "${settings.farnsworthWpm} WPM"
+        binding.textFarnsworthDisplay.text = farnsworthDisplay
+        
+        // Word spacing (0-1000 ms)
+        binding.seekBarWordSpacing.progress = settings.wordSpacingMs / 10  // Convert to 0-based
+        binding.textWordSpacingDisplay.text = "+${settings.wordSpacingMs} ms"
+        
+        // Group spacing (0-1000 ms)
+        binding.seekBarGroupSpacing.progress = settings.groupSpacingMs / 10  // Convert to 0-based
+        binding.textGroupSpacingDisplay.text = "+${settings.groupSpacingMs} ms"
     }
 
     private fun saveSettings() {
@@ -215,7 +283,14 @@ class SettingsFragment : Fragment() {
             answerTimeoutSeconds = timeout,
             repeatCount = repeatCount,
             repeatSpacingMs = repeatSpacingMs,
-            requiredCorrectToAdvance = requiredCorrect
+            requiredCorrectToAdvance = requiredCorrect,
+            
+            // Keep existing audio settings values for now
+            // These will be configurable when UI is added
+            toneFrequencyHz = binding.seekBarToneFrequency.progress * 10 + 300,
+            farnsworthWpm = binding.seekBarFarnsworth.progress,
+            wordSpacingMs = binding.seekBarWordSpacing.progress * 10,
+            groupSpacingMs = binding.seekBarGroupSpacing.progress * 10
         )
         
         settings.save(requireContext())

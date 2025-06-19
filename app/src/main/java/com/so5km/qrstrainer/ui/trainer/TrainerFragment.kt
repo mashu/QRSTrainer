@@ -88,6 +88,11 @@ class TrainerFragment : Fragment() {
             currentState = TrainingState.READY
             updateUIState()
         }
+        
+        // Resume audio when app comes back to foreground
+        if (isPaused && wasPlayingWhenPaused) {
+            resumePlayback()
+        }
     }
     
     override fun onPause() {
@@ -99,6 +104,11 @@ class TrainerFragment : Fragment() {
             isAudioPlaying = false
             isPaused = false
             currentState = TrainingState.READY
+        }
+        
+        // Pause audio when app goes to background
+        if (isAudioPlaying && !isPaused) {
+            pausePlayback()
         }
     }
 
@@ -377,9 +387,7 @@ class TrainerFragment : Fragment() {
         
         morseGenerator.playSequence(
             currentSequence,
-            settings.speedWpm,
-            settings.repeatCount,
-            settings.repeatSpacingMs
+            settings  // Pass the full settings object
         ) {
             // On playback complete
             Handler(Looper.getMainLooper()).post {
@@ -395,10 +403,22 @@ class TrainerFragment : Fragment() {
 
     private fun pausePlayback() {
         if (isAudioPlaying) {
-            morseGenerator.stop()
+            morseGenerator.pause()
             isAudioPlaying = false
             isPaused = true
+            wasPlayingWhenPaused = true
             currentState = TrainingState.PAUSED
+            updateUIState()
+        }
+    }
+
+    private fun resumePlayback() {
+        if (isPaused && wasPlayingWhenPaused) {
+            morseGenerator.resume()
+            isAudioPlaying = true
+            isPaused = false
+            wasPlayingWhenPaused = false
+            currentState = TrainingState.PLAYING
             updateUIState()
         }
     }

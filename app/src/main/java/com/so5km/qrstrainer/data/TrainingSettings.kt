@@ -15,7 +15,13 @@ data class TrainingSettings(
     val answerTimeoutSeconds: Int = 10,        // Timeout for answers
     val repeatCount: Int = 2,                  // How many times to repeat
     val repeatSpacingMs: Int = 2000,           // Milliseconds between repeats
-    val requiredCorrectToAdvance: Int = 10     // Required correct answers to advance level
+    val requiredCorrectToAdvance: Int = 10,    // Required correct answers to advance level
+    
+    // New audio settings
+    val toneFrequencyHz: Int = 600,            // Tone frequency in Hz (300-1000)
+    val farnsworthWpm: Int = 0,                // Farnsworth timing WPM (0 = disabled)
+    val wordSpacingMs: Int = 0,                // Extra word spacing in ms (0 = default)
+    val groupSpacingMs: Int = 0                // Extra group spacing in ms (0 = default)
 ) {
     companion object {
         private const val PREFS_NAME = "morse_trainer_settings"
@@ -28,6 +34,12 @@ data class TrainingSettings(
         private const val KEY_REPEAT_COUNT = "repeat_count"
         private const val KEY_REPEAT_SPACING = "repeat_spacing"
         private const val KEY_REQUIRED_CORRECT = "required_correct"
+        
+        // New keys for audio settings
+        private const val KEY_TONE_FREQUENCY = "tone_frequency"
+        private const val KEY_FARNSWORTH_WPM = "farnsworth_wpm"
+        private const val KEY_WORD_SPACING = "word_spacing"
+        private const val KEY_GROUP_SPACING = "group_spacing"
         
         /**
          * Load settings from SharedPreferences
@@ -43,7 +55,13 @@ data class TrainingSettings(
                 answerTimeoutSeconds = prefs.getInt(KEY_ANSWER_TIMEOUT, 10),
                 repeatCount = prefs.getInt(KEY_REPEAT_COUNT, 2),
                 repeatSpacingMs = prefs.getInt(KEY_REPEAT_SPACING, 2000),
-                requiredCorrectToAdvance = prefs.getInt(KEY_REQUIRED_CORRECT, 10)
+                requiredCorrectToAdvance = prefs.getInt(KEY_REQUIRED_CORRECT, 10),
+                
+                // New audio settings
+                toneFrequencyHz = prefs.getInt(KEY_TONE_FREQUENCY, 600),
+                farnsworthWpm = prefs.getInt(KEY_FARNSWORTH_WPM, 0),
+                wordSpacingMs = prefs.getInt(KEY_WORD_SPACING, 0),
+                groupSpacingMs = prefs.getInt(KEY_GROUP_SPACING, 0)
             )
         }
     }
@@ -63,6 +81,12 @@ data class TrainingSettings(
             putInt(KEY_REPEAT_COUNT, repeatCount)
             putInt(KEY_REPEAT_SPACING, repeatSpacingMs)
             putInt(KEY_REQUIRED_CORRECT, requiredCorrectToAdvance)
+            
+            // New audio settings
+            putInt(KEY_TONE_FREQUENCY, toneFrequencyHz)
+            putInt(KEY_FARNSWORTH_WPM, farnsworthWpm)
+            putInt(KEY_WORD_SPACING, wordSpacingMs)
+            putInt(KEY_GROUP_SPACING, groupSpacingMs)
             apply()
         }
     }
