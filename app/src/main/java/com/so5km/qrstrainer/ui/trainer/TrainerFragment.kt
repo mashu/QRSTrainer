@@ -37,6 +37,7 @@ class TrainerFragment : Fragment() {
     private var userInput: String = ""
     private var isWaitingForAnswer = false
     private var isAudioPlaying = false
+    private var isPaused = false
     private var timeoutHandler: Handler? = null
     private var timeoutRunnable: Runnable? = null
     
@@ -48,6 +49,17 @@ class TrainerFragment : Fragment() {
     // Lifecycle state tracking
     private var wasPlayingWhenPaused = false
 
+    // Training states
+    enum class TrainingState {
+        READY,      // Ready to start
+        PLAYING,    // Audio playing
+        PAUSED,     // Audio paused
+        WAITING,    // Waiting for answer after audio
+        FINISHED    // Answer submitted or timeout
+    }
+    
+    private var currentState = TrainingState.READY
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -58,7 +70,7 @@ class TrainerFragment : Fragment() {
 
         initializeComponents()
         setupUI()
-        startNewSequence()
+        updateUIState()
 
         return root
     }
@@ -73,13 +85,8 @@ class TrainerFragment : Fragment() {
         // If audio was playing when we paused, update UI to show stopped state
         if (wasPlayingWhenPaused) {
             wasPlayingWhenPaused = false
-            isAudioPlaying = false
-            updateControlButtonStates()
-            
-            // Show message that playback was stopped
-            if (isWaitingForAnswer) {
-                binding.textStatus.text = "Playback stopped (tap Play Again to continue)"
-            }
+            currentState = TrainingState.READY
+            updateUIState()
         }
     }
     
@@ -90,9 +97,8 @@ class TrainerFragment : Fragment() {
             wasPlayingWhenPaused = true
             morseGenerator.stop()
             isAudioPlaying = false
-            
-            // Don't cancel the answer timeout - user should still be able to answer
-            // when they return to the app if they remember the sequence
+            isPaused = false
+            currentState = TrainingState.READY
         }
     }
 
@@ -107,14 +113,76 @@ class TrainerFragment : Fragment() {
         updateProgressDisplay()
         createKeyboard()
         
+        // New control system
+        binding.buttonStart.setOnClickListener {
+            startNewSequence()
+        }
+        
+        binding.buttonPause.setOnClickListener {
+            pausePlayback()
+        }
+        
+        binding.buttonStop.setOnClickListener {
+            stopTraining()
+        }
+        
+        // Legacy controls (hidden by default)
         binding.buttonPlayAgain.setOnClickListener {
-            // Stop any current playback and replay current sequence
             playCurrentSequence()
         }
         
         binding.buttonNext.setOnClickListener {
-            // Stop any current playback and start new sequence
             startNewSequence()
+        }
+    }
+
+    private fun updateUIState() {
+        when (currentState) {
+            TrainingState.READY -> {
+                binding.buttonStart.visibility = View.VISIBLE
+                binding.buttonPause.visibility = View.GONE
+                binding.buttonStop.visibility = View.GONE
+                binding.textStatus.text = "Ready to start training"
+                enableKeyboard(false)
+            }
+            TrainingState.PLAYING -> {
+                binding.buttonStart.visibility = View.GONE
+                binding.buttonPause.visibility = View.VISIBLE
+                binding.buttonStop.visibility = View.VISIBLE
+                binding.textStatus.text = "Playing sequence..."
+                enableKeyboard(true)
+            }
+            TrainingState.PAUSED -> {
+                binding.buttonStart.text = "▶ RESUME"
+                binding.buttonStart.visibility = View.VISIBLE
+                binding.buttonPause.visibility = View.GONE
+                binding.buttonStop.visibility = View.VISIBLE
+                binding.textStatus.text = "Paused - Press Resume to continue"
+                enableKeyboard(true)
+            }
+            TrainingState.WAITING -> {
+                binding.buttonStart.text = "▶ REPLAY"
+                binding.buttonStart.visibility = View.VISIBLE
+                binding.buttonPause.visibility = View.GONE
+                binding.buttonStop.visibility = View.VISIBLE
+                binding.textStatus.text = getString(R.string.listening_prompt)
+                enableKeyboard(true)
+            }
+            TrainingState.FINISHED -> {
+                binding.buttonStart.text = "▶ START"
+                binding.buttonStart.visibility = View.VISIBLE
+                binding.buttonPause.visibility = View.GONE
+                binding.buttonStop.visibility = View.GONE
+                enableKeyboard(false)
+            }
+        }
+    }
+
+    private fun enableKeyboard(enabled: Boolean) {
+        for (i in 0 until binding.keyboardGrid.childCount) {
+            val button = binding.keyboardGrid.getChildAt(i) as? Button
+            button?.isEnabled = enabled
+            button?.alpha = if (enabled) 1.0f else 0.6f
         }
     }
 
@@ -185,11 +253,14 @@ class TrainerFragment : Fragment() {
             
             binding.keyboardGrid.addView(button)
         }
+        
+        // Initially disable keyboard until training starts
+        enableKeyboard(false)
     }
 
     private fun onCharacterPressed(char: Char) {
-        // Allow input during audio playback and while waiting for answer
-        if (!isWaitingForAnswer && !isAudioPlaying) return
+        // Allow input only when waiting for answer or during playback
+        if (currentState != TrainingState.WAITING && currentState != TrainingState.PLAYING && currentState != TrainingState.PAUSED) return
         
         userInput += char
         updateAnswerDisplay()
@@ -276,10 +347,11 @@ class TrainerFragment : Fragment() {
         userInput = ""
         isWaitingForAnswer = false
         isAudioPlaying = false
+        isPaused = false
         wasPlayingWhenPaused = false
         binding.textAnswerInput.text = ""
         binding.textCurrentSequence.text = "?"
-        binding.textStatus.text = getString(R.string.listening_prompt)
+        currentState = TrainingState.READY
     }
 
     private fun playCurrentSequence() {
@@ -287,11 +359,12 @@ class TrainerFragment : Fragment() {
         morseGenerator.stop()
         wasPlayingWhenPaused = false
         
-        // Update UI state
-        binding.textStatus.text = getString(R.string.playing_status)
+        // Update state
+        currentState = TrainingState.PLAYING
         isAudioPlaying = true
-        isWaitingForAnswer = true  // Allow input immediately when playback starts
-        updateControlButtonStates()
+        isWaitingForAnswer = true
+        isPaused = false
+        updateUIState()
         
         // Start answer timeout immediately when playback begins
         startAnswerTimeout()
@@ -307,33 +380,36 @@ class TrainerFragment : Fragment() {
                 if (!isDetached && _binding != null) {
                     isAudioPlaying = false
                     wasPlayingWhenPaused = false
-                    // Keep isWaitingForAnswer = true so user can still input after audio ends
-                    binding.textStatus.text = getString(R.string.listening_prompt)
-                    updateControlButtonStates()
-                    // Don't restart timeout here - it already started when playback began
+                    currentState = TrainingState.WAITING
+                    updateUIState()
                 }
             }
         }
     }
 
-    private fun updateControlButtonStates() {
-        // Only disable control buttons during audio playback, keep keyboard enabled
-        val buttonsEnabled = !isAudioPlaying
-        
-        binding.buttonPlayAgain.isEnabled = buttonsEnabled
-        binding.buttonNext.isEnabled = buttonsEnabled
-        
-        // Update button text to indicate state
-        if (buttonsEnabled) {
-            binding.buttonPlayAgain.text = getString(R.string.play_again)
-            binding.buttonNext.text = getString(R.string.next_sequence)
-        } else {
-            binding.buttonPlayAgain.text = getString(R.string.playing_button)
-            binding.buttonNext.text = getString(R.string.playing_button)
+    private fun pausePlayback() {
+        if (isAudioPlaying) {
+            morseGenerator.stop()
+            isAudioPlaying = false
+            isPaused = true
+            currentState = TrainingState.PAUSED
+            updateUIState()
         }
+    }
+
+    private fun stopTraining() {
+        // Stop any ongoing operations
+        morseGenerator.stop()
+        cancelTimeout()
         
-        // Keyboard stays enabled - users can type during and after audio playback
-        // No need to disable keyboard buttons
+        // Reset to ready state
+        currentState = TrainingState.READY
+        isAudioPlaying = false
+        isPaused = false
+        isWaitingForAnswer = false
+        wasPlayingWhenPaused = false
+        
+        updateUIState()
     }
 
     private fun startAnswerTimeout() {
@@ -357,14 +433,13 @@ class TrainerFragment : Fragment() {
 
     private fun checkAnswer() {
         cancelTimeout()
+        currentState = TrainingState.FINISHED
         isWaitingForAnswer = false
-        isAudioPlaying = false  // Make sure we're not in playing state
+        isAudioPlaying = false
         wasPlayingWhenPaused = false
         
         // Stop any ongoing audio since user has submitted answer
         morseGenerator.stop()
-        
-        updateControlButtonStates()
         
         val isCorrect = userInput.equals(currentSequence, ignoreCase = true)
         
@@ -396,6 +471,7 @@ class TrainerFragment : Fragment() {
         }
         
         updateProgressDisplay()
+        updateUIState()
         
         // Auto-advance after a delay
         Handler(Looper.getMainLooper()).postDelayed({
@@ -406,14 +482,13 @@ class TrainerFragment : Fragment() {
     }
 
     private fun handleTimeout() {
+        currentState = TrainingState.FINISHED
         isWaitingForAnswer = false
         isAudioPlaying = false
         wasPlayingWhenPaused = false
         
         // Stop any ongoing audio
         morseGenerator.stop()
-        
-        updateControlButtonStates()
         
         // Store previous answer for next round
         previousSequence = currentSequence
@@ -429,6 +504,7 @@ class TrainerFragment : Fragment() {
         binding.textCurrentSequence.text = currentSequence
         
         updateProgressDisplay()
+        updateUIState()
         
         // Auto-advance after a delay
         Handler(Looper.getMainLooper()).postDelayed({
