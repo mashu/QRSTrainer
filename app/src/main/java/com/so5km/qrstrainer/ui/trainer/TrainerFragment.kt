@@ -193,6 +193,14 @@ class TrainerFragment : Fragment() {
             val button = binding.keyboardGrid.getChildAt(i) as? Button
             button?.isEnabled = enabled
             button?.alpha = if (enabled) 1.0f else 0.6f
+            
+            // Update text color based on enabled state
+            val textColor = if (enabled) {
+                ContextCompat.getColor(requireContext(), R.color.keyboard_text_available)
+            } else {
+                ContextCompat.getColor(requireContext(), R.color.keyboard_text_disabled)
+            }
+            button?.setTextColor(textColor)
         }
     }
 
@@ -223,13 +231,27 @@ class TrainerFragment : Fragment() {
     }
 
     private fun createKeyboard() {
-        val availableChars = MorseCode.getCharactersForLevel(settings.kochLevel)
+        val allChars = MorseCode.getCharactersForLevel(settings.kochLevel)
+        // Filter to only include A-Z letters for beginner-friendly training
+        val availableChars = allChars.filter { it.isLetter() }.toTypedArray()
         
         // Debug: Log what characters we're trying to create
         android.util.Log.d("TrainerFragment", "Creating keyboard for level ${settings.kochLevel}")
         android.util.Log.d("TrainerFragment", "Available chars: ${availableChars.joinToString()}")
         
         binding.keyboardGrid.removeAllViews()
+        
+        // Calculate optimal layout based on number of characters and screen size
+        val displayMetrics = resources.displayMetrics
+        val screenWidth = displayMetrics.widthPixels
+        val screenHeight = displayMetrics.heightPixels
+        val numChars = availableChars.size
+        
+        // Calculate optimal column count and button dimensions
+        val keyboardLayout = calculateOptimalLayout(numChars, screenWidth, screenHeight, displayMetrics.density)
+        
+        // Update grid layout column count
+        binding.keyboardGrid.columnCount = keyboardLayout.columnCount
         
         // Create buttons only for characters available at current Koch level
         availableChars.forEach { char ->
@@ -241,22 +263,24 @@ class TrainerFragment : Fragment() {
                 
                 layoutParams = GridLayout.LayoutParams().apply {
                     width = 0
-                    height = 120  // Increased height for better visibility
+                    height = keyboardLayout.buttonHeight
                     columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
-                    setMargins(8, 8, 8, 8)  // Increased margins
+                    setMargins(keyboardLayout.margin, keyboardLayout.margin, keyboardLayout.margin, keyboardLayout.margin)
                 }
                 
-                // Apply modern styling with better visibility
-                textSize = 24f  // Larger text size
+                // Apply responsive text size based on button size
+                setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, keyboardLayout.textSize)
                 typeface = android.graphics.Typeface.DEFAULT_BOLD
                 
-                // Set colors explicitly to ensure visibility
+                // Set colors using keyboard-specific colors
                 background = ContextCompat.getDrawable(requireContext(), R.drawable.button_keyboard_selector)
-                setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white))
+                setTextColor(ContextCompat.getColor(requireContext(), R.color.keyboard_text_available))
                 
-                // Ensure text is always visible
+                // Ensure proper text centering and responsive padding
                 setAllCaps(false)
                 includeFontPadding = false
+                setPadding(keyboardLayout.padding, keyboardLayout.padding, keyboardLayout.padding, keyboardLayout.padding)
+                gravity = android.view.Gravity.CENTER  // Center text in button
                 
                 setOnClickListener { onCharacterPressed(char) }
                 alpha = 1.0f
@@ -272,6 +296,61 @@ class TrainerFragment : Fragment() {
         
         // Initially disable keyboard until training starts
         enableKeyboard(false)
+    }
+    
+    private data class KeyboardLayoutParams(
+        val columnCount: Int,
+        val buttonHeight: Int,
+        val textSize: Float,
+        val padding: Int,
+        val margin: Int
+    )
+    
+    private fun calculateOptimalLayout(numChars: Int, screenWidth: Int, screenHeight: Int, density: Float): KeyboardLayoutParams {
+        // Available height for keyboard (much more conservative - 35% of screen)
+        val availableHeight = (screenHeight * 0.35).toInt()
+        
+        // Calculate optimal column count - use more columns to save vertical space
+        val optimalColumns = when {
+            numChars <= 12 -> 6  // Early levels: 6 columns
+            numChars <= 18 -> 7  // Mid levels: 7 columns  
+            else -> 8            // Max levels (26 letters): 8 columns for maximum compactness
+        }
+        
+        // Calculate number of rows needed
+        val numRows = kotlin.math.ceil(numChars.toDouble() / optimalColumns).toInt()
+        
+        // Ultra-compact buttons - minimal margins
+        val marginDp = 2  // Very small margins
+        val marginPx = (marginDp * density).toInt()
+        val totalMarginHeight = marginPx * 2 * numRows
+        val availableButtonHeight = availableHeight - totalMarginHeight
+        
+        // Calculate button height - make them minimal, just enough for letters
+        val minButtonHeight = (28 * density).toInt() // Minimum 28dp - very compact
+        val maxButtonHeight = (36 * density).toInt() // Maximum 36dp - much smaller
+        val fittedButtonHeight = availableButtonHeight / numRows
+        
+        val buttonHeightPx = maxOf(minButtonHeight, minOf(maxButtonHeight, fittedButtonHeight))
+        
+        // Calculate text size - make it fill most of the button
+        val buttonHeightDp = buttonHeightPx / density
+        val textSizeDp = maxOf(12f, minOf(16f, buttonHeightDp * 0.5f)) // 50% of button height
+        
+        // Minimal padding - just enough to prevent text from touching edges
+        val paddingPx = maxOf(2, (buttonHeightPx * 0.05).toInt()) // 5% of button height, minimum 2px
+        
+        android.util.Log.d("TrainerFragment", 
+            "Ultra-compact layout: chars=$numChars, cols=$optimalColumns, rows=$numRows, " +
+            "buttonH=${buttonHeightDp}dp, textSize=${textSizeDp}dp, padding=${paddingPx}px")
+        
+        return KeyboardLayoutParams(
+            columnCount = optimalColumns,
+            buttonHeight = buttonHeightPx,
+            textSize = textSizeDp,
+            padding = paddingPx,
+            margin = marginPx
+        )
     }
 
     private fun onCharacterPressed(char: Char) {
@@ -335,12 +414,12 @@ class TrainerFragment : Fragment() {
     }
 
     private fun startNewSequence() {
-        // Cancel any existing timeout
+        // Cancel any existing timeouts and scheduled sequences
         cancelTimeout()
+        timeoutHandler?.removeCallbacksAndMessages(null)
         
-        // Stop any current audio playback
-        morseGenerator.stop()
-        wasPlayingWhenPaused = false
+        // Stop any current audio playback completely
+        stopAudioCompletely()
         
         // Generate new sequence
         currentSequence = sequenceGenerator.generateSequence(
@@ -355,8 +434,12 @@ class TrainerFragment : Fragment() {
         // Show previous answer briefly during new sequence
         updatePreviousAnswerDisplay()
         
-        // Play the sequence
-        playCurrentSequence()
+        // Small delay to ensure audio system is ready
+        Handler(Looper.getMainLooper()).postDelayed({
+            if (!isDetached && _binding != null && currentState == TrainingState.READY) {
+                playCurrentSequence()
+            }
+        }, 100)
     }
 
     private fun resetInputState() {
@@ -371,9 +454,14 @@ class TrainerFragment : Fragment() {
     }
 
     private fun playCurrentSequence() {
-        // Stop any current playback first
-        morseGenerator.stop()
-        wasPlayingWhenPaused = false
+        // Prevent starting playback if already playing or in wrong state
+        if (isAudioPlaying || currentState != TrainingState.READY) {
+            android.util.Log.w("TrainerFragment", "Cannot start playback: isAudioPlaying=$isAudioPlaying, currentState=$currentState")
+            return
+        }
+        
+        // Stop any current playback first (defensive)
+        stopAudioCompletely()
         
         // Update state
         currentState = TrainingState.PLAYING
@@ -391,7 +479,7 @@ class TrainerFragment : Fragment() {
         ) {
             // On playback complete
             Handler(Looper.getMainLooper()).post {
-                if (!isDetached && _binding != null) {
+                if (!isDetached && _binding != null && isAudioPlaying) {
                     isAudioPlaying = false
                     wasPlayingWhenPaused = false
                     currentState = TrainingState.WAITING
@@ -424,16 +512,16 @@ class TrainerFragment : Fragment() {
     }
 
     private fun stopTraining() {
-        // Stop any ongoing operations immediately
-        morseGenerator.stop()
+        // Cancel all timeouts and scheduled operations
         cancelTimeout()
+        timeoutHandler?.removeCallbacksAndMessages(null)
+        
+        // Stop any ongoing audio operations completely
+        stopAudioCompletely()
         
         // Reset all state variables
         currentState = TrainingState.READY
-        isAudioPlaying = false
-        isPaused = false
         isWaitingForAnswer = false
-        wasPlayingWhenPaused = false
         
         // Clear user input
         userInput = ""
@@ -474,14 +562,15 @@ class TrainerFragment : Fragment() {
     }
 
     private fun checkAnswer() {
+        // Prevent multiple simultaneous answer checks
+        if (currentState == TrainingState.FINISHED) return
+        
         cancelTimeout()
         currentState = TrainingState.FINISHED
         isWaitingForAnswer = false
-        isAudioPlaying = false
-        wasPlayingWhenPaused = false
         
-        // Stop any ongoing audio since user has submitted answer
-        morseGenerator.stop()
+        // Stop any ongoing audio immediately and wait for it to fully stop
+        stopAudioCompletely()
         
         val isCorrect = userInput.equals(currentSequence, ignoreCase = true)
         
@@ -500,7 +589,15 @@ class TrainerFragment : Fragment() {
             binding.textCurrentSequence.text = currentSequence
             
             // Check for level advancement
-            checkLevelAdvancement()
+            val levelAdvanced = checkLevelAdvancement()
+            
+            // Update progress display
+            updateProgressDisplay()
+            updateUIState()
+            
+            // Use different delay if level advanced to give user time to see the advancement
+            val delay = if (levelAdvanced) 3000L else 2000L
+            scheduleNextSequence(delay)
             
         } else {
             // Record incorrect answers for each character
@@ -510,27 +607,23 @@ class TrainerFragment : Fragment() {
             
             binding.textStatus.text = getString(R.string.incorrect_answer, currentSequence)
             binding.textCurrentSequence.text = currentSequence
+            
+            updateProgressDisplay()
+            updateUIState()
+            
+            scheduleNextSequence(2000L)
         }
-        
-        updateProgressDisplay()
-        updateUIState()
-        
-        // Auto-advance after a delay
-        Handler(Looper.getMainLooper()).postDelayed({
-            if (!isDetached && _binding != null) {
-                startNewSequence()
-            }
-        }, 2000)
     }
 
     private fun handleTimeout() {
+        // Prevent multiple simultaneous timeout handling
+        if (currentState == TrainingState.FINISHED) return
+        
         currentState = TrainingState.FINISHED
         isWaitingForAnswer = false
-        isAudioPlaying = false
-        wasPlayingWhenPaused = false
         
-        // Stop any ongoing audio
-        morseGenerator.stop()
+        // Stop any ongoing audio completely
+        stopAudioCompletely()
         
         // Store previous answer for next round
         previousSequence = currentSequence
@@ -548,15 +641,11 @@ class TrainerFragment : Fragment() {
         updateProgressDisplay()
         updateUIState()
         
-        // Auto-advance after a delay
-        Handler(Looper.getMainLooper()).postDelayed({
-            if (!isDetached && _binding != null) {
-                startNewSequence()
-            }
-        }, 3000)
+        // Schedule next sequence
+        scheduleNextSequence(3000L)
     }
 
-    private fun checkLevelAdvancement() {
+    private fun checkLevelAdvancement(): Boolean {
         if (!settings.isLevelLocked && 
             progressTracker.canAdvanceLevel(settings.kochLevel, settings.requiredCorrectToAdvance)) {
             
@@ -570,8 +659,37 @@ class TrainerFragment : Fragment() {
                 createKeyboard()
                 
                 binding.textStatus.text = "Level Up! Now at level $newLevel"
+                return true
             }
         }
+        return false
+    }
+    
+    private fun stopAudioCompletely() {
+        // Stop audio and reset all audio-related state
+        morseGenerator.stop()
+        isAudioPlaying = false
+        isPaused = false
+        wasPlayingWhenPaused = false
+        
+        // Give audio system time to fully stop
+        try {
+            Thread.sleep(50) // Short delay to ensure audio stops
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+        }
+    }
+    
+    private fun scheduleNextSequence(delayMs: Long) {
+        // Cancel any existing scheduled sequence
+        timeoutHandler?.removeCallbacksAndMessages(null)
+        
+        // Schedule next sequence
+        Handler(Looper.getMainLooper()).postDelayed({
+            if (!isDetached && _binding != null && currentState == TrainingState.FINISHED) {
+                startNewSequence()
+            }
+        }, delayMs)
     }
 
     override fun onDestroyView() {
