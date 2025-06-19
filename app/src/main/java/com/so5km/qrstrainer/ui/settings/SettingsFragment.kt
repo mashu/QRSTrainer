@@ -220,6 +220,57 @@ class SettingsFragment : Fragment() {
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
+
+        // CW Filter settings
+        // Filter bandwidth (100-2000 Hz)
+        binding.seekBarFilterBandwidth.max = 190  // 100-2000 Hz
+        binding.seekBarFilterBandwidth.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val bandwidth = progress * 10 + 100  // 100-2000 Hz
+                binding.textFilterBandwidthDisplay.text = "$bandwidth Hz"
+                if (fromUser) {
+                    updateFilterGraph()
+                    saveSettings()
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        // Filter Q factor (1.0-20.0)
+        binding.seekBarFilterQ.max = 190  // 1.0-20.0
+        binding.seekBarFilterQ.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val qFactor = (progress / 10.0f) + 1.0f  // 1.0-20.0
+                binding.textFilterQDisplay.text = "Q = ${String.format("%.1f", qFactor)}"
+                if (fromUser) {
+                    updateFilterGraph()
+                    saveSettings()
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        // Background noise level (0-100%)
+        binding.seekBarBackgroundNoise.max = 100  // 0-100%
+        binding.seekBarBackgroundNoise.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val noiseLevel = progress  // 0-100%
+                binding.textBackgroundNoiseDisplay.text = "$noiseLevel%"
+                if (fromUser) {
+                    updateFilterGraph()
+                    saveSettings()
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        // Filter ringing checkbox
+        binding.checkBoxFilterRinging.setOnCheckedChangeListener { _, _ ->
+            saveSettings()
+        }
     }
 
     private fun loadCurrentSettings() {
@@ -281,6 +332,25 @@ class SettingsFragment : Fragment() {
         // Group spacing (0-1000 ms)
         binding.seekBarGroupSpacing.progress = settings.groupSpacingMs / 10  // Convert to 0-based
         binding.textGroupSpacingDisplay.text = "+${settings.groupSpacingMs} ms"
+        
+        // CW Filter settings
+        // Filter bandwidth (100-2000 Hz)
+        binding.seekBarFilterBandwidth.progress = (settings.filterBandwidthHz - 100) / 10  // Convert to 0-based
+        binding.textFilterBandwidthDisplay.text = "${settings.filterBandwidthHz} Hz"
+        
+        // Filter Q factor (1.0-20.0)
+        binding.seekBarFilterQ.progress = ((settings.filterQFactor - 1.0f) * 10).toInt()  // Convert to 0-based
+        binding.textFilterQDisplay.text = "Q = ${String.format("%.1f", settings.filterQFactor)}"
+        
+        // Background noise level (0-100%)
+        binding.seekBarBackgroundNoise.progress = (settings.backgroundNoiseLevel * 100).toInt()  // Convert to 0-based
+        binding.textBackgroundNoiseDisplay.text = "${(settings.backgroundNoiseLevel * 100).toInt()}%"
+        
+        // Filter ringing checkbox
+        binding.checkBoxFilterRinging.isChecked = settings.filterRingingEnabled
+        
+        // Update the filter graph with initial values
+        updateFilterGraph()
     }
 
     private fun saveSettings() {
@@ -294,6 +364,11 @@ class SettingsFragment : Fragment() {
         val requiredCorrect = binding.seekBarRequiredCorrect.progress + 1  // 1-30 (updated for new range)
         val sequenceDelayMs = (binding.seekBarSequenceDelay.progress * 100)  // 0-5000ms
         
+        // CW Filter settings
+        val filterBandwidth = binding.seekBarFilterBandwidth.progress * 10 + 100  // 100-2000 Hz
+        val filterQ = (binding.seekBarFilterQ.progress / 10.0f) + 1.0f  // 1.0-20.0
+        val backgroundNoise = binding.seekBarBackgroundNoise.progress / 100.0f  // 0.0-1.0
+        
         settings = TrainingSettings(
             speedWpm = speed,
             kochLevel = level,
@@ -306,15 +381,28 @@ class SettingsFragment : Fragment() {
             requiredCorrectToAdvance = requiredCorrect,
             sequenceDelayMs = sequenceDelayMs,
             
-            // Keep existing audio settings values for now
-            // These will be configurable when UI is added
+            // Audio settings
             toneFrequencyHz = binding.seekBarToneFrequency.progress * 10 + 300,
             farnsworthWpm = binding.seekBarFarnsworth.progress,
             wordSpacingMs = binding.seekBarWordSpacing.progress * 10,
-            groupSpacingMs = binding.seekBarGroupSpacing.progress * 10
+            groupSpacingMs = binding.seekBarGroupSpacing.progress * 10,
+            
+            // CW Filter settings
+            filterBandwidthHz = filterBandwidth,
+            filterQFactor = filterQ,
+            backgroundNoiseLevel = backgroundNoise,
+            filterRingingEnabled = binding.checkBoxFilterRinging.isChecked
         )
         
         settings.save(requireContext())
+    }
+    
+    private fun updateFilterGraph() {
+        val bandwidth = binding.seekBarFilterBandwidth.progress * 10 + 100  // 100-2000 Hz
+        val qFactor = (binding.seekBarFilterQ.progress / 10.0f) + 1.0f  // 1.0-20.0
+        val noiseLevel = binding.seekBarBackgroundNoise.progress / 100.0f  // 0.0-1.0
+        
+        binding.filterGraphView.updateFilter(bandwidth, qFactor, noiseLevel)
     }
 
     private fun showResetConfirmation() {

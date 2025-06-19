@@ -262,6 +262,17 @@ class MorseCodeGenerator(private val context: Context) {
             val angle = 2.0 * PI * sampleIndex * toneFrequency / SAMPLE_RATE
             var amplitude = sin(angle) * 0.7 // 70% volume
             
+            // Apply CW filter effects if enabled
+            if (currentSettings.filterRingingEnabled) {
+                amplitude = applyCWFilterEffects(amplitude, sampleIndex, toneFrequency)
+            }
+            
+            // Add background noise
+            if (currentSettings.backgroundNoiseLevel > 0) {
+                val noise = (Math.random() - 0.5) * 2.0 * currentSettings.backgroundNoiseLevel * 0.1
+                amplitude += noise
+            }
+            
             // Apply smooth envelope
             when {
                 sampleIndex < envelopeSamples -> {
@@ -277,7 +288,7 @@ class MorseCodeGenerator(private val context: Context) {
                 }
             }
             
-            buffer[i] = (amplitude * Short.MAX_VALUE).toInt().toShort()
+            buffer[i] = (amplitude * Short.MAX_VALUE).toInt().coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
         }
         
         return endIndex
@@ -519,5 +530,43 @@ class MorseCodeGenerator(private val context: Context) {
         } else {
             baseDuration + settings.wordSpacingMs
         }
+    }
+    
+    /**
+     * Apply CW filter effects including ringing and bandwidth filtering
+     */
+    private fun applyCWFilterEffects(amplitude: Double, sampleIndex: Int, toneFrequency: Int): Double {
+        var filteredAmplitude = amplitude
+        
+        // Simulate bandpass filter effect
+        val centerFreq = currentSettings.toneFrequencyHz.toDouble()
+        val bandwidth = currentSettings.filterBandwidthHz.toDouble()
+        val qFactor = currentSettings.filterQFactor.toDouble()
+        
+        // Calculate frequency response (simplified bandpass)
+        val freqDiff = abs(toneFrequency - centerFreq)
+        val normalizedFreq = freqDiff / (bandwidth / 2.0)
+        val filterResponse = 1.0 / sqrt(1.0 + (qFactor * normalizedFreq).pow(2))
+        
+        // Apply filter response
+        filteredAmplitude *= filterResponse
+        
+        // Add ringing effect for high Q filters
+        if (qFactor > 5.0) {
+            val ringingFreq = centerFreq * (1.0 + 0.1 / qFactor)  // Slight frequency shift for ringing
+            val ringingPhase = 2.0 * PI * sampleIndex * ringingFreq / SAMPLE_RATE
+            val ringingAmplitude = 0.05 * (qFactor / 20.0)  // Ringing amplitude proportional to Q
+            val ringing = sin(ringingPhase) * ringingAmplitude * exp(-sampleIndex * 0.001)  // Decaying ringing
+            filteredAmplitude += ringing
+        }
+        
+        // Simulate filter group delay effects (phase distortion)
+        if (qFactor > 10.0) {
+            val phaseShift = (qFactor - 10.0) / 10.0 * PI / 4  // Up to 45 degree phase shift
+            val phaseDistortion = sin(2.0 * PI * sampleIndex * toneFrequency / SAMPLE_RATE + phaseShift)
+            filteredAmplitude = filteredAmplitude * 0.8 + phaseDistortion * 0.2 * (qFactor / 20.0)
+        }
+        
+        return filteredAmplitude
     }
 } 

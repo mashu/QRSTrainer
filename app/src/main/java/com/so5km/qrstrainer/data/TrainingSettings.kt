@@ -18,11 +18,17 @@ data class TrainingSettings(
     val requiredCorrectToAdvance: Int = 3,     // Required correct answers to advance level (faster progression)
     val sequenceDelayMs: Int = 0,              // Delay between sequences after answering (immediate default)
     
-    // New audio settings
+    // Audio settings
     val toneFrequencyHz: Int = 600,            // Tone frequency in Hz (300-1000)
     val farnsworthWpm: Int = 0,                // Farnsworth timing WPM (0 = disabled)
     val wordSpacingMs: Int = 0,                // Extra word spacing in ms (0 = default)
-    val groupSpacingMs: Int = 0                // Extra group spacing in ms (0 = default)
+    val groupSpacingMs: Int = 0,               // Extra group spacing in ms (0 = default)
+    
+    // CW Filter settings
+    val filterBandwidthHz: Int = 500,          // Filter bandwidth in Hz (100-2000)
+    val filterQFactor: Float = 5.0f,           // Q factor for filter ringing (1.0-20.0)
+    val backgroundNoiseLevel: Float = 0.1f,    // Background noise level (0.0-1.0)
+    val filterRingingEnabled: Boolean = true   // Enable/disable filter ringing effect
 ) {
     companion object {
         private const val PREFS_NAME = "morse_trainer_settings"
@@ -37,11 +43,17 @@ data class TrainingSettings(
         private const val KEY_REQUIRED_CORRECT = "required_correct"
         private const val KEY_SEQUENCE_DELAY = "sequence_delay"
         
-        // New keys for audio settings
+        // Audio settings keys
         private const val KEY_TONE_FREQUENCY = "tone_frequency"
         private const val KEY_FARNSWORTH_WPM = "farnsworth_wpm"
         private const val KEY_WORD_SPACING = "word_spacing"
         private const val KEY_GROUP_SPACING = "group_spacing"
+        
+        // CW Filter settings keys
+        private const val KEY_FILTER_BANDWIDTH = "filter_bandwidth"
+        private const val KEY_FILTER_Q_FACTOR = "filter_q_factor"
+        private const val KEY_BACKGROUND_NOISE = "background_noise"
+        private const val KEY_FILTER_RINGING = "filter_ringing"
         
         /**
          * Load settings from SharedPreferences
@@ -60,11 +72,17 @@ data class TrainingSettings(
                 requiredCorrectToAdvance = prefs.getInt(KEY_REQUIRED_CORRECT, 3),
                 sequenceDelayMs = prefs.getInt(KEY_SEQUENCE_DELAY, 0),
                 
-                // New audio settings
+                // Audio settings
                 toneFrequencyHz = prefs.getInt(KEY_TONE_FREQUENCY, 600),
                 farnsworthWpm = prefs.getInt(KEY_FARNSWORTH_WPM, 0),
                 wordSpacingMs = prefs.getInt(KEY_WORD_SPACING, 0),
-                groupSpacingMs = prefs.getInt(KEY_GROUP_SPACING, 0)
+                groupSpacingMs = prefs.getInt(KEY_GROUP_SPACING, 0),
+                
+                // CW Filter settings
+                filterBandwidthHz = prefs.getInt(KEY_FILTER_BANDWIDTH, 500),
+                filterQFactor = prefs.getFloat(KEY_FILTER_Q_FACTOR, 5.0f),
+                backgroundNoiseLevel = prefs.getFloat(KEY_BACKGROUND_NOISE, 0.1f),
+                filterRingingEnabled = prefs.getBoolean(KEY_FILTER_RINGING, true)
             )
         }
     }
@@ -86,11 +104,17 @@ data class TrainingSettings(
             putInt(KEY_REQUIRED_CORRECT, requiredCorrectToAdvance)
             putInt(KEY_SEQUENCE_DELAY, sequenceDelayMs)
             
-            // New audio settings
+            // Audio settings
             putInt(KEY_TONE_FREQUENCY, toneFrequencyHz)
             putInt(KEY_FARNSWORTH_WPM, farnsworthWpm)
             putInt(KEY_WORD_SPACING, wordSpacingMs)
             putInt(KEY_GROUP_SPACING, groupSpacingMs)
+            
+            // CW Filter settings
+            putInt(KEY_FILTER_BANDWIDTH, filterBandwidthHz)
+            putFloat(KEY_FILTER_Q_FACTOR, filterQFactor)
+            putFloat(KEY_BACKGROUND_NOISE, backgroundNoiseLevel)
+            putBoolean(KEY_FILTER_RINGING, filterRingingEnabled)
             apply()
         }
     }

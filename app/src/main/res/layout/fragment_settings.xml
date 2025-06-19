@@ -424,6 +424,148 @@
 
         </androidx.cardview.widget.CardView>
 
+        <!-- CW Filter Settings Card -->
+        <androidx.cardview.widget.CardView
+            style="@style/Card.Modern"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <TextView
+                    style="@style/Text.Title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:drawableStart="@drawable/ic_menu_camera"
+                    android:drawablePadding="12dp"
+                    android:text="CW Filter Settings"
+                    android:textSize="20sp" />
+
+                <!-- Filter Graph -->
+                <com.so5km.qrstrainer.ui.views.CWFilterGraphView
+                    android:id="@+id/filterGraphView"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp"
+                    android:layout_marginBottom="16dp"
+                    android:background="@drawable/card_background_modern" />
+
+                <!-- Filter Bandwidth -->
+                <TextView
+                    style="@style/Text.Subtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="Filter Bandwidth"
+                    android:textSize="16sp" />
+
+                <SeekBar
+                    android:id="@+id/seekBarFilterBandwidth"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:max="190"
+                    android:progress="40"
+                    android:progressTint="@color/accent_green"
+                    android:thumbTint="@color/accent_green" />
+
+                <TextView
+                    android:id="@+id/textFilterBandwidthDisplay"
+                    style="@style/Text.Caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginBottom="24dp"
+                    android:text="500 Hz"
+                    android:textSize="14sp" />
+
+                <!-- Filter Q Factor (Ringing) -->
+                <TextView
+                    style="@style/Text.Subtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="Filter Selectivity (Q Factor)"
+                    android:textSize="16sp" />
+
+                <SeekBar
+                    android:id="@+id/seekBarFilterQ"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:max="190"
+                    android:progress="40"
+                    android:progressTint="@color/secondary_purple"
+                    android:thumbTint="@color/secondary_purple" />
+
+                <TextView
+                    android:id="@+id/textFilterQDisplay"
+                    style="@style/Text.Caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginBottom="24dp"
+                    android:text="Q = 5.0"
+                    android:textSize="14sp" />
+
+                <!-- Background Noise Level -->
+                <TextView
+                    style="@style/Text.Subtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="Background Noise Level"
+                    android:textSize="16sp" />
+
+                <SeekBar
+                    android:id="@+id/seekBarBackgroundNoise"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:max="100"
+                    android:progress="10"
+                    android:progressTint="@color/accent_orange"
+                    android:thumbTint="@color/accent_orange" />
+
+                <TextView
+                    android:id="@+id/textBackgroundNoiseDisplay"
+                    style="@style/Text.Caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginBottom="24dp"
+                    android:text="10%"
+                    android:textSize="14sp" />
+
+                <!-- Filter Ringing Enable -->
+                <CheckBox
+                    android:id="@+id/checkBoxFilterRinging"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:buttonTint="@color/primary_blue"
+                    android:checked="true"
+                    android:text="Enable Filter Ringing (Realistic CW Sound)"
+                    android:textColor="@color/grey_800"
+                    android:textSize="14sp" />
+
+                <TextView
+                    style="@style/Text.Caption"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Narrow filters reduce noise but add ringing. Wide filters have less ringing but allow more background noise. The combined response shows the effective filter characteristics."
+                    android:textSize="12sp"
+                    android:textColor="@color/grey_600" />
+
+            </LinearLayout>
+
+        </androidx.cardview.widget.CardView>
+
         <!-- Progress Settings Card -->
         <androidx.cardview.widget.CardView
             style="@style/Card.Modern"
