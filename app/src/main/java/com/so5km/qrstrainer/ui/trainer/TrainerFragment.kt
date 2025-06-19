@@ -62,10 +62,12 @@ class TrainerFragment : Fragment() {
         createKeyboard()
         
         binding.buttonPlayAgain.setOnClickListener {
+            // Stop any current playback and replay current sequence
             playCurrentSequence()
         }
         
         binding.buttonNext.setOnClickListener {
+            // Stop any current playback and start new sequence
             startNewSequence()
         }
     }
@@ -146,6 +148,9 @@ class TrainerFragment : Fragment() {
         // Cancel any existing timeout
         cancelTimeout()
         
+        // Stop any current audio playback
+        morseGenerator.stop()
+        
         // Generate new sequence
         currentSequence = sequenceGenerator.generateSequence(
             settings.kochLevel,
@@ -153,19 +158,29 @@ class TrainerFragment : Fragment() {
             settings.groupSizeMax
         )
         
-        // Reset input
-        userInput = ""
-        binding.textAnswerInput.text = ""
-        binding.textCurrentSequence.text = "?"
-        binding.textStatus.text = getString(R.string.listening_prompt)
+        // Reset input and UI state
+        resetInputState()
         
         // Play the sequence
         playCurrentSequence()
     }
 
-    private fun playCurrentSequence() {
-        binding.textStatus.text = "Playing..."
+    private fun resetInputState() {
+        userInput = ""
         isWaitingForAnswer = false
+        binding.textAnswerInput.text = ""
+        binding.textCurrentSequence.text = "?"
+        binding.textStatus.text = getString(R.string.listening_prompt)
+    }
+
+    private fun playCurrentSequence() {
+        // Stop any current playback first
+        morseGenerator.stop()
+        
+        // Update UI state
+        binding.textStatus.text = getString(R.string.playing_status)
+        isWaitingForAnswer = false
+        updateButtonStates(false)
         
         morseGenerator.playSequence(
             currentSequence,
@@ -174,10 +189,27 @@ class TrainerFragment : Fragment() {
         ) {
             // On playback complete
             Handler(Looper.getMainLooper()).post {
-                isWaitingForAnswer = true
-                binding.textStatus.text = getString(R.string.listening_prompt)
-                startAnswerTimeout()
+                if (!isDetached && _binding != null) {
+                    isWaitingForAnswer = true
+                    binding.textStatus.text = getString(R.string.listening_prompt)
+                    updateButtonStates(true)
+                    startAnswerTimeout()
+                }
             }
+        }
+    }
+
+    private fun updateButtonStates(enabled: Boolean) {
+        binding.buttonPlayAgain.isEnabled = enabled
+        binding.buttonNext.isEnabled = enabled
+        
+        // Also update button text to indicate state
+        if (enabled) {
+            binding.buttonPlayAgain.text = getString(R.string.play_again)
+            binding.buttonNext.text = getString(R.string.next_sequence)
+        } else {
+            binding.buttonPlayAgain.text = getString(R.string.playing_button)
+            binding.buttonNext.text = getString(R.string.playing_button)
         }
     }
 
@@ -203,6 +235,7 @@ class TrainerFragment : Fragment() {
     private fun checkAnswer() {
         cancelTimeout()
         isWaitingForAnswer = false
+        updateButtonStates(true)
         
         val isCorrect = userInput.equals(currentSequence, ignoreCase = true)
         
@@ -232,12 +265,15 @@ class TrainerFragment : Fragment() {
         
         // Auto-advance after a delay
         Handler(Looper.getMainLooper()).postDelayed({
-            startNewSequence()
+            if (!isDetached && _binding != null) {
+                startNewSequence()
+            }
         }, 2000)
     }
 
     private fun handleTimeout() {
         isWaitingForAnswer = false
+        updateButtonStates(true)
         
         // Record incorrect for unanswered characters
         currentSequence.forEach { char ->
@@ -251,7 +287,9 @@ class TrainerFragment : Fragment() {
         
         // Auto-advance after a delay
         Handler(Looper.getMainLooper()).postDelayed({
-            startNewSequence()
+            if (!isDetached && _binding != null) {
+                startNewSequence()
+            }
         }, 3000)
     }
 

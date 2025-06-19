@@ -18,35 +18,71 @@ class MorseCodeGenerator {
     }
     
     private var audioTrack: AudioTrack? = null
+    private var playbackThread: Thread? = null
+    private var isPlaying = false
+    private var shouldStop = false
     
     /**
      * Generate a sequence of characters and play as Morse code
      */
     fun playSequence(sequence: String, wpm: Int, repeatCount: Int = 1, onComplete: (() -> Unit)? = null) {
-        Thread {
+        // Stop any current playback before starting new one
+        stop()
+        
+        isPlaying = true
+        shouldStop = false
+        
+        playbackThread = Thread {
             try {
                 for (i in 0 until repeatCount) {
+                    if (shouldStop) break
+                    
                     playSequenceOnce(sequence, wpm)
-                    if (i < repeatCount - 1) {
+                    
+                    if (i < repeatCount - 1 && !shouldStop) {
                         Thread.sleep(calculateCharacterSpacing(wpm).toLong())
                     }
                 }
-                onComplete?.invoke()
+            } catch (e: InterruptedException) {
+                // Thread was interrupted, which is expected when stopping
             } catch (e: Exception) {
                 e.printStackTrace()
+            } finally {
+                isPlaying = false
                 onComplete?.invoke()
             }
-        }.start()
+        }
+        
+        playbackThread?.start()
     }
     
     /**
      * Stop current playback
      */
     fun stop() {
+        shouldStop = true
+        
+        // Stop current audio track
         audioTrack?.stop()
         audioTrack?.release()
         audioTrack = null
+        
+        // Interrupt and wait for playback thread to finish
+        playbackThread?.interrupt()
+        try {
+            playbackThread?.join(1000) // Wait up to 1 second
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+        }
+        playbackThread = null
+        
+        isPlaying = false
     }
+    
+    /**
+     * Check if audio is currently playing
+     */
+    fun isPlaying(): Boolean = isPlaying
     
     /**
      * Play a sequence once
@@ -59,6 +95,8 @@ class MorseCodeGenerator {
         val wordSpacing = calculateWordSpacing(wpm)
         
         for (i in sequence.indices) {
+            if (shouldStop) break
+            
             val char = sequence[i]
             val pattern = MorseCode.getPattern(char)
             
@@ -66,11 +104,11 @@ class MorseCodeGenerator {
                 playPattern(pattern, dotDuration, dashDuration, symbolSpacing)
                 
                 // Add character spacing (except after last character)
-                if (i < sequence.length - 1) {
+                if (i < sequence.length - 1 && !shouldStop) {
                     if (char == ' ') {
-                        Thread.sleep(wordSpacing.toLong())
+                        safeSleep(wordSpacing.toLong())
                     } else {
-                        Thread.sleep(charSpacing.toLong())
+                        safeSleep(charSpacing.toLong())
                     }
                 }
             }
@@ -82,14 +120,16 @@ class MorseCodeGenerator {
      */
     private fun playPattern(pattern: String, dotDuration: Int, dashDuration: Int, symbolSpacing: Int) {
         for (i in pattern.indices) {
+            if (shouldStop) break
+            
             when (pattern[i]) {
                 '.' -> playTone(dotDuration)
                 '-' -> playTone(dashDuration)
             }
             
             // Add symbol spacing (except after last symbol)
-            if (i < pattern.length - 1) {
-                Thread.sleep(symbolSpacing.toLong())
+            if (i < pattern.length - 1 && !shouldStop) {
+                safeSleep(symbolSpacing.toLong())
             }
         }
     }
@@ -98,6 +138,8 @@ class MorseCodeGenerator {
      * Play a tone for the specified duration
      */
     private fun playTone(durationMs: Int) {
+        if (shouldStop) return
+        
         val samples = (SAMPLE_RATE * durationMs / 1000.0).toInt()
         val buffer = ShortArray(samples)
         
@@ -110,6 +152,8 @@ class MorseCodeGenerator {
         // Apply envelope to avoid clicks
         applyEnvelope(buffer)
         
+        if (shouldStop) return
+        
         // Create and play audio track
         val audioTrack = AudioTrack(
             AudioManager.STREAM_MUSIC,
@@ -120,14 +164,29 @@ class MorseCodeGenerator {
             AudioTrack.MODE_STATIC
         )
         
+        this.audioTrack = audioTrack
+        
         audioTrack.write(buffer, 0, buffer.size)
         audioTrack.play()
         
-        // Wait for playback to complete
-        Thread.sleep(durationMs.toLong())
+        // Wait for playback to complete, but check for stop signal
+        safeSleep(durationMs.toLong())
         
         audioTrack.stop()
         audioTrack.release()
+        this.audioTrack = null
+    }
+    
+    /**
+     * Safe sleep that can be interrupted
+     */
+    private fun safeSleep(millis: Long) {
+        try {
+            Thread.sleep(millis)
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            shouldStop = true
+        }
     }
     
     /**
