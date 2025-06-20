@@ -321,11 +321,31 @@ class MorseCodeGenerator(private val context: Context) {
             buffer[i] = (amplitude * Short.MAX_VALUE).toInt().coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
         }
         
+        // Add ringing tail after the tone if filter ringing is enabled
+        if (currentSettings.filterRingingEnabled && currentSettings.filterQFactor > 3.0) {
+            val ringingTailDuration = minOf(50, durationMs / 2) // Up to 50ms ringing tail
+            val ringingTailSamples = (SAMPLE_RATE * ringingTailDuration / 1000.0).toInt()
+            val ringingEndIndex = minOf(endIndex + ringingTailSamples, buffer.size)
+            
+            for (i in endIndex until ringingEndIndex) {
+                val ringingIndex = i - endIndex
+                val ringingPhase = 2.0 * PI * ringingIndex * currentSettings.toneFrequencyHz / SAMPLE_RATE
+                val ringingDecay = exp(-ringingIndex * 0.0008) // Exponential decay
+                val ringingAmplitude = 0.3 * (currentSettings.filterQFactor / 20.0) * ringingDecay
+                val ringing = sin(ringingPhase) * ringingAmplitude
+                
+                buffer[i] = (ringing * Short.MAX_VALUE).toInt()
+                    .coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
+            }
+            
+            return ringingEndIndex
+        }
+        
         return endIndex
     }
     
     /**
-     * Add silence to the buffer
+     * Add silence to the buffer, but preserve any existing ringing
      */
     private fun addSilenceToBuffer(
         buffer: ShortArray,
@@ -337,9 +357,15 @@ class MorseCodeGenerator(private val context: Context) {
         val samples = (SAMPLE_RATE * durationMs / 1000.0).toInt()
         val endIndex = minOf(startIndex + samples, buffer.size)
         
-        // Fill with zeros (silence)
+        // Fill with zeros (silence), but only if there's no existing ringing
         for (i in startIndex until endIndex) {
-            buffer[i] = 0
+            // If there's already audio content (ringing), mix it with silence rather than overwrite
+            if (buffer[i] != 0.toShort()) {
+                // Allow existing ringing to continue, just reduce amplitude slightly
+                buffer[i] = (buffer[i] * 0.8).toInt().toShort()
+            } else {
+                buffer[i] = 0
+            }
         }
         
         return endIndex
@@ -582,33 +608,43 @@ class MorseCodeGenerator(private val context: Context) {
     private fun applyCWFilterEffects(amplitude: Double, sampleIndex: Int, toneFrequency: Int): Double {
         var filteredAmplitude = amplitude
         
-        // Simulate bandpass filter effect
         val centerFreq = currentSettings.toneFrequencyHz.toDouble()
         val bandwidth = currentSettings.filterBandwidthHz.toDouble()
         val qFactor = currentSettings.filterQFactor.toDouble()
         
-        // Calculate frequency response (simplified bandpass)
+        // Apply frequency response filtering
         val freqDiff = abs(toneFrequency - centerFreq)
         val normalizedFreq = freqDiff / (bandwidth / 2.0)
         val filterResponse = 1.0 / sqrt(1.0 + (qFactor * normalizedFreq).pow(2))
-        
-        // Apply filter response
         filteredAmplitude *= filterResponse
         
-        // Add ringing effect for high Q filters
-        if (qFactor > 5.0) {
-            val ringingFreq = centerFreq * (1.0 + 0.1 / qFactor)  // Slight frequency shift for ringing
-            val ringingPhase = 2.0 * PI * sampleIndex * ringingFreq / SAMPLE_RATE
-            val ringingAmplitude = 0.05 * (qFactor / 20.0)  // Ringing amplitude proportional to Q
-            val ringing = sin(ringingPhase) * ringingAmplitude * exp(-sampleIndex * 0.001)  // Decaying ringing
-            filteredAmplitude += ringing
-        }
-        
-        // Simulate filter group delay effects (phase distortion)
-        if (qFactor > 10.0) {
-            val phaseShift = (qFactor - 10.0) / 10.0 * PI / 4  // Up to 45 degree phase shift
-            val phaseDistortion = sin(2.0 * PI * sampleIndex * toneFrequency / SAMPLE_RATE + phaseShift)
-            filteredAmplitude = filteredAmplitude * 0.8 + phaseDistortion * 0.2 * (qFactor / 20.0)
+        // Create the characteristic CW filter ringing/howling
+        if (qFactor > 3.0) {
+            // Primary ringing at center frequency - this creates the "howl"
+            val ringingPhase = 2.0 * PI * sampleIndex * centerFreq / SAMPLE_RATE
+            val ringingAmplitude = 0.15 * (qFactor / 20.0)  // Much stronger ringing
+            val ringingDecay = exp(-sampleIndex * 0.0005)  // Slower decay for longer ringing
+            val primaryRinging = sin(ringingPhase) * ringingAmplitude * ringingDecay
+            
+            // Secondary ringing at slightly offset frequencies (filter resonances)
+            val offsetFreq1 = centerFreq * (1.0 + 0.02)  // +2% frequency
+            val offsetFreq2 = centerFreq * (1.0 - 0.02)  // -2% frequency
+            val offset1Phase = 2.0 * PI * sampleIndex * offsetFreq1 / SAMPLE_RATE
+            val offset2Phase = 2.0 * PI * sampleIndex * offsetFreq2 / SAMPLE_RATE
+            val offsetAmplitude = 0.08 * (qFactor / 20.0)
+            val secondaryRinging = (sin(offset1Phase) + sin(offset2Phase)) * offsetAmplitude * ringingDecay
+            
+            // Combine all ringing components
+            filteredAmplitude += primaryRinging + secondaryRinging
+            
+            // Add some filter "singing" for very high Q
+            if (qFactor > 12.0) {
+                val singingFreq = centerFreq * (1.0 + 0.005)  // Very slight offset
+                val singingPhase = 2.0 * PI * sampleIndex * singingFreq / SAMPLE_RATE
+                val singingAmplitude = 0.05 * ((qFactor - 12.0) / 8.0)  // Only for very high Q
+                val singing = sin(singingPhase) * singingAmplitude * exp(-sampleIndex * 0.0003)
+                filteredAmplitude += singing
+            }
         }
         
         return filteredAmplitude
