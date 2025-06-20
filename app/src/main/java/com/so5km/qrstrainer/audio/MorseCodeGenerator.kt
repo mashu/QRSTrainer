@@ -49,7 +49,7 @@ class MorseCodeGenerator(private val context: Context) {
                 SAMPLE_RATE,
                 AudioFormat.CHANNEL_OUT_MONO,
                 AudioFormat.ENCODING_PCM_16BIT
-            ) * 4 // Larger buffer for smooth playback
+            ) * 8 // Larger buffer for smooth playback and prevent audio cutting
             
             audioTrack = AudioTrack(
                 AudioManager.STREAM_MUSIC,
@@ -120,8 +120,21 @@ class MorseCodeGenerator(private val context: Context) {
                 val audioData = generateSequenceAudio(sequence, settings)
                 
                 if (audioData.isNotEmpty() && !shouldStop) {
-                    audioTrack?.play()
-                    playAudioBuffer(audioData)
+                    // Pre-fill the AudioTrack buffer with initial data before starting playback
+                    // This prevents audio cutting at the beginning
+                    val initialChunkSize = minOf(4096, audioData.size)
+                    val bytesWritten = audioTrack!!.write(audioData, 0, initialChunkSize)
+                    
+                    if (bytesWritten > 0) {
+                        // Now start playback - the buffer already has data
+                        audioTrack?.play()
+                        
+                        // Write the remaining data if any
+                        if (initialChunkSize < audioData.size) {
+                            playAudioBuffer(audioData, initialChunkSize)
+                        }
+                    }
+                    
                     audioTrack?.stop()
                 }
                 
@@ -399,8 +412,8 @@ class MorseCodeGenerator(private val context: Context) {
     /**
      * Play the generated audio buffer
      */
-    private fun playAudioBuffer(buffer: ShortArray) {
-        var offset = 0
+    private fun playAudioBuffer(buffer: ShortArray, startIndex: Int = 0) {
+        var offset = startIndex
         val chunkSize = 4096 // Write in chunks for smooth playback
         
         while (offset < buffer.size && !shouldStop) {
