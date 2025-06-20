@@ -33,9 +33,96 @@ class SettingsFragment : Fragment() {
         settings = TrainingSettings.load(requireContext())
         
         setupUI()
+        setupCollapsibleSections()
         loadCurrentSettings()
 
         return root
+    }
+
+    private fun setupCollapsibleSections() {
+        // Set initial state - Training Settings expanded, others collapsed
+        binding.contentTrainingSettings.visibility = View.VISIBLE
+        binding.iconTrainingExpand.rotation = 90f
+        
+        binding.contentAudioSettings.visibility = View.GONE
+        binding.iconAudioExpand.rotation = 0f
+        
+        binding.contentCWFilterSettings.visibility = View.GONE
+        binding.iconCWFilterExpand.rotation = 0f
+        
+        binding.contentProgressSettings.visibility = View.GONE
+        binding.iconProgressExpand.rotation = 0f
+
+        // Training Settings
+        binding.headerTrainingSettings.setOnClickListener {
+            toggleSectionAccordion(
+                binding.contentTrainingSettings,
+                binding.iconTrainingExpand,
+                "training"
+            )
+        }
+
+        // Audio Settings
+        binding.headerAudioSettings.setOnClickListener {
+            toggleSectionAccordion(
+                binding.contentAudioSettings,
+                binding.iconAudioExpand,
+                "audio"
+            )
+        }
+
+        // CW Filter Settings
+        binding.headerCWFilterSettings.setOnClickListener {
+            toggleSectionAccordion(
+                binding.contentCWFilterSettings,
+                binding.iconCWFilterExpand,
+                "filter"
+            )
+        }
+
+        // Progress Settings
+        binding.headerProgressSettings.setOnClickListener {
+            toggleSectionAccordion(
+                binding.contentProgressSettings,
+                binding.iconProgressExpand,
+                "progress"
+            )
+        }
+    }
+
+    private fun toggleSectionAccordion(contentView: View, iconView: View, sectionType: String) {
+        // First, collapse all other sections
+        collapseAllSectionsExcept(sectionType)
+        
+        // Then toggle the clicked section
+        if (contentView.visibility == View.GONE) {
+            // Expand
+            contentView.visibility = View.VISIBLE
+            iconView.rotation = 90f
+        } else {
+            // Collapse
+            contentView.visibility = View.GONE
+            iconView.rotation = 0f
+        }
+    }
+    
+    private fun collapseAllSectionsExcept(exceptSection: String) {
+        if (exceptSection != "training") {
+            binding.contentTrainingSettings.visibility = View.GONE
+            binding.iconTrainingExpand.rotation = 0f
+        }
+        if (exceptSection != "audio") {
+            binding.contentAudioSettings.visibility = View.GONE
+            binding.iconAudioExpand.rotation = 0f
+        }
+        if (exceptSection != "filter") {
+            binding.contentCWFilterSettings.visibility = View.GONE
+            binding.iconCWFilterExpand.rotation = 0f
+        }
+        if (exceptSection != "progress") {
+            binding.contentProgressSettings.visibility = View.GONE
+            binding.iconProgressExpand.rotation = 0f
+        }
     }
 
     private fun setupUI() {

@@ -12,181 +12,475 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="12dp">
 
-        <!-- Training Settings Card -->
+        <!-- Training Settings Collapsible Section -->
         <androidx.cardview.widget.CardView
             style="@style/Card.Modern"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp">
+            android:layout_marginBottom="8dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp">
+                android:orientation="vertical">
 
-                <TextView
-                    style="@style/Text.Title"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    android:drawableStart="@drawable/ic_menu_slideshow"
-                    android:drawablePadding="12dp"
-                    android:text="Training Settings"
-                    android:textSize="20sp" />
-
-                <!-- Speed Settings -->
-                <TextView
-                    style="@style/Text.Subtitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:text="Speed (WPM)"
-                    android:textSize="16sp" />
-
-                <SeekBar
-                    android:id="@+id/seekBarSpeed"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:max="35"
-                    android:progress="10"
-                    android:progressTint="@color/primary_blue"
-                    android:thumbTint="@color/primary_blue" />
-
-                <TextView
-                    android:id="@+id/textSpeedDisplay"
-                    style="@style/Text.Caption"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginBottom="24dp"
-                    android:text="15 WPM"
-                    android:textSize="14sp" />
-
-                <!-- Koch Level Settings -->
-                <TextView
-                    style="@style/Text.Subtitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:text="Koch Training Level"
-                    android:textSize="16sp" />
-
-                <SeekBar
-                    android:id="@+id/seekBarLevel"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:max="39"
-                    android:progress="0"
-                    android:progressTint="@color/secondary_purple"
-                    android:thumbTint="@color/secondary_purple" />
-
-                <TextView
-                    android:id="@+id/textLevelDisplay"
-                    style="@style/Text.Caption"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginBottom="16dp"
-                    android:text="Level 1"
-                    android:textSize="14sp" />
-
-                <CheckBox
-                    android:id="@+id/checkBoxLockLevel"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="24dp"
-                    android:buttonTint="@color/primary_blue"
-                    android:text="Lock level (prevent auto-advance)"
-                    android:textColor="@color/grey_800"
-                    android:textSize="14sp" />
-
-                <!-- Group Size Settings -->
-                <TextView
-                    style="@style/Text.Subtitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    android:text="Sequence Length"
-                    android:textSize="16sp" />
-
+                <!-- Collapsible Header -->
                 <LinearLayout
+                    android:id="@+id/headerTrainingSettings"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:orientation="horizontal">
+                    android:background="?android:attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:orientation="horizontal"
+                    android:padding="16dp">
 
                     <TextView
-                        style="@style/Text.Body"
-                        android:layout_width="wrap_content"
+                        style="@style/Text.Title"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center_vertical"
-                        android:text="Min: "
+                        android:layout_weight="1"
+                        android:drawableStart="@drawable/ic_menu_slideshow"
+                        android:drawablePadding="12dp"
+                        android:text="Training Settings"
+                        android:textSize="18sp" />
+
+                    <ImageView
+                        android:id="@+id/iconTrainingExpand"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_gravity="center_vertical"
+                        android:src="@drawable/ic_expand_more"
+                        android:rotation="90" />
+
+                </LinearLayout>
+
+                <!-- Collapsible Content -->
+                <LinearLayout
+                    android:id="@+id/contentTrainingSettings"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:visibility="visible">
+
+                    <!-- Speed Settings -->
+                    <TextView
+                        style="@style/Text.Subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="Speed (WPM)"
                         android:textSize="14sp" />
 
                     <SeekBar
-                        android:id="@+id/seekBarGroupMin"
+                        android:id="@+id/seekBarSpeed"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:max="35"
+                        android:progress="10"
+                        android:progressTint="@color/primary_blue"
+                        android:thumbTint="@color/primary_blue" />
+
+                    <TextView
+                        android:id="@+id/textSpeedDisplay"
+                        style="@style/Text.Caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="16dp"
+                        android:text="15 WPM"
+                        android:textSize="12sp" />
+
+                    <!-- Koch Level Settings -->
+                    <TextView
+                        style="@style/Text.Subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="Koch Training Level"
+                        android:textSize="14sp" />
+
+                    <SeekBar
+                        android:id="@+id/seekBarLevel"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:max="39"
+                        android:progress="0"
+                        android:progressTint="@color/secondary_purple"
+                        android:thumbTint="@color/secondary_purple" />
+
+                    <TextView
+                        android:id="@+id/textLevelDisplay"
+                        style="@style/Text.Caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="8dp"
+                        android:text="Level 1"
+                        android:textSize="12sp" />
+
+                    <CheckBox
+                        android:id="@+id/checkBoxLockLevel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:buttonTint="@color/primary_blue"
+                        android:text="Lock level (prevent auto-advance)"
+                        android:textColor="@color/grey_800"
+                        android:textSize="12sp" />
+
+                    <!-- Group Size Settings -->
+                    <TextView
+                        style="@style/Text.Subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="Sequence Length"
+                        android:textSize="14sp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            style="@style/Text.Body"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical"
+                            android:text="Min: "
+                            android:textSize="12sp" />
+
+                        <SeekBar
+                            android:id="@+id/seekBarGroupMin"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:max="8"
+                            android:progress="2"
+                            android:progressTint="@color/accent_orange"
+                            android:thumbTint="@color/accent_orange" />
+
+                        <TextView
+                            android:id="@+id/textGroupMinDisplay"
+                            style="@style/Text.Body"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical"
+                            android:layout_marginStart="8dp"
+                            android:minWidth="24dp"
+                            android:text="3"
+                            android:textAlignment="center"
+                            android:textSize="12sp" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            style="@style/Text.Body"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical"
+                            android:text="Max: "
+                            android:textSize="12sp" />
+
+                        <SeekBar
+                            android:id="@+id/seekBarGroupMax"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:max="8"
+                            android:progress="4"
+                            android:progressTint="@color/accent_orange"
+                            android:thumbTint="@color/accent_orange" />
+
+                        <TextView
+                            android:id="@+id/textGroupMaxDisplay"
+                            style="@style/Text.Body"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical"
+                            android:layout_marginStart="8dp"
+                            android:minWidth="24dp"
+                            android:text="5"
+                            android:textAlignment="center"
+                            android:textSize="12sp" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </androidx.cardview.widget.CardView>
+
+        <!-- Audio Settings Collapsible Section -->
+        <androidx.cardview.widget.CardView
+            style="@style/Card.Modern"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <!-- Collapsible Header -->
+                <LinearLayout
+                    android:id="@+id/headerAudioSettings"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:orientation="horizontal"
+                    android:padding="16dp">
+
+                    <TextView
+                        style="@style/Text.Title"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical"
                         android:layout_weight="1"
-                        android:max="8"
+                        android:drawableStart="@drawable/ic_menu_camera"
+                        android:drawablePadding="12dp"
+                        android:text="Audio Settings"
+                        android:textSize="18sp" />
+
+                    <ImageView
+                        android:id="@+id/iconAudioExpand"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_gravity="center_vertical"
+                        android:src="@drawable/ic_expand_more"
+                        android:rotation="0" />
+
+                </LinearLayout>
+
+                <!-- Collapsible Content -->
+                <LinearLayout
+                    android:id="@+id/contentAudioSettings"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:visibility="gone">
+
+                    <!-- Repeat Count -->
+                    <TextView
+                        style="@style/Text.Subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="Repeat Count"
+                        android:textSize="14sp" />
+
+                    <SeekBar
+                        android:id="@+id/seekBarRepeatCount"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:max="9"
                         android:progress="2"
-                        android:progressTint="@color/accent_orange"
-                        android:thumbTint="@color/accent_orange" />
+                        android:progressTint="@color/accent_cyan"
+                        android:thumbTint="@color/accent_cyan" />
 
                     <TextView
-                        android:id="@+id/textGroupMinDisplay"
-                        style="@style/Text.Body"
+                        android:id="@+id/textRepeatCountDisplay"
+                        style="@style/Text.Caption"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_gravity="center_vertical"
-                        android:layout_marginStart="8dp"
-                        android:minWidth="32dp"
-                        android:text="3"
-                        android:textAlignment="center"
-                        android:textSize="14sp" />
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="16dp"
+                        android:text="3 times"
+                        android:textSize="12sp" />
 
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="24dp"
-                    android:orientation="horizontal">
-
+                    <!-- Repeat Spacing -->
                     <TextView
-                        style="@style/Text.Body"
+                        style="@style/Text.Subtitle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_gravity="center_vertical"
-                        android:text="Max: "
+                        android:layout_marginBottom="8dp"
+                        android:text="Spacing Between Repeats"
                         android:textSize="14sp" />
 
                     <SeekBar
-                        android:id="@+id/seekBarGroupMax"
-                        android:layout_width="0dp"
+                        android:id="@+id/seekBarRepeatSpacing"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:max="8"
-                        android:progress="4"
+                        android:layout_marginBottom="4dp"
+                        android:max="95"
+                        android:progress="25"
+                        android:progressTint="@color/accent_cyan"
+                        android:thumbTint="@color/accent_cyan" />
+
+                    <TextView
+                        android:id="@+id/textRepeatSpacingDisplay"
+                        style="@style/Text.Caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="16dp"
+                        android:text="3.0 seconds"
+                        android:textSize="12sp" />
+
+                    <!-- Answer Timeout -->
+                    <TextView
+                        style="@style/Text.Subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="Answer Timeout"
+                        android:textSize="14sp" />
+
+                    <SeekBar
+                        android:id="@+id/seekBarTimeout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:max="25"
+                        android:progress="5"
+                        android:progressTint="@color/accent_green"
+                        android:thumbTint="@color/accent_green" />
+
+                    <TextView
+                        android:id="@+id/textTimeoutDisplay"
+                        style="@style/Text.Caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="16dp"
+                        android:text="10 seconds"
+                        android:textSize="12sp" />
+
+                    <!-- Tone Frequency -->
+                    <TextView
+                        style="@style/Text.Subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="@string/tone_frequency_label"
+                        android:textSize="14sp" />
+
+                    <SeekBar
+                        android:id="@+id/seekBarToneFrequency"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:max="70"
+                        android:progress="30"
+                        android:progressTint="@color/primary_blue"
+                        android:thumbTint="@color/primary_blue" />
+
+                    <TextView
+                        android:id="@+id/textToneFrequencyDisplay"
+                        style="@style/Text.Caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="16dp"
+                        android:text="600 Hz"
+                        android:textSize="12sp" />
+
+                    <!-- Farnsworth Timing -->
+                    <TextView
+                        style="@style/Text.Subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="@string/farnsworth_timing_label"
+                        android:textSize="14sp" />
+
+                    <SeekBar
+                        android:id="@+id/seekBarFarnsworth"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:max="35"
+                        android:progress="0"
+                        android:progressTint="@color/secondary_purple"
+                        android:thumbTint="@color/secondary_purple" />
+
+                    <TextView
+                        android:id="@+id/textFarnsworthDisplay"
+                        style="@style/Text.Caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="16dp"
+                        android:text="0 WPM (disabled)"
+                        android:textSize="12sp" />
+
+                    <!-- Word Spacing -->
+                    <TextView
+                        style="@style/Text.Subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="@string/word_spacing_label"
+                        android:textSize="14sp" />
+
+                    <SeekBar
+                        android:id="@+id/seekBarWordSpacing"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:max="100"
+                        android:progress="0"
                         android:progressTint="@color/accent_orange"
                         android:thumbTint="@color/accent_orange" />
 
                     <TextView
-                        android:id="@+id/textGroupMaxDisplay"
-                        style="@style/Text.Body"
+                        android:id="@+id/textWordSpacingDisplay"
+                        style="@style/Text.Caption"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_gravity="center_vertical"
-                        android:layout_marginStart="8dp"
-                        android:minWidth="32dp"
-                        android:text="5"
-                        android:textAlignment="center"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="16dp"
+                        android:text="+0 ms"
+                        android:textSize="12sp" />
+
+                    <!-- Group Spacing -->
+                    <TextView
+                        style="@style/Text.Subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="@string/group_spacing_label"
                         android:textSize="14sp" />
+
+                    <SeekBar
+                        android:id="@+id/seekBarGroupSpacing"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:max="100"
+                        android:progress="0"
+                        android:progressTint="@color/accent_cyan"
+                        android:thumbTint="@color/accent_cyan" />
+
+                    <TextView
+                        android:id="@+id/textGroupSpacingDisplay"
+                        style="@style/Text.Caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="16dp"
+                        android:text="+0 ms"
+                        android:textSize="12sp" />
 
                 </LinearLayout>
 
@@ -194,583 +488,417 @@
 
         </androidx.cardview.widget.CardView>
 
-        <!-- Audio Settings Card -->
+        <!-- CW Filter Settings Collapsible Section -->
         <androidx.cardview.widget.CardView
             style="@style/Card.Modern"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp">
+            android:layout_marginBottom="8dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp">
+                android:orientation="vertical">
 
-                <TextView
-                    style="@style/Text.Title"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    android:drawableStart="@drawable/ic_menu_camera"
-                    android:drawablePadding="12dp"
-                    android:text="Audio Settings"
-                    android:textSize="20sp" />
-
-                <!-- Repeat Count -->
-                <TextView
-                    style="@style/Text.Subtitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:text="Repeat Count"
-                    android:textSize="16sp" />
-
-                <SeekBar
-                    android:id="@+id/seekBarRepeatCount"
+                <!-- Collapsible Header -->
+                <LinearLayout
+                    android:id="@+id/headerCWFilterSettings"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:max="9"
-                    android:progress="2"
-                    android:progressTint="@color/accent_cyan"
-                    android:thumbTint="@color/accent_cyan" />
+                    android:background="?android:attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:orientation="horizontal"
+                    android:padding="16dp">
 
-                <TextView
-                    android:id="@+id/textRepeatCountDisplay"
-                    style="@style/Text.Caption"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginBottom="24dp"
-                    android:text="3 times"
-                    android:textSize="14sp" />
+                    <TextView
+                        style="@style/Text.Title"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical"
+                        android:layout_weight="1"
+                        android:drawableStart="@drawable/ic_menu_camera"
+                        android:drawablePadding="12dp"
+                        android:text="CW Filter Settings"
+                        android:textSize="18sp" />
 
-                <!-- Repeat Spacing -->
-                <TextView
-                    style="@style/Text.Subtitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:text="Spacing Between Repeats"
-                    android:textSize="16sp" />
+                    <ImageView
+                        android:id="@+id/iconCWFilterExpand"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_gravity="center_vertical"
+                        android:src="@drawable/ic_expand_more"
+                        android:rotation="0" />
 
-                <SeekBar
-                    android:id="@+id/seekBarRepeatSpacing"
+                </LinearLayout>
+
+                <!-- Collapsible Content -->
+                <LinearLayout
+                    android:id="@+id/contentCWFilterSettings"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:max="95"
-                    android:progress="25"
-                    android:progressTint="@color/accent_cyan"
-                    android:thumbTint="@color/accent_cyan" />
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:visibility="gone">
 
-                <TextView
-                    android:id="@+id/textRepeatSpacingDisplay"
-                    style="@style/Text.Caption"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginBottom="24dp"
-                    android:text="3.0 seconds"
-                    android:textSize="14sp" />
+                    <!-- Filter Graph -->
+                    <com.so5km.qrstrainer.ui.views.CWFilterGraphView
+                        android:id="@+id/filterGraphView"
+                        android:layout_width="match_parent"
+                        android:layout_height="150dp"
+                        android:layout_marginBottom="12dp"
+                        android:background="@drawable/card_background_modern" />
 
-                <!-- Answer Timeout -->
-                <TextView
-                    style="@style/Text.Subtitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:text="Answer Timeout"
-                    android:textSize="16sp" />
+                    <!-- Primary Filter Bandwidth -->
+                    <TextView
+                        style="@style/Text.Subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="Primary Filter Bandwidth"
+                        android:textSize="14sp" />
 
-                <SeekBar
-                    android:id="@+id/seekBarTimeout"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:max="25"
-                    android:progress="5"
-                    android:progressTint="@color/accent_green"
-                    android:thumbTint="@color/accent_green" />
+                    <SeekBar
+                        android:id="@+id/seekBarFilterBandwidth"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:max="190"
+                        android:progress="40"
+                        android:progressTint="@color/accent_green"
+                        android:thumbTint="@color/accent_green" />
 
-                <TextView
-                    android:id="@+id/textTimeoutDisplay"
-                    style="@style/Text.Caption"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginBottom="24dp"
-                    android:text="10 seconds"
-                    android:textSize="14sp" />
+                    <TextView
+                        android:id="@+id/textFilterBandwidthDisplay"
+                        style="@style/Text.Caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="16dp"
+                        android:text="500 Hz"
+                        android:textSize="12sp" />
 
-                <!-- Tone Frequency -->
-                <TextView
-                    style="@style/Text.Subtitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:text="@string/tone_frequency_label"
-                    android:textSize="16sp" />
+                    <!-- Secondary Filter Bandwidth -->
+                    <TextView
+                        style="@style/Text.Subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="Secondary Filter Bandwidth"
+                        android:textSize="14sp" />
 
-                <SeekBar
-                    android:id="@+id/seekBarToneFrequency"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:max="70"
-                    android:progress="30"
-                    android:progressTint="@color/primary_blue"
-                    android:thumbTint="@color/primary_blue" />
+                    <SeekBar
+                        android:id="@+id/seekBarSecondaryFilterBandwidth"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:max="190"
+                        android:progress="40"
+                        android:progressTint="@color/secondary_purple"
+                        android:thumbTint="@color/secondary_purple" />
 
-                <TextView
-                    android:id="@+id/textToneFrequencyDisplay"
-                    style="@style/Text.Caption"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginBottom="24dp"
-                    android:text="600 Hz"
-                    android:textSize="14sp" />
+                    <TextView
+                        android:id="@+id/textSecondaryFilterBandwidthDisplay"
+                        style="@style/Text.Caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="16dp"
+                        android:text="500 Hz"
+                        android:textSize="12sp" />
 
-                <!-- Farnsworth Timing -->
-                <TextView
-                    style="@style/Text.Subtitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:text="@string/farnsworth_timing_label"
-                    android:textSize="16sp" />
+                    <!-- Filter Q Factor (Ringing) -->
+                    <TextView
+                        style="@style/Text.Subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="Filter Selectivity (Q Factor)"
+                        android:textSize="14sp" />
 
-                <SeekBar
-                    android:id="@+id/seekBarFarnsworth"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:max="35"
-                    android:progress="0"
-                    android:progressTint="@color/secondary_purple"
-                    android:thumbTint="@color/secondary_purple" />
+                    <SeekBar
+                        android:id="@+id/seekBarFilterQ"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:max="190"
+                        android:progress="40"
+                        android:progressTint="@color/secondary_purple"
+                        android:thumbTint="@color/secondary_purple" />
 
-                <TextView
-                    android:id="@+id/textFarnsworthDisplay"
-                    style="@style/Text.Caption"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginBottom="24dp"
-                    android:text="0 WPM (disabled)"
-                    android:textSize="14sp" />
+                    <TextView
+                        android:id="@+id/textFilterQDisplay"
+                        style="@style/Text.Caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="16dp"
+                        android:text="Q = 5.0"
+                        android:textSize="12sp" />
 
-                <!-- Word Spacing -->
-                <TextView
-                    style="@style/Text.Subtitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:text="@string/word_spacing_label"
-                    android:textSize="16sp" />
+                    <!-- Background Noise Level -->
+                    <TextView
+                        style="@style/Text.Subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="Background Noise Level"
+                        android:textSize="14sp" />
 
-                <SeekBar
-                    android:id="@+id/seekBarWordSpacing"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:max="100"
-                    android:progress="0"
-                    android:progressTint="@color/accent_orange"
-                    android:thumbTint="@color/accent_orange" />
+                    <SeekBar
+                        android:id="@+id/seekBarBackgroundNoise"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:max="100"
+                        android:progress="10"
+                        android:progressTint="@color/accent_orange"
+                        android:thumbTint="@color/accent_orange" />
 
-                <TextView
-                    android:id="@+id/textWordSpacingDisplay"
-                    style="@style/Text.Caption"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginBottom="24dp"
-                    android:text="+0 ms"
-                    android:textSize="14sp" />
+                    <TextView
+                        android:id="@+id/textBackgroundNoiseDisplay"
+                        style="@style/Text.Caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="16dp"
+                        android:text="10%"
+                        android:textSize="12sp" />
 
-                <!-- Group Spacing -->
-                <TextView
-                    style="@style/Text.Subtitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:text="@string/group_spacing_label"
-                    android:textSize="16sp" />
+                    <!-- Primary Filter Offset -->
+                    <TextView
+                        style="@style/Text.Subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="Primary Filter Offset"
+                        android:textSize="14sp" />
 
-                <SeekBar
-                    android:id="@+id/seekBarGroupSpacing"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:max="100"
-                    android:progress="0"
-                    android:progressTint="@color/accent_cyan"
-                    android:thumbTint="@color/accent_cyan" />
+                    <SeekBar
+                        android:id="@+id/seekBarPrimaryFilterOffset"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:max="400"
+                        android:progress="200"
+                        android:progressTint="@color/accent_green"
+                        android:thumbTint="@color/accent_green" />
 
-                <TextView
-                    android:id="@+id/textGroupSpacingDisplay"
-                    style="@style/Text.Caption"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginBottom="24dp"
-                    android:text="+0 ms"
-                    android:textSize="14sp" />
+                    <TextView
+                        android:id="@+id/textPrimaryFilterOffsetDisplay"
+                        style="@style/Text.Caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="16dp"
+                        android:text="0 Hz"
+                        android:textSize="12sp" />
+
+                    <!-- Secondary Filter Offset -->
+                    <TextView
+                        style="@style/Text.Subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="Secondary Filter Offset"
+                        android:textSize="14sp" />
+
+                    <SeekBar
+                        android:id="@+id/seekBarSecondaryFilterOffset"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:max="400"
+                        android:progress="200"
+                        android:progressTint="@color/secondary_purple"
+                        android:thumbTint="@color/secondary_purple" />
+
+                    <TextView
+                        android:id="@+id/textSecondaryFilterOffsetDisplay"
+                        style="@style/Text.Caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="12dp"
+                        android:text="0 Hz"
+                        android:textSize="12sp" />
+
+                    <!-- Filter Ringing Enable -->
+                    <CheckBox
+                        android:id="@+id/checkBoxFilterRinging"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:buttonTint="@color/primary_blue"
+                        android:checked="true"
+                        android:text="Enable Filter Ringing (Realistic CW Sound)"
+                        android:textColor="@color/grey_800"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        style="@style/Text.Caption"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Adjust filter offsets to move filters relative to each other. Overlapping filters create sharper responses, while separated filters create wider passbands or notch effects."
+                        android:textSize="10sp"
+                        android:textColor="@color/grey_600" />
+
+                </LinearLayout>
 
             </LinearLayout>
 
         </androidx.cardview.widget.CardView>
 
-        <!-- CW Filter Settings Card -->
+        <!-- Progress Settings Collapsible Section -->
         <androidx.cardview.widget.CardView
             style="@style/Card.Modern"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp">
+            android:layout_marginBottom="8dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp">
+                android:orientation="vertical">
 
-                <TextView
-                    style="@style/Text.Title"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    android:drawableStart="@drawable/ic_menu_camera"
-                    android:drawablePadding="12dp"
-                    android:text="CW Filter Settings"
-                    android:textSize="20sp" />
-
-                <!-- Filter Graph -->
-                <com.so5km.qrstrainer.ui.views.CWFilterGraphView
-                    android:id="@+id/filterGraphView"
-                    android:layout_width="match_parent"
-                    android:layout_height="200dp"
-                    android:layout_marginBottom="16dp"
-                    android:background="@drawable/card_background_modern" />
-
-                <!-- Primary Filter Bandwidth -->
-                <TextView
-                    style="@style/Text.Subtitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:text="Primary Filter Bandwidth"
-                    android:textSize="16sp" />
-
-                <SeekBar
-                    android:id="@+id/seekBarFilterBandwidth"
+                <!-- Collapsible Header -->
+                <LinearLayout
+                    android:id="@+id/headerProgressSettings"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:max="190"
-                    android:progress="40"
-                    android:progressTint="@color/accent_green"
-                    android:thumbTint="@color/accent_green" />
+                    android:background="?android:attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:orientation="horizontal"
+                    android:padding="16dp">
 
-                <TextView
-                    android:id="@+id/textFilterBandwidthDisplay"
-                    style="@style/Text.Caption"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginBottom="24dp"
-                    android:text="500 Hz"
-                    android:textSize="14sp" />
+                    <TextView
+                        style="@style/Text.Title"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical"
+                        android:layout_weight="1"
+                        android:drawableStart="@drawable/ic_menu_gallery"
+                        android:drawablePadding="12dp"
+                        android:text="Progress Settings"
+                        android:textSize="18sp" />
 
-                <!-- Secondary Filter Bandwidth -->
-                <TextView
-                    style="@style/Text.Subtitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:text="Secondary Filter Bandwidth"
-                    android:textSize="16sp" />
+                    <ImageView
+                        android:id="@+id/iconProgressExpand"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_gravity="center_vertical"
+                        android:src="@drawable/ic_expand_more"
+                        android:rotation="0" />
 
-                <SeekBar
-                    android:id="@+id/seekBarSecondaryFilterBandwidth"
+                </LinearLayout>
+
+                <!-- Collapsible Content -->
+                <LinearLayout
+                    android:id="@+id/contentProgressSettings"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:max="190"
-                    android:progress="40"
-                    android:progressTint="@color/secondary_purple"
-                    android:thumbTint="@color/secondary_purple" />
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:visibility="gone">
 
-                <TextView
-                    android:id="@+id/textSecondaryFilterBandwidthDisplay"
-                    style="@style/Text.Caption"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginBottom="24dp"
-                    android:text="500 Hz"
-                    android:textSize="14sp" />
+                    <!-- Required Correct Answers -->
+                    <TextView
+                        style="@style/Text.Subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="Correct Answers to Advance"
+                        android:textSize="14sp" />
 
-                <!-- Filter Q Factor (Ringing) -->
-                <TextView
-                    style="@style/Text.Subtitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:text="Filter Selectivity (Q Factor)"
-                    android:textSize="16sp" />
+                    <SeekBar
+                        android:id="@+id/seekBarRequiredCorrect"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:max="25"
+                        android:progress="5"
+                        android:progressTint="@color/accent_green"
+                        android:thumbTint="@color/accent_green" />
 
-                <SeekBar
-                    android:id="@+id/seekBarFilterQ"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:max="190"
-                    android:progress="40"
-                    android:progressTint="@color/secondary_purple"
-                    android:thumbTint="@color/secondary_purple" />
+                    <TextView
+                        android:id="@+id/textRequiredCorrectDisplay"
+                        style="@style/Text.Caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="16dp"
+                        android:text="10 correct per character"
+                        android:textSize="12sp" />
 
-                <TextView
-                    android:id="@+id/textFilterQDisplay"
-                    style="@style/Text.Caption"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginBottom="24dp"
-                    android:text="Q = 5.0"
-                    android:textSize="14sp" />
+                    <!-- Mistakes to Drop Level -->
+                    <TextView
+                        style="@style/Text.Subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="Mistakes to Drop Level"
+                        android:textSize="14sp" />
 
-                <!-- Background Noise Level -->
-                <TextView
-                    style="@style/Text.Subtitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:text="Background Noise Level"
-                    android:textSize="16sp" />
+                    <SeekBar
+                        android:id="@+id/seekBarMistakesToDrop"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:max="10"
+                        android:progress="1"
+                        android:progressTint="@color/accent_orange"
+                        android:thumbTint="@color/accent_orange" />
 
-                <SeekBar
-                    android:id="@+id/seekBarBackgroundNoise"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:max="100"
-                    android:progress="10"
-                    android:progressTint="@color/accent_orange"
-                    android:thumbTint="@color/accent_orange" />
+                    <TextView
+                        android:id="@+id/textMistakesToDropDisplay"
+                        style="@style/Text.Caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="16dp"
+                        android:text="1 mistake (enabled)"
+                        android:textSize="12sp" />
 
-                <TextView
-                    android:id="@+id/textBackgroundNoiseDisplay"
-                    style="@style/Text.Caption"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginBottom="24dp"
-                    android:text="10%"
-                    android:textSize="14sp" />
+                    <!-- Sequence Delay -->
+                    <TextView
+                        style="@style/Text.Subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="Delay Between Sequences"
+                        android:textSize="14sp" />
 
-                <!-- Primary Filter Offset -->
-                <TextView
-                    style="@style/Text.Subtitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:text="Primary Filter Offset"
-                    android:textSize="16sp" />
+                    <SeekBar
+                        android:id="@+id/seekBarSequenceDelay"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:max="50"
+                        android:progress="10"
+                        android:progressTint="@color/secondary_purple"
+                        android:thumbTint="@color/secondary_purple" />
 
-                <SeekBar
-                    android:id="@+id/seekBarPrimaryFilterOffset"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:max="400"
-                    android:progress="200"
-                    android:progressTint="@color/accent_green"
-                    android:thumbTint="@color/accent_green" />
+                    <TextView
+                        android:id="@+id/textSequenceDelayDisplay"
+                        style="@style/Text.Caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="16dp"
+                        android:text="1.0 seconds"
+                        android:textSize="12sp" />
 
-                <TextView
-                    android:id="@+id/textPrimaryFilterOffsetDisplay"
-                    style="@style/Text.Caption"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginBottom="24dp"
-                    android:text="0 Hz"
-                    android:textSize="14sp" />
+                    <!-- Reset Progress Button -->
+                    <Button
+                        android:id="@+id/buttonResetProgress"
+                        style="@style/Button.Accent"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:text="Reset All Progress"
+                        android:textSize="14sp" />
 
-                <!-- Secondary Filter Offset -->
-                <TextView
-                    style="@style/Text.Subtitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:text="Secondary Filter Offset"
-                    android:textSize="16sp" />
-
-                <SeekBar
-                    android:id="@+id/seekBarSecondaryFilterOffset"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:max="400"
-                    android:progress="200"
-                    android:progressTint="@color/secondary_purple"
-                    android:thumbTint="@color/secondary_purple" />
-
-                <TextView
-                    android:id="@+id/textSecondaryFilterOffsetDisplay"
-                    style="@style/Text.Caption"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginBottom="24dp"
-                    android:text="0 Hz"
-                    android:textSize="14sp" />
-
-                <!-- Filter Ringing Enable -->
-                <CheckBox
-                    android:id="@+id/checkBoxFilterRinging"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    android:buttonTint="@color/primary_blue"
-                    android:checked="true"
-                    android:text="Enable Filter Ringing (Realistic CW Sound)"
-                    android:textColor="@color/grey_800"
-                    android:textSize="14sp" />
-
-                <TextView
-                    style="@style/Text.Caption"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Adjust filter offsets to move filters relative to each other. Overlapping filters create sharper responses, while separated filters create wider passbands or notch effects."
-                    android:textSize="12sp"
-                    android:textColor="@color/grey_600" />
-
-            </LinearLayout>
-
-        </androidx.cardview.widget.CardView>
-
-        <!-- Progress Settings Card -->
-        <androidx.cardview.widget.CardView
-            style="@style/Card.Modern"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp">
-
-                <TextView
-                    style="@style/Text.Title"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    android:drawableStart="@drawable/ic_menu_gallery"
-                    android:drawablePadding="12dp"
-                    android:text="Progress Settings"
-                    android:textSize="20sp" />
-
-                <!-- Required Correct Answers -->
-                <TextView
-                    style="@style/Text.Subtitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:text="Correct Answers to Advance"
-                    android:textSize="16sp" />
-
-                <SeekBar
-                    android:id="@+id/seekBarRequiredCorrect"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:max="25"
-                    android:progress="5"
-                    android:progressTint="@color/accent_green"
-                    android:thumbTint="@color/accent_green" />
-
-                <TextView
-                    android:id="@+id/textRequiredCorrectDisplay"
-                    style="@style/Text.Caption"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginBottom="24dp"
-                    android:text="10 correct per character"
-                    android:textSize="14sp" />
-
-                <!-- Mistakes to Drop Level -->
-                <TextView
-                    style="@style/Text.Subtitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:text="Mistakes to Drop Level"
-                    android:textSize="16sp" />
-
-                <SeekBar
-                    android:id="@+id/seekBarMistakesToDrop"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:max="10"
-                    android:progress="1"
-                    android:progressTint="@color/accent_orange"
-                    android:thumbTint="@color/accent_orange" />
-
-                <TextView
-                    android:id="@+id/textMistakesToDropDisplay"
-                    style="@style/Text.Caption"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginBottom="24dp"
-                    android:text="1 mistake (enabled)"
-                    android:textSize="14sp" />
-
-                <!-- Sequence Delay -->
-                <TextView
-                    style="@style/Text.Subtitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:text="Delay Between Sequences"
-                    android:textSize="16sp" />
-
-                <SeekBar
-                    android:id="@+id/seekBarSequenceDelay"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:max="50"
-                    android:progress="10"
-                    android:progressTint="@color/secondary_purple"
-                    android:thumbTint="@color/secondary_purple" />
-
-                <TextView
-                    android:id="@+id/textSequenceDelayDisplay"
-                    style="@style/Text.Caption"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginBottom="24dp"
-                    android:text="1.0 seconds"
-                    android:textSize="14sp" />
-
-                <!-- Reset Progress Button -->
-                <Button
-                    android:id="@+id/buttonResetProgress"
-                    style="@style/Button.Accent"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:text="Reset All Progress"
-                    android:textSize="16sp" />
+                </LinearLayout>
 
             </LinearLayout>
 
