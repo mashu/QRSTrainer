@@ -30,7 +30,7 @@ data class TrainingSettings(
     val secondaryFilterBandwidthHz: Int = 500, // Secondary filter bandwidth in Hz (100-2000)
     val filterQFactor: Float = 5.0f,           // Q factor for filter ringing (1.0-20.0)
     val backgroundNoiseLevel: Float = 0.1f,    // Background noise level (0.0-1.0)
-    val filterRingingEnabled: Boolean = true,  // Enable/disable filter ringing effect
+    val filterRingingEnabled: Boolean = false,  // Enable/disable filter ringing effect (OFF by default)
     val primaryFilterOffset: Int = 0,          // Primary filter offset from tone freq (-200 to +200 Hz)
     val secondaryFilterOffset: Int = 0         // Secondary filter offset from tone freq (-200 to +200 Hz)
 ) {
@@ -92,7 +92,7 @@ data class TrainingSettings(
                 secondaryFilterBandwidthHz = prefs.getInt(KEY_SECONDARY_FILTER_BANDWIDTH, 500),
                 filterQFactor = prefs.getFloat(KEY_FILTER_Q_FACTOR, 5.0f),
                 backgroundNoiseLevel = prefs.getFloat(KEY_BACKGROUND_NOISE, 0.1f),
-                filterRingingEnabled = prefs.getBoolean(KEY_FILTER_RINGING, true),
+                filterRingingEnabled = prefs.getBoolean(KEY_FILTER_RINGING, false),
                 primaryFilterOffset = prefs.getInt(KEY_PRIMARY_FILTER_OFFSET, 0),
                 secondaryFilterOffset = prefs.getInt(KEY_SECONDARY_FILTER_OFFSET, 0)
             )

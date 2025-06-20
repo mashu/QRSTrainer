@@ -617,50 +617,66 @@ class MorseCodeGenerator(private val context: Context) {
     
     /**
      * Apply CW filter effects including ringing and bandwidth filtering
+     * Improved to reduce audio chopping and provide more realistic effects
      */
     private fun applyCWFilterEffects(amplitude: Double, sampleIndex: Int, toneFrequency: Int): Double {
         var filteredAmplitude = amplitude
         
         val centerFreq = currentSettings.toneFrequencyHz.toDouble()
-        val bandwidth = currentSettings.filterBandwidthHz.toDouble()
+        val primaryOffset = currentSettings.primaryFilterOffset.toDouble()
+        val secondaryOffset = currentSettings.secondaryFilterOffset.toDouble()
         val qFactor = currentSettings.filterQFactor.toDouble()
         
-        // Apply frequency response filtering
-        val freqDiff = abs(toneFrequency - centerFreq)
-        val normalizedFreq = freqDiff / (bandwidth / 2.0)
-        val filterResponse = 1.0 / sqrt(1.0 + (qFactor * normalizedFreq).pow(2))
-        filteredAmplitude *= filterResponse
+        // Calculate effective filter positions
+        val primaryFilterFreq = centerFreq + primaryOffset
+        val secondaryFilterFreq = centerFreq + secondaryOffset
         
-        // Create the characteristic CW filter ringing/howling
-        if (qFactor > 3.0) {
-            // Primary ringing at center frequency - this creates the "howl"
-            val ringingPhase = 2.0 * PI * sampleIndex * centerFreq / SAMPLE_RATE
-            val ringingAmplitude = 0.15 * (qFactor / 20.0)  // Much stronger ringing
-            val ringingDecay = exp(-sampleIndex * 0.0005)  // Slower decay for longer ringing
-            val primaryRinging = sin(ringingPhase) * ringingAmplitude * ringingDecay
-            
-            // Secondary ringing at slightly offset frequencies (filter resonances)
-            val offsetFreq1 = centerFreq * (1.0 + 0.02)  // +2% frequency
-            val offsetFreq2 = centerFreq * (1.0 - 0.02)  // -2% frequency
-            val offset1Phase = 2.0 * PI * sampleIndex * offsetFreq1 / SAMPLE_RATE
-            val offset2Phase = 2.0 * PI * sampleIndex * offsetFreq2 / SAMPLE_RATE
-            val offsetAmplitude = 0.08 * (qFactor / 20.0)
-            val secondaryRinging = (sin(offset1Phase) + sin(offset2Phase)) * offsetAmplitude * ringingDecay
-            
-            // Combine all ringing components
-            filteredAmplitude += primaryRinging + secondaryRinging
-            
-            // Add some filter "singing" for very high Q
-            if (qFactor > 12.0) {
-                val singingFreq = centerFreq * (1.0 + 0.005)  // Very slight offset
-                val singingPhase = 2.0 * PI * sampleIndex * singingFreq / SAMPLE_RATE
-                val singingAmplitude = 0.05 * ((qFactor - 12.0) / 8.0)  // Only for very high Q
-                val singing = sin(singingPhase) * singingAmplitude * exp(-sampleIndex * 0.0003)
-                filteredAmplitude += singing
-            }
+        // Calculate minimum bandwidth to prevent zero bandwidth
+        val minBandwidth = 50.0 // Minimum 50Hz bandwidth
+        val primaryBandwidth = maxOf(minBandwidth, currentSettings.filterBandwidthHz.toDouble())
+        val secondaryBandwidth = maxOf(minBandwidth, currentSettings.secondaryFilterBandwidthHz.toDouble())
+        
+        // Apply dual filter response (more realistic CW filtering)
+        val primaryFreqDiff = abs(toneFrequency - primaryFilterFreq)
+        val secondaryFreqDiff = abs(toneFrequency - secondaryFilterFreq)
+        
+        val primaryResponse = 1.0 / (1.0 + (primaryFreqDiff / (primaryBandwidth / 2.0)).pow(2))
+        val secondaryResponse = 1.0 / (1.0 + (secondaryFreqDiff / (secondaryBandwidth / 2.0)).pow(2))
+        
+        // Combine filter responses (additive for overlapping, multiplicative for cascaded)
+        val combinedResponse = if (abs(primaryOffset - secondaryOffset) < minBandwidth) {
+            // Overlapping filters - additive response
+            (primaryResponse + secondaryResponse) / 2.0
+        } else {
+            // Separate filters - cascaded response
+            sqrt(primaryResponse * secondaryResponse)
         }
         
-        return filteredAmplitude
+        filteredAmplitude *= combinedResponse
+        
+        // Add realistic CW filter ringing only if enabled and Q is reasonable
+        if (qFactor > 2.0) {
+            // Much gentler ringing that doesn't dominate the signal
+            val ringingDecay = exp(-sampleIndex * 0.001) // Faster decay to prevent chopping
+            val ringingAmplitude = 0.05 * (qFactor / 10.0) // Much lower amplitude
+            
+            // Primary filter ringing
+            val primaryRingingPhase = 2.0 * PI * sampleIndex * primaryFilterFreq / SAMPLE_RATE
+            val primaryRinging = sin(primaryRingingPhase) * ringingAmplitude * ringingDecay
+            
+            // Secondary filter ringing (only if filters are separated)
+            val secondaryRinging = if (abs(primaryOffset - secondaryOffset) > minBandwidth) {
+                val secondaryRingingPhase = 2.0 * PI * sampleIndex * secondaryFilterFreq / SAMPLE_RATE
+                sin(secondaryRingingPhase) * ringingAmplitude * 0.5 * ringingDecay
+            } else {
+                0.0
+            }
+            
+            // Add subtle ringing - much less aggressive
+            filteredAmplitude += (primaryRinging + secondaryRinging) * 0.3
+        }
+        
+        return filteredAmplitude.coerceIn(-1.0, 1.0) // Prevent clipping
     }
     
     /**

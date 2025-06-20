@@ -12,6 +12,9 @@ import com.so5km.qrstrainer.data.MorseCode
 import com.so5km.qrstrainer.data.ProgressTracker
 import com.so5km.qrstrainer.data.TrainingSettings
 import com.so5km.qrstrainer.databinding.FragmentSettingsBinding
+import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
 
 class SettingsFragment : Fragment() {
 
@@ -322,13 +325,19 @@ class SettingsFragment : Fragment() {
         })
 
         // CW Filter settings
-        // Filter bandwidth (100-2000 Hz)
+        // Filter bandwidth (100-2000 Hz) with real-time combined bandwidth constraint
         binding.seekBarFilterBandwidth.max = 190  // 100-2000 Hz
         binding.seekBarFilterBandwidth.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 val bandwidth = progress * 10 + 100  // 100-2000 Hz
                 binding.textFilterBandwidthDisplay.text = "$bandwidth Hz"
                 if (fromUser) {
+                    // Trigger offset constraint check by simulating offset change
+                    val currentPrimaryProgress = binding.seekBarPrimaryFilterOffset.progress
+                    binding.seekBarPrimaryFilterOffset.setOnSeekBarChangeListener(null)
+                    binding.seekBarPrimaryFilterOffset.progress = currentPrimaryProgress
+                    setupPrimaryOffsetListener()
+                    
                     updateFilterGraph()
                     saveSettings()
                 }
@@ -337,13 +346,19 @@ class SettingsFragment : Fragment() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
-        // Secondary filter bandwidth (100-2000 Hz)
+        // Secondary filter bandwidth (100-2000 Hz) with real-time combined bandwidth constraint
         binding.seekBarSecondaryFilterBandwidth.max = 190  // 100-2000 Hz
         binding.seekBarSecondaryFilterBandwidth.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 val bandwidth = progress * 10 + 100  // 100-2000 Hz
                 binding.textSecondaryFilterBandwidthDisplay.text = "$bandwidth Hz"
                 if (fromUser) {
+                    // Trigger offset constraint check by simulating offset change
+                    val currentSecondaryProgress = binding.seekBarSecondaryFilterOffset.progress
+                    binding.seekBarSecondaryFilterOffset.setOnSeekBarChangeListener(null)
+                    binding.seekBarSecondaryFilterOffset.progress = currentSecondaryProgress
+                    setupSecondaryOffsetListener()
+                    
                     updateFilterGraph()
                     saveSettings()
                 }
@@ -382,37 +397,14 @@ class SettingsFragment : Fragment() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
-        // Primary filter offset (-200 to +200 Hz)
+        // Primary filter offset (-200 to +200 Hz) with real-time combined bandwidth constraint
         binding.seekBarPrimaryFilterOffset.max = 400  // -200 to +200 Hz
-        binding.seekBarPrimaryFilterOffset.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val offset = progress - 200  // -200 to +200 Hz
-                val sign = if (offset >= 0) "+" else ""
-                binding.textPrimaryFilterOffsetDisplay.text = "$sign$offset Hz"
-                if (fromUser) {
-                    updateFilterGraph()
-                    saveSettings()
-                }
-            }
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-        })
-
-        // Secondary filter offset (-200 to +200 Hz)
+        
+        // Secondary filter offset (-200 to +200 Hz) with real-time combined bandwidth constraint
         binding.seekBarSecondaryFilterOffset.max = 400  // -200 to +200 Hz
-        binding.seekBarSecondaryFilterOffset.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val offset = progress - 200  // -200 to +200 Hz
-                val sign = if (offset >= 0) "+" else ""
-                binding.textSecondaryFilterOffsetDisplay.text = "$sign$offset Hz"
-                if (fromUser) {
-                    updateFilterGraph()
-                    saveSettings()
-                }
-            }
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-        })
+        
+        // Set up the constraint system for filter offsets
+        setupFilterOffsetListeners()
 
         // Filter ringing checkbox
         binding.checkBoxFilterRinging.setOnCheckedChangeListener { _, _ ->
@@ -602,5 +594,195 @@ class SettingsFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    /**
+     * Calculate the overlap between two filters in Hz
+     * Returns 0 if filters don't overlap, positive value if they do overlap
+     */
+    private fun calculateFilterOverlap(
+        primaryOffset: Double,
+        secondaryOffset: Double,
+        primaryBandwidth: Double,
+        secondaryBandwidth: Double
+    ): Double {
+        // Calculate -3dB points for each filter
+        val primary3dbLow = primaryOffset - primaryBandwidth / 2.0
+        val primary3dbHigh = primaryOffset + primaryBandwidth / 2.0
+        val secondary3dbLow = secondaryOffset - secondaryBandwidth / 2.0
+        val secondary3dbHigh = secondaryOffset + secondaryBandwidth / 2.0
+        
+        // Calculate overlap
+        val overlapLow = max(primary3dbLow, secondary3dbLow)
+        val overlapHigh = min(primary3dbHigh, secondary3dbHigh)
+        val overlap = max(0.0, overlapHigh - overlapLow)
+        
+        android.util.Log.d("FilterConstraint", "Overlap: P=$primaryOffset($primaryBandwidth) S=$secondaryOffset($secondaryBandwidth) → $overlap Hz overlap")
+        return overlap
+    }
+
+    private fun setupFilterOffsetListeners() {
+        setupPrimaryOffsetListener()
+        setupSecondaryOffsetListener()
+    }
+    
+    private fun setupPrimaryOffsetListener() {
+        binding.seekBarPrimaryFilterOffset.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    // Calculate where primary wants to go
+                    val desiredPrimaryOffset = progress - 200
+                    
+                    // Get current state
+                    val currentSecondaryOffset = binding.seekBarSecondaryFilterOffset.progress - 200
+                    val currentPrimaryBandwidth = binding.seekBarFilterBandwidth.progress * 10 + 100
+                    val currentSecondaryBandwidth = binding.seekBarSecondaryFilterBandwidth.progress * 10 + 100
+                    
+                    // Calculate what combined bandwidth would be with desired primary position
+                    val wouldBeCombinedBW = calculateFilterOverlap(
+                        desiredPrimaryOffset.toDouble(),
+                        currentSecondaryOffset.toDouble(),
+                        currentPrimaryBandwidth.toDouble(),
+                        currentSecondaryBandwidth.toDouble()
+                    )
+                    
+                    val minOverlap = 50.0  // Minimum overlap in Hz
+                    
+                    android.util.Log.d("FilterConstraint", "Primary moving to $desiredPrimaryOffset, Secondary at $currentSecondaryOffset")
+                    android.util.Log.d("FilterConstraint", "Would be overlap: $wouldBeCombinedBW Hz (min: $minOverlap Hz)")
+                    if (wouldBeCombinedBW < minOverlap) {
+                        android.util.Log.d("FilterConstraint", "CONSTRAINT TRIGGERED - dragging secondary")
+                        // Find where secondary needs to be to maintain exactly 50Hz overlap
+                        val requiredSecondaryOffset = calculateRequiredOffsetForOverlap(
+                            desiredPrimaryOffset.toDouble(),
+                            currentPrimaryBandwidth.toDouble(),
+                            currentSecondaryBandwidth.toDouble(),
+                            minOverlap,
+                            currentSecondaryOffset.toDouble()
+                        )
+                        
+                        android.util.Log.d("FilterConstraint", "Moving secondary from $currentSecondaryOffset to $requiredSecondaryOffset")
+                        
+                        // Update secondary filter position
+                        binding.seekBarSecondaryFilterOffset.progress = (requiredSecondaryOffset + 200).toInt()
+                    } else {
+                        android.util.Log.d("FilterConstraint", "No constraint needed")
+                    }
+                }
+                
+                // Update primary display
+                val primaryOffset = progress - 200
+                val sign = if (primaryOffset >= 0) "+" else ""
+                binding.textPrimaryFilterOffsetDisplay.text = "$sign$primaryOffset Hz"
+                
+                if (fromUser) {
+                    updateFilterGraph()
+                    saveSettings()
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+    }
+    
+    private fun setupSecondaryOffsetListener() {
+        binding.seekBarSecondaryFilterOffset.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    // Calculate where secondary wants to go
+                    val desiredSecondaryOffset = progress - 200
+                    
+                    // Get current state
+                    val currentPrimaryOffset = binding.seekBarPrimaryFilterOffset.progress - 200
+                    val currentPrimaryBandwidth = binding.seekBarFilterBandwidth.progress * 10 + 100
+                    val currentSecondaryBandwidth = binding.seekBarSecondaryFilterBandwidth.progress * 10 + 100
+                    
+                    // Calculate what combined bandwidth would be with desired secondary position
+                    val wouldBeCombinedBW = calculateFilterOverlap(
+                        currentPrimaryOffset.toDouble(),
+                        desiredSecondaryOffset.toDouble(),
+                        currentPrimaryBandwidth.toDouble(),
+                        currentSecondaryBandwidth.toDouble()
+                    )
+                    
+                    val minOverlap = 50.0  // Minimum overlap in Hz
+                    
+                    android.util.Log.d("FilterConstraint", "Primary moving to $currentPrimaryOffset, Secondary at $desiredSecondaryOffset")
+                    android.util.Log.d("FilterConstraint", "Would be overlap: $wouldBeCombinedBW Hz (min: $minOverlap Hz)")
+                    if (wouldBeCombinedBW < minOverlap) {
+                        android.util.Log.d("FilterConstraint", "CONSTRAINT TRIGGERED - dragging primary")
+                        // Find where primary needs to be to maintain exactly 50Hz overlap
+                        val requiredPrimaryOffset = calculateRequiredOffsetForOverlap(
+                            desiredSecondaryOffset.toDouble(),
+                            currentSecondaryBandwidth.toDouble(),
+                            currentPrimaryBandwidth.toDouble(),
+                            minOverlap,
+                            currentPrimaryOffset.toDouble()
+                        )
+                        
+                        android.util.Log.d("FilterConstraint", "Moving primary from $currentPrimaryOffset to $requiredPrimaryOffset")
+                        
+                        // Update primary filter position
+                        binding.seekBarPrimaryFilterOffset.progress = (requiredPrimaryOffset + 200).toInt()
+                    } else {
+                        android.util.Log.d("FilterConstraint", "No constraint needed")
+                    }
+                }
+                
+                // Update secondary display
+                val secondaryOffset = progress - 200
+                val sign = if (secondaryOffset >= 0) "+" else ""
+                binding.textSecondaryFilterOffsetDisplay.text = "$sign$secondaryOffset Hz"
+                
+                if (fromUser) {
+                    updateFilterGraph()
+                    saveSettings()
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+    }
+
+    /**
+     * Calculate where the other filter offset needs to be to maintain minimum overlap
+     * This function solves for the exact position needed for minimum overlap
+     */
+    private fun calculateRequiredOffsetForOverlap(
+        fixedOffset: Double,
+        fixedBandwidth: Double,
+        movingBandwidth: Double,
+        minOverlap: Double,
+        currentMovingOffset: Double = 0.0
+    ): Double {
+        // Calculate the edges of the fixed filter
+        val fixedLow = fixedOffset - fixedBandwidth / 2.0
+        val fixedHigh = fixedOffset + fixedBandwidth / 2.0
+        
+        // For minimum overlap, we need the overlap region to be exactly minOverlap
+        // Overlap = min(high1, high2) - max(low1, low2)
+        
+        // Option 1: Place moving filter so its high edge creates the overlap (moving filter to the left)
+        // fixedHigh - movingLow = minOverlap
+        // movingLow = fixedHigh - minOverlap
+        // movingOffset = movingLow + movingBandwidth/2
+        val leftOption = (fixedHigh - minOverlap) + movingBandwidth / 2.0
+        
+        // Option 2: Place moving filter so its low edge creates the overlap (moving filter to the right)
+        // movingHigh - fixedLow = minOverlap
+        // movingHigh = fixedLow + minOverlap
+        // movingOffset = movingHigh - movingBandwidth/2
+        val rightOption = (fixedLow + minOverlap) - movingBandwidth / 2.0
+        
+        // Choose the option that requires the smallest movement from current position
+        val leftDistance = kotlin.math.abs(leftOption - currentMovingOffset)
+        val rightDistance = kotlin.math.abs(rightOption - currentMovingOffset)
+        
+        val result = if (leftDistance <= rightDistance) leftOption else rightOption
+        
+        android.util.Log.d("FilterConstraint", "Overlap calc: fixed=$fixedOffset, current=$currentMovingOffset, left=$leftOption, right=$rightOption, chosen=$result")
+        
+        // Constrain to valid range
+        return result.coerceIn(-200.0, 200.0)
     }
 } 

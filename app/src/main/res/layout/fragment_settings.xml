@@ -730,7 +730,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
                         android:buttonTint="@color/primary_blue"
-                        android:checked="true"
+                        android:checked="false"
                         android:text="Enable Filter Ringing (Realistic CW Sound)"
                         android:textColor="@color/grey_800"
                         android:textSize="12sp" />
