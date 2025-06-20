@@ -153,6 +153,19 @@ class SettingsFragment : Fragment() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
+        // Mistakes to drop level settings (0-10 mistakes, 0 = disabled)
+        binding.seekBarMistakesToDrop.max = 10  // 0-10 mistakes
+        binding.seekBarMistakesToDrop.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val mistakes = progress  // 0-10 mistakes
+                val displayText = if (mistakes == 0) "0 mistakes (disabled)" else "$mistakes mistake${if (mistakes == 1) "" else "s"} (enabled)"
+                binding.textMistakesToDropDisplay.text = displayText
+                if (fromUser) saveSettings()
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
         // Sequence delay settings (0-5 seconds)
         binding.seekBarSequenceDelay.max = 50  // 0-5 seconds
         binding.seekBarSequenceDelay.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -356,6 +369,11 @@ class SettingsFragment : Fragment() {
         binding.seekBarRequiredCorrect.progress = settings.requiredCorrectToAdvance - 1  // Convert to 0-based (updated for new range)
         binding.textRequiredCorrectDisplay.text = "${settings.requiredCorrectToAdvance} correct per character"
         
+        // Load mistakes to drop level settings
+        binding.seekBarMistakesToDrop.progress = settings.mistakesToDropLevel  // Already 0-based
+        val mistakeDisplayText = if (settings.mistakesToDropLevel == 0) "0 mistakes (disabled)" else "${settings.mistakesToDropLevel} mistake${if (settings.mistakesToDropLevel == 1) "" else "s"} (enabled)"
+        binding.textMistakesToDropDisplay.text = mistakeDisplayText
+        
         // Load sequence delay settings
         val delaySeconds = settings.sequenceDelayMs / 1000.0
         binding.seekBarSequenceDelay.progress = (delaySeconds * 10).toInt()  // Convert to 0-based
@@ -445,6 +463,7 @@ class SettingsFragment : Fragment() {
             repeatSpacingMs = repeatSpacingMs,
             requiredCorrectToAdvance = requiredCorrect,
             sequenceDelayMs = sequenceDelayMs,
+            mistakesToDropLevel = binding.seekBarMistakesToDrop.progress,
             
             // Audio settings
             toneFrequencyHz = binding.seekBarToneFrequency.progress * 10 + 300,

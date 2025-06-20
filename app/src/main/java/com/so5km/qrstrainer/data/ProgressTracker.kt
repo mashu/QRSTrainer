@@ -24,11 +24,17 @@ class ProgressTracker(private val context: Context) {
     private var _sessionStreak = 0
     private var _sessionBestStreak = 0
     
+    /**
+     * Level drop tracking
+     */
+    private var _currentLevelMistakes = 0
+    
     val sessionCorrect: Int get() = _sessionCorrect
     val sessionIncorrect: Int get() = _sessionIncorrect
     val sessionStreak: Int get() = _sessionStreak
     val sessionBestStreak: Int get() = _sessionBestStreak
     val sessionTotal: Int get() = _sessionCorrect + _sessionIncorrect
+    val currentLevelMistakes: Int get() = _currentLevelMistakes
     
     init {
         loadProgress()
@@ -54,6 +60,9 @@ class ProgressTracker(private val context: Context) {
             _sessionBestStreak = _sessionStreak
         }
         
+        // Reset level mistakes counter on correct answer
+        _currentLevelMistakes = 0
+        
         updateWeights()
         saveProgress()
     }
@@ -67,6 +76,9 @@ class ProgressTracker(private val context: Context) {
         
         _sessionIncorrect++
         _sessionStreak = 0
+        
+        // Increment level mistakes counter
+        _currentLevelMistakes++
         
         updateWeights()
         saveProgress()
@@ -107,6 +119,7 @@ class ProgressTracker(private val context: Context) {
         _sessionIncorrect = 0
         _sessionStreak = 0
         _sessionBestStreak = 0
+        _currentLevelMistakes = 0
         saveProgress()
     }
     
@@ -157,6 +170,7 @@ class ProgressTracker(private val context: Context) {
         json.put("sessionCorrect", _sessionCorrect)
         json.put("sessionIncorrect", _sessionIncorrect)
         json.put("sessionBestStreak", _sessionBestStreak)
+        json.put("currentLevelMistakes", _currentLevelMistakes)
         
         prefs.edit().putString("progress_data", json.toString()).apply()
     }
@@ -180,10 +194,26 @@ class ProgressTracker(private val context: Context) {
             _sessionCorrect = json.optInt("sessionCorrect", 0)
             _sessionIncorrect = json.optInt("sessionIncorrect", 0)
             _sessionBestStreak = json.optInt("sessionBestStreak", 0)
+            _currentLevelMistakes = json.optInt("currentLevelMistakes", 0)
             
         } catch (e: Exception) {
             // If loading fails, start with clean slate
             _characterStats.clear()
         }
+    }
+    
+    /**
+     * Check if level should drop based on mistakes
+     */
+    fun shouldDropLevel(mistakesToDrop: Int): Boolean {
+        return mistakesToDrop > 0 && _currentLevelMistakes >= mistakesToDrop
+    }
+    
+    /**
+     * Reset the level mistakes counter (called when level changes)
+     */
+    fun resetLevelMistakes() {
+        _currentLevelMistakes = 0
+        saveProgress()
     }
 } 

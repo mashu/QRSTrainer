@@ -705,6 +705,35 @@
                     android:text="10 correct per character"
                     android:textSize="14sp" />
 
+                <!-- Mistakes to Drop Level -->
+                <TextView
+                    style="@style/Text.Subtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="Mistakes to Drop Level"
+                    android:textSize="16sp" />
+
+                <SeekBar
+                    android:id="@+id/seekBarMistakesToDrop"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:max="10"
+                    android:progress="1"
+                    android:progressTint="@color/accent_orange"
+                    android:thumbTint="@color/accent_orange" />
+
+                <TextView
+                    android:id="@+id/textMistakesToDropDisplay"
+                    style="@style/Text.Caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginBottom="24dp"
+                    android:text="1 mistake (enabled)"
+                    android:textSize="14sp" />
+
                 <!-- Sequence Delay -->
                 <TextView
                     style="@style/Text.Subtitle"

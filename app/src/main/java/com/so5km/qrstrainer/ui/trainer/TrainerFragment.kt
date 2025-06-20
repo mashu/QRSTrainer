@@ -618,13 +618,19 @@ class TrainerFragment : Fragment() {
                 progressTracker.recordIncorrect(char)
             }
             
+            // Check for level drop
+            val levelDropped = checkLevelDrop()
+            
             binding.textStatus.text = getString(R.string.incorrect_answer, currentSequence)
             binding.textCurrentSequence.text = currentSequence
             
             updateProgressDisplay()
             updateUIState()
             
-            scheduleNextSequence(settings.sequenceDelayMs.toLong())
+            // Use different delay if level dropped to give user time to see the drop
+            val baseDelay = settings.sequenceDelayMs.toLong()
+            val delay = if (levelDropped) maxOf(baseDelay, 2000L) else baseDelay // Minimum 2s for level drop
+            scheduleNextSequence(delay)
         }
     }
 
@@ -648,15 +654,19 @@ class TrainerFragment : Fragment() {
             progressTracker.recordIncorrect(char)
         }
         
+        // Check for level drop
+        val levelDropped = checkLevelDrop()
+        
         binding.textStatus.text = getString(R.string.timeout_answer, currentSequence)
         binding.textCurrentSequence.text = currentSequence
         
         updateProgressDisplay()
         updateUIState()
         
-        // Schedule next sequence (timeout gets longer delay)
+        // Schedule next sequence (timeout gets longer delay, level drop gets even longer)
         val timeoutDelay = maxOf(settings.sequenceDelayMs.toLong(), 2000L) // Minimum 2s for timeout
-        scheduleNextSequence(timeoutDelay)
+        val delay = if (levelDropped) maxOf(timeoutDelay, 3000L) else timeoutDelay // Minimum 3s for level drop
+        scheduleNextSequence(delay)
     }
 
     private fun checkLevelAdvancement(): Boolean {
@@ -669,10 +679,36 @@ class TrainerFragment : Fragment() {
                 settings = settings.copy(kochLevel = newLevel)
                 settings.save(requireContext())
                 
+                // Reset level mistakes counter when advancing
+                progressTracker.resetLevelMistakes()
+                
                 // Update keyboard for new level
                 createKeyboard()
                 
                 binding.textStatus.text = "Level Up! Now at level $newLevel"
+                return true
+            }
+        }
+        return false
+    }
+    
+    private fun checkLevelDrop(): Boolean {
+        if (!settings.isLevelLocked && 
+            progressTracker.shouldDropLevel(settings.mistakesToDropLevel)) {
+            
+            val newLevel = maxOf(settings.kochLevel - 1, 1) // Don't drop below level 1
+            if (newLevel < settings.kochLevel) {
+                // Drop to previous level
+                settings = settings.copy(kochLevel = newLevel)
+                settings.save(requireContext())
+                
+                // Reset level mistakes counter when dropping
+                progressTracker.resetLevelMistakes()
+                
+                // Update keyboard for new level
+                createKeyboard()
+                
+                binding.textStatus.text = "Level Down! Now at level $newLevel"
                 return true
             }
         }

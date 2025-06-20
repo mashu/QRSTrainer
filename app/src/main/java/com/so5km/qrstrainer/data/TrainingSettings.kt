@@ -17,6 +17,7 @@ data class TrainingSettings(
     val repeatSpacingMs: Int = 0,              // Milliseconds between repeats (no delay default)
     val requiredCorrectToAdvance: Int = 3,     // Required correct answers to advance level (faster progression)
     val sequenceDelayMs: Int = 0,              // Delay between sequences after answering (immediate default)
+    val mistakesToDropLevel: Int = 1,          // Number of mistakes to cause level drop (0 = disabled)
     
     // Audio settings
     val toneFrequencyHz: Int = 600,            // Tone frequency in Hz (300-1000)
@@ -45,6 +46,7 @@ data class TrainingSettings(
         private const val KEY_REPEAT_SPACING = "repeat_spacing"
         private const val KEY_REQUIRED_CORRECT = "required_correct"
         private const val KEY_SEQUENCE_DELAY = "sequence_delay"
+        private const val KEY_MISTAKES_TO_DROP = "mistakes_to_drop"
         
         // Audio settings keys
         private const val KEY_TONE_FREQUENCY = "tone_frequency"
@@ -77,6 +79,7 @@ data class TrainingSettings(
                 repeatSpacingMs = prefs.getInt(KEY_REPEAT_SPACING, 0),
                 requiredCorrectToAdvance = prefs.getInt(KEY_REQUIRED_CORRECT, 3),
                 sequenceDelayMs = prefs.getInt(KEY_SEQUENCE_DELAY, 0),
+                mistakesToDropLevel = prefs.getInt(KEY_MISTAKES_TO_DROP, 1),
                 
                 // Audio settings
                 toneFrequencyHz = prefs.getInt(KEY_TONE_FREQUENCY, 600),
@@ -112,6 +115,7 @@ data class TrainingSettings(
             putInt(KEY_REPEAT_SPACING, repeatSpacingMs)
             putInt(KEY_REQUIRED_CORRECT, requiredCorrectToAdvance)
             putInt(KEY_SEQUENCE_DELAY, sequenceDelayMs)
+            putInt(KEY_MISTAKES_TO_DROP, mistakesToDropLevel)
             
             // Audio settings
             putInt(KEY_TONE_FREQUENCY, toneFrequencyHz)
