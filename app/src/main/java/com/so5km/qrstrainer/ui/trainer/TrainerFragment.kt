@@ -482,9 +482,6 @@ class TrainerFragment : Fragment() {
         isPaused = false
         updateUIState()
         
-        // Start answer timeout immediately when playback begins
-        startAnswerTimeout()
-        
         morseGenerator.playSequence(
             currentSequence,
             settings  // Pass the full settings object
@@ -496,6 +493,9 @@ class TrainerFragment : Fragment() {
                     wasPlayingWhenPaused = false
                     currentState = TrainingState.WAITING
                     updateUIState()
+                    
+                    // Start answer timeout ONLY after playback completes
+                    startAnswerTimeout()
                 }
             }
         }
