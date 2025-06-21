@@ -5,27 +5,29 @@ import android.content.SharedPreferences
 
 /**
  * Training settings for the Morse code trainer
+ * Reorganized to separate training behavior from audio generation settings
  */
 data class TrainingSettings(
-    val speedWpm: Int = 25,                    // Words per minute (updated default for new range)
+    // === TRAINING BEHAVIOR SETTINGS ===
+    val speedWpm: Int = 25,                    // Words per minute (affects training progression)
     val kochLevel: Int = 2,                    // Current Koch level (1-based)
     val isLevelLocked: Boolean = false,        // Whether to lock at current level
     val groupSizeMin: Int = 1,                 // Minimum group size
     val groupSizeMax: Int = 5,                 // Maximum group size
-    val answerTimeoutSeconds: Int = 3,         // Timeout for answers (much shorter default)
-    val repeatCount: Int = 1,                  // How many times to repeat (faster default)
-    val repeatSpacingMs: Int = 0,              // Milliseconds between repeats (no delay default)
-    val requiredCorrectToAdvance: Int = 3,     // Required correct answers to advance level (faster progression)
-    val sequenceDelayMs: Int = 0,              // Delay between sequences after answering (immediate default)
+    val answerTimeoutSeconds: Int = 3,         // Timeout for answers
+    val repeatCount: Int = 1,                  // How many times to repeat each sequence
+    val repeatSpacingMs: Int = 0,              // Milliseconds between repeats
+    val requiredCorrectToAdvance: Int = 3,     // Required correct answers to advance level
+    val sequenceDelayMs: Int = 0,              // Delay between sequences after answering
     val mistakesToDropLevel: Int = 1,          // Number of mistakes to cause level drop (0 = disabled)
+    val farnsworthWpm: Int = 0,                // Farnsworth timing WPM (0 = disabled) - affects character timing
     
-    // Audio settings
+    // === AUDIO GENERATION SETTINGS ===
     val toneFrequencyHz: Int = 600,            // Tone frequency in Hz (300-1000)
-    val farnsworthWpm: Int = 0,                // Farnsworth timing WPM (0 = disabled)
     val wordSpacingMs: Int = 0,                // Extra word spacing in ms (0 = default)
     val groupSpacingMs: Int = 0,               // Extra group spacing in ms (0 = default)
     
-    // CW Filter settings
+    // === CW FILTER SETTINGS ===
     val filterBandwidthHz: Int = 500,          // Primary filter bandwidth in Hz (100-2000)
     val secondaryFilterBandwidthHz: Int = 500, // Secondary filter bandwidth in Hz (100-2000)
     val filterQFactor: Float = 5.0f,           // Q factor for filter ringing (1.0-20.0)
@@ -36,6 +38,8 @@ data class TrainingSettings(
 ) {
     companion object {
         private const val PREFS_NAME = "morse_trainer_settings"
+        
+        // Training behavior settings keys
         private const val KEY_SPEED_WPM = "speed_wpm"
         private const val KEY_KOCH_LEVEL = "koch_level"
         private const val KEY_LEVEL_LOCKED = "level_locked"
@@ -47,10 +51,10 @@ data class TrainingSettings(
         private const val KEY_REQUIRED_CORRECT = "required_correct"
         private const val KEY_SEQUENCE_DELAY = "sequence_delay"
         private const val KEY_MISTAKES_TO_DROP = "mistakes_to_drop"
-        
-        // Audio settings keys
-        private const val KEY_TONE_FREQUENCY = "tone_frequency"
         private const val KEY_FARNSWORTH_WPM = "farnsworth_wpm"
+        
+        // Audio generation settings keys
+        private const val KEY_TONE_FREQUENCY = "tone_frequency"
         private const val KEY_WORD_SPACING = "word_spacing"
         private const val KEY_GROUP_SPACING = "group_spacing"
         
@@ -69,6 +73,7 @@ data class TrainingSettings(
         fun load(context: Context): TrainingSettings {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             return TrainingSettings(
+                // Training behavior settings
                 speedWpm = prefs.getInt(KEY_SPEED_WPM, 25),
                 kochLevel = prefs.getInt(KEY_KOCH_LEVEL, 2),
                 isLevelLocked = prefs.getBoolean(KEY_LEVEL_LOCKED, false),
@@ -80,10 +85,10 @@ data class TrainingSettings(
                 requiredCorrectToAdvance = prefs.getInt(KEY_REQUIRED_CORRECT, 3),
                 sequenceDelayMs = prefs.getInt(KEY_SEQUENCE_DELAY, 0),
                 mistakesToDropLevel = prefs.getInt(KEY_MISTAKES_TO_DROP, 1),
-                
-                // Audio settings
-                toneFrequencyHz = prefs.getInt(KEY_TONE_FREQUENCY, 600),
                 farnsworthWpm = prefs.getInt(KEY_FARNSWORTH_WPM, 0),
+                
+                // Audio generation settings
+                toneFrequencyHz = prefs.getInt(KEY_TONE_FREQUENCY, 600),
                 wordSpacingMs = prefs.getInt(KEY_WORD_SPACING, 0),
                 groupSpacingMs = prefs.getInt(KEY_GROUP_SPACING, 0),
                 
@@ -105,6 +110,7 @@ data class TrainingSettings(
     fun save(context: Context) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit().apply {
+            // Training behavior settings
             putInt(KEY_SPEED_WPM, speedWpm)
             putInt(KEY_KOCH_LEVEL, kochLevel)
             putBoolean(KEY_LEVEL_LOCKED, isLevelLocked)
@@ -116,10 +122,10 @@ data class TrainingSettings(
             putInt(KEY_REQUIRED_CORRECT, requiredCorrectToAdvance)
             putInt(KEY_SEQUENCE_DELAY, sequenceDelayMs)
             putInt(KEY_MISTAKES_TO_DROP, mistakesToDropLevel)
-            
-            // Audio settings
-            putInt(KEY_TONE_FREQUENCY, toneFrequencyHz)
             putInt(KEY_FARNSWORTH_WPM, farnsworthWpm)
+            
+            // Audio generation settings
+            putInt(KEY_TONE_FREQUENCY, toneFrequencyHz)
             putInt(KEY_WORD_SPACING, wordSpacingMs)
             putInt(KEY_GROUP_SPACING, groupSpacingMs)
             

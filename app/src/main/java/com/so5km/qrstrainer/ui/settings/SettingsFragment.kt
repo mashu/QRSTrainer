@@ -43,18 +43,12 @@ class SettingsFragment : Fragment() {
     }
 
     private fun setupCollapsibleSections() {
-        // Set initial state - Training Settings expanded, others collapsed
+        // Set initial state - Training Settings expanded, Audio collapsed
         binding.contentTrainingSettings.visibility = View.VISIBLE
         binding.iconTrainingExpand.rotation = 90f
         
         binding.contentAudioSettings.visibility = View.GONE
         binding.iconAudioExpand.rotation = 0f
-        
-        binding.contentCWFilterSettings.visibility = View.GONE
-        binding.iconCWFilterExpand.rotation = 0f
-        
-        binding.contentProgressSettings.visibility = View.GONE
-        binding.iconProgressExpand.rotation = 0f
 
         // Training Settings
         binding.headerTrainingSettings.setOnClickListener {
@@ -71,24 +65,6 @@ class SettingsFragment : Fragment() {
                 binding.contentAudioSettings,
                 binding.iconAudioExpand,
                 "audio"
-            )
-        }
-
-        // CW Filter Settings
-        binding.headerCWFilterSettings.setOnClickListener {
-            toggleSectionAccordion(
-                binding.contentCWFilterSettings,
-                binding.iconCWFilterExpand,
-                "filter"
-            )
-        }
-
-        // Progress Settings
-        binding.headerProgressSettings.setOnClickListener {
-            toggleSectionAccordion(
-                binding.contentProgressSettings,
-                binding.iconProgressExpand,
-                "progress"
             )
         }
     }
@@ -118,17 +94,11 @@ class SettingsFragment : Fragment() {
             binding.contentAudioSettings.visibility = View.GONE
             binding.iconAudioExpand.rotation = 0f
         }
-        if (exceptSection != "filter") {
-            binding.contentCWFilterSettings.visibility = View.GONE
-            binding.iconCWFilterExpand.rotation = 0f
-        }
-        if (exceptSection != "progress") {
-            binding.contentProgressSettings.visibility = View.GONE
-            binding.iconProgressExpand.rotation = 0f
-        }
     }
 
     private fun setupUI() {
+        // === TRAINING BEHAVIOR SETTINGS ===
+        
         // Speed settings (increased range for faster training)
         binding.seekBarSpeed.max = 55  // 10-65 WPM
         binding.seekBarSpeed.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -269,31 +239,28 @@ class SettingsFragment : Fragment() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
-        // Reset button
-        binding.buttonResetProgress.setOnClickListener {
-            showResetConfirmation()
-        }
-        
-        // New audio settings
-        // Tone frequency settings (300-1000 Hz)
-        binding.seekBarToneFrequency.max = 70  // 300-1000 Hz
-        binding.seekBarToneFrequency.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val frequency = progress * 10 + 300  // 300-1000 Hz
-                binding.textToneFrequencyDisplay.text = "$frequency Hz"
-                if (fromUser) saveSettings()
-            }
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-        })
-
-        // Farnsworth timing settings (0-35 WPM, 0 = disabled)
+        // Farnsworth timing settings (0-35 WPM, 0 = disabled) - MOVED TO TRAINING SECTION
+        // This affects character spacing and training difficulty, not basic audio generation
         binding.seekBarFarnsworth.max = 35  // 0-35 WPM
         binding.seekBarFarnsworth.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 val farnsworth = progress  // 0-35 WPM
                 val display = if (farnsworth == 0) "0 WPM (disabled)" else "$farnsworth WPM"
                 binding.textFarnsworthDisplay.text = display
+                if (fromUser) saveSettings()
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        // === AUDIO GENERATION SETTINGS ===
+        
+        // Tone frequency settings (300-1000 Hz)
+        binding.seekBarToneFrequency.max = 70  // 300-1000 Hz
+        binding.seekBarToneFrequency.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val frequency = progress * 10 + 300  // 300-1000 Hz
+                binding.textToneFrequencyDisplay.text = "$frequency Hz"
                 if (fromUser) saveSettings()
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -324,7 +291,13 @@ class SettingsFragment : Fragment() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
-        // CW Filter settings
+        // Reset button
+        binding.buttonResetProgress.setOnClickListener {
+            showResetConfirmation()
+        }
+
+        // === CW FILTER SETTINGS ===
+        
         // Filter bandwidth (100-2000 Hz) with real-time combined bandwidth constraint
         binding.seekBarFilterBandwidth.max = 190  // 100-2000 Hz
         binding.seekBarFilterBandwidth.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
