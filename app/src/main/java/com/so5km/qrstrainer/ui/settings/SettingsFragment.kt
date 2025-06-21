@@ -9,6 +9,7 @@ import android.widget.SeekBar
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.so5km.qrstrainer.R
+import com.so5km.qrstrainer.audio.MorseCodeGenerator
 import com.so5km.qrstrainer.data.MorseCode
 import com.so5km.qrstrainer.data.ProgressTracker
 import com.so5km.qrstrainer.data.TrainingSettings
@@ -24,6 +25,7 @@ class SettingsFragment : Fragment() {
     
     private lateinit var settings: TrainingSettings
     private lateinit var progressTracker: ProgressTracker
+    private lateinit var morseCodeGenerator: MorseCodeGenerator
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -35,6 +37,7 @@ class SettingsFragment : Fragment() {
 
         progressTracker = ProgressTracker(requireContext())
         settings = TrainingSettings.load(requireContext())
+        morseCodeGenerator = MorseCodeGenerator(requireContext())
         
         setupUI()
         setupCollapsibleSections()
@@ -44,12 +47,54 @@ class SettingsFragment : Fragment() {
     }
 
     private fun setupCollapsibleSections() {
-        // Set initial state - Training Settings expanded, Audio collapsed
-        binding.contentTrainingSettings.visibility = View.VISIBLE
-        binding.iconTrainingExpand.rotation = 90f
+        // Load the last expanded tab from settings, default to "signal" for CW experimentation
+        val lastExpandedTab = settings.lastExpandedSettingsTab
         
-        binding.contentAudioSettings.visibility = View.GONE
-        binding.iconAudioExpand.rotation = 0f
+        // Set initial state based on saved preference
+        when (lastExpandedTab) {
+            "training" -> {
+                binding.contentTrainingSettings.visibility = View.VISIBLE
+                binding.iconTrainingExpand.rotation = 90f
+                binding.contentSignalSettings.visibility = View.GONE
+                binding.iconSignalExpand.rotation = 0f
+                binding.contentNoiseSettings.visibility = View.GONE
+                binding.iconNoiseExpand.rotation = 0f
+            }
+            "signal" -> {
+                binding.contentTrainingSettings.visibility = View.GONE
+                binding.iconTrainingExpand.rotation = 0f
+                binding.contentSignalSettings.visibility = View.VISIBLE
+                binding.iconSignalExpand.rotation = 90f
+                binding.contentNoiseSettings.visibility = View.GONE
+                binding.iconNoiseExpand.rotation = 0f
+            }
+            "noise" -> {
+                binding.contentTrainingSettings.visibility = View.GONE
+                binding.iconTrainingExpand.rotation = 0f
+                binding.contentSignalSettings.visibility = View.GONE
+                binding.iconSignalExpand.rotation = 0f
+                binding.contentNoiseSettings.visibility = View.VISIBLE
+                binding.iconNoiseExpand.rotation = 90f
+            }
+            "audio" -> {
+                // Legacy support - map to signal section
+                binding.contentTrainingSettings.visibility = View.GONE
+                binding.iconTrainingExpand.rotation = 0f
+                binding.contentSignalSettings.visibility = View.VISIBLE
+                binding.iconSignalExpand.rotation = 90f
+                binding.contentNoiseSettings.visibility = View.GONE
+                binding.iconNoiseExpand.rotation = 0f
+            }
+            else -> {
+                // Default to signal settings expanded for tone experimentation
+                binding.contentTrainingSettings.visibility = View.GONE
+                binding.iconTrainingExpand.rotation = 0f
+                binding.contentSignalSettings.visibility = View.VISIBLE
+                binding.iconSignalExpand.rotation = 90f
+                binding.contentNoiseSettings.visibility = View.GONE
+                binding.iconNoiseExpand.rotation = 0f
+            }
+        }
 
         // Training Settings
         binding.headerTrainingSettings.setOnClickListener {
@@ -60,12 +105,21 @@ class SettingsFragment : Fragment() {
             )
         }
 
-        // Audio Settings
-        binding.headerAudioSettings.setOnClickListener {
+        // Signal Settings
+        binding.headerSignalSettings.setOnClickListener {
             toggleSectionAccordion(
-                binding.contentAudioSettings,
-                binding.iconAudioExpand,
-                "audio"
+                binding.contentSignalSettings,
+                binding.iconSignalExpand,
+                "signal"
+            )
+        }
+
+        // Noise Settings
+        binding.headerNoiseSettings.setOnClickListener {
+            toggleSectionAccordion(
+                binding.contentNoiseSettings,
+                binding.iconNoiseExpand,
+                "noise"
             )
         }
     }
@@ -79,8 +133,12 @@ class SettingsFragment : Fragment() {
             // Expand
             contentView.visibility = View.VISIBLE
             iconView.rotation = 90f
+            
+            // Save the expanded tab state
+            settings = settings.copy(lastExpandedSettingsTab = sectionType)
+            settings.save(requireContext())
         } else {
-            // Collapse
+            // Collapse - don't save collapsed state, keep the last expanded preference
             contentView.visibility = View.GONE
             iconView.rotation = 0f
         }
@@ -91,9 +149,13 @@ class SettingsFragment : Fragment() {
             binding.contentTrainingSettings.visibility = View.GONE
             binding.iconTrainingExpand.rotation = 0f
         }
-        if (exceptSection != "audio") {
-            binding.contentAudioSettings.visibility = View.GONE
-            binding.iconAudioExpand.rotation = 0f
+        if (exceptSection != "signal") {
+            binding.contentSignalSettings.visibility = View.GONE
+            binding.iconSignalExpand.rotation = 0f
+        }
+        if (exceptSection != "noise") {
+            binding.contentNoiseSettings.visibility = View.GONE
+            binding.iconNoiseExpand.rotation = 0f
         }
     }
 
@@ -261,7 +323,22 @@ class SettingsFragment : Fragment() {
         binding.seekBarToneFrequency.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 val frequency = progress * 10 + 300  // 300-1000 Hz
-                binding.textToneFrequencyDisplay.text = "$frequency Hz"
+                
+                // Calculate actual filter frequencies based on current offsets
+                val primaryOffset = binding.seekBarPrimaryFilterOffset.progress - 200
+                val secondaryOffset = binding.seekBarSecondaryFilterOffset.progress - 200
+                val primaryFilterFreq = frequency + primaryOffset
+                val secondaryFilterFreq = frequency + secondaryOffset
+                
+                // Show calculated filter frequencies for CW tuning
+                val filterInfo = if (primaryOffset == 0 && secondaryOffset == 0) {
+                    "Both filters at ${frequency}Hz"
+                } else {
+                    "Filters: ${primaryFilterFreq}Hz / ${secondaryFilterFreq}Hz"
+                }
+                
+                binding.textToneFrequencyDisplay.text = "$frequency Hz ($filterInfo)"
+                
                 updateEnvelopeGraph() // Tone frequency affects envelope sharpness
                 if (fromUser) saveSettings()
             }
@@ -348,7 +425,21 @@ class SettingsFragment : Fragment() {
         binding.seekBarFilterBandwidth.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 val bandwidth = progress * 10 + 100  // 100-2000 Hz
-                binding.textFilterBandwidthDisplay.text = "$bandwidth Hz"
+                
+                // Calculate helpful CW parameters
+                val toneFreq = binding.seekBarToneFrequency.progress * 10 + 300
+                val qFactor = (binding.seekBarFilterQ.progress / 10.0f) + 1.0f
+                val cwCharacter = when {
+                    bandwidth < 200 -> "Very Sharp CW"
+                    bandwidth < 400 -> "Sharp CW"
+                    bandwidth < 800 -> "Normal CW"
+                    bandwidth < 1200 -> "Wide CW"
+                    else -> "Very Wide"
+                }
+                val modDepth = (qFactor / 5.0f).coerceIn(1.0f, 4.0f) * 15.0f * (0.5f + qFactor/20.0f)
+                
+                binding.textFilterBandwidthDisplay.text = "$bandwidth Hz ($cwCharacter, ~${modDepth.toInt()}Hz LFO range)"
+                
                 if (fromUser) {
                     // Trigger offset constraint check by simulating offset change
                     val currentPrimaryProgress = binding.seekBarPrimaryFilterOffset.progress
@@ -390,10 +481,25 @@ class SettingsFragment : Fragment() {
         binding.seekBarFilterQ.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 val qFactor = (progress / 10.0f) + 1.0f  // 1.0-20.0
-                binding.textFilterQDisplay.text = "Q = ${String.format("%.1f", qFactor)}"
+                
+                // Calculate CW character based on Q factor
+                val cwCharacter = when {
+                    qFactor < 3.0f -> "Gentle"
+                    qFactor < 6.0f -> "Mild"
+                    qFactor < 10.0f -> "Sharp"
+                    qFactor < 15.0f -> "Very Sharp"
+                    else -> "Extreme"
+                }
+                val atmosphericIntensity = minOf(3.0f, 0.5f + qFactor/20.0f)
+                val qBoost = (qFactor / 5.0f).coerceIn(1.0f, 4.0f)
+                val totalModDepth = 15.0f * atmosphericIntensity * qBoost
+                
+                binding.textFilterQDisplay.text = "Q = ${String.format("%.1f", qFactor)} ($cwCharacter, ${totalModDepth.toInt()}Hz mod)"
+                
                 if (fromUser) {
                     updateFilterGraph()
                     saveSettings()
+                    updateContinuousNoiseIfActive()
                 }
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -405,10 +511,30 @@ class SettingsFragment : Fragment() {
         binding.seekBarBackgroundNoise.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 val noiseLevel = progress  // 0-100%
-                binding.textBackgroundNoiseDisplay.text = "$noiseLevel%"
+                
+                // Provide helpful descriptions for CW noise levels
+                val description = when {
+                    noiseLevel == 0 -> "Off"
+                    noiseLevel < 20 -> "Very Quiet"
+                    noiseLevel < 40 -> "Quiet"
+                    noiseLevel < 60 -> "Moderate"
+                    noiseLevel < 80 -> "Strong"
+                    noiseLevel < 95 -> "Very Strong"
+                    else -> "Maximum"
+                }
+                val recommendation = when {
+                    noiseLevel in 80..95 -> " (Recommended for CW)"
+                    noiseLevel in 60..79 -> " (Good for testing)"
+                    noiseLevel < 60 -> " (Light background)"
+                    else -> " (May mask signal)"
+                }
+                
+                binding.textBackgroundNoiseDisplay.text = "$noiseLevel% ($description$recommendation)"
+                
                 if (fromUser) {
                     updateFilterGraph()
                     saveSettings()
+                    updateContinuousNoiseIfActive()
                 }
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -424,8 +550,69 @@ class SettingsFragment : Fragment() {
         // Set up the constraint system for filter offsets
         setupFilterOffsetListeners()
 
+        // LFO 1 Frequency (0.05-0.5 Hz)
+        binding.seekBarLfo1Frequency.max = 45  // 0.05-0.5 Hz
+        binding.seekBarLfo1Frequency.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val frequency = (progress + 1) / 100.0f  // 0.01-0.46 Hz, then scale to 0.05-0.5
+                val scaledFreq = 0.05f + (frequency * 0.45f)  // 0.05-0.5 Hz
+                
+                val description = when {
+                    scaledFreq < 0.1f -> "Very Slow"
+                    scaledFreq < 0.2f -> "Slow"
+                    scaledFreq < 0.3f -> "Moderate"
+                    scaledFreq < 0.4f -> "Fast"
+                    else -> "Very Fast"
+                }
+                
+                binding.textLfo1FrequencyDisplay.text = "${String.format("%.2f", scaledFreq)} Hz ($description)"
+                if (fromUser) {
+                    saveSettings()
+                    updateContinuousNoiseIfActive()
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        // LFO 2 Frequency (0.05-0.5 Hz)
+        binding.seekBarLfo2Frequency.max = 45  // 0.05-0.5 Hz
+        binding.seekBarLfo2Frequency.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val frequency = (progress + 1) / 100.0f  // 0.01-0.46 Hz, then scale to 0.05-0.5
+                val scaledFreq = 0.05f + (frequency * 0.45f)  // 0.05-0.5 Hz
+                
+                val description = when {
+                    scaledFreq < 0.1f -> "Very Slow"
+                    scaledFreq < 0.2f -> "Slow"
+                    scaledFreq < 0.3f -> "Moderate"
+                    scaledFreq < 0.4f -> "Fast"
+                    else -> "Very Fast"
+                }
+                
+                binding.textLfo2FrequencyDisplay.text = "${String.format("%.2f", scaledFreq)} Hz ($description)"
+                if (fromUser) {
+                    saveSettings()
+                    updateContinuousNoiseIfActive()
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
         // Filter ringing checkbox
         binding.checkBoxFilterRinging.setOnCheckedChangeListener { _, _ ->
+            saveSettings()
+            updateContinuousNoiseIfActive()
+        }
+        
+        // Continuous noise testing checkbox
+        binding.checkBoxContinuousNoise.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                morseCodeGenerator.startTestNoise(settings)
+            } else {
+                morseCodeGenerator.stopTestNoise()
+            }
             saveSettings()
         }
         
@@ -483,7 +670,14 @@ class SettingsFragment : Fragment() {
         // Load new audio settings
         // Tone frequency (300-1000 Hz)
         binding.seekBarToneFrequency.progress = (settings.toneFrequencyHz - 300) / 10  // Convert to 0-based
-        binding.textToneFrequencyDisplay.text = "${settings.toneFrequencyHz} Hz"
+        val primaryFilterFreq = settings.toneFrequencyHz + settings.primaryFilterOffset
+        val secondaryFilterFreq = settings.toneFrequencyHz + settings.secondaryFilterOffset
+        val filterInfo = if (settings.primaryFilterOffset == 0 && settings.secondaryFilterOffset == 0) {
+            "Both filters at ${settings.toneFrequencyHz}Hz"
+        } else {
+            "Filters: ${primaryFilterFreq}Hz / ${secondaryFilterFreq}Hz"
+        }
+        binding.textToneFrequencyDisplay.text = "${settings.toneFrequencyHz} Hz ($filterInfo)"
         
         // App volume (0-100%)
         binding.seekBarAppVolume.progress = (settings.appVolumeLevel * 100).toInt()  // Convert to 0-based
@@ -522,7 +716,15 @@ class SettingsFragment : Fragment() {
         // CW Filter settings
         // Filter bandwidth (100-2000 Hz)
         binding.seekBarFilterBandwidth.progress = (settings.filterBandwidthHz - 100) / 10  // Convert to 0-based
-        binding.textFilterBandwidthDisplay.text = "${settings.filterBandwidthHz} Hz"
+        val cwCharacter = when {
+            settings.filterBandwidthHz < 200 -> "Very Sharp CW"
+            settings.filterBandwidthHz < 400 -> "Sharp CW"
+            settings.filterBandwidthHz < 800 -> "Normal CW"
+            settings.filterBandwidthHz < 1200 -> "Wide CW"
+            else -> "Very Wide"
+        }
+        val modDepth = (settings.filterQFactor / 5.0f).coerceIn(1.0f, 4.0f) * 15.0f * (0.5f + settings.filterQFactor/20.0f)
+        binding.textFilterBandwidthDisplay.text = "${settings.filterBandwidthHz} Hz ($cwCharacter, ~${modDepth.toInt()}Hz LFO range)"
         
         // Secondary filter bandwidth (100-2000 Hz)
         binding.seekBarSecondaryFilterBandwidth.progress = (settings.secondaryFilterBandwidthHz - 100) / 10  // Convert to 0-based
@@ -530,11 +732,37 @@ class SettingsFragment : Fragment() {
         
         // Filter Q factor (1.0-20.0)
         binding.seekBarFilterQ.progress = ((settings.filterQFactor - 1.0f) * 10).toInt()  // Convert to 0-based
-        binding.textFilterQDisplay.text = "Q = ${String.format("%.1f", settings.filterQFactor)}"
+        val qCwCharacter = when {
+            settings.filterQFactor < 3.0f -> "Gentle"
+            settings.filterQFactor < 6.0f -> "Mild"
+            settings.filterQFactor < 10.0f -> "Sharp"
+            settings.filterQFactor < 15.0f -> "Very Sharp"
+            else -> "Extreme"
+        }
+        val atmosphericIntensity = minOf(3.0f, 0.5f + settings.filterQFactor/20.0f)
+        val qBoost = (settings.filterQFactor / 5.0f).coerceIn(1.0f, 4.0f)
+        val totalModDepth = 15.0f * atmosphericIntensity * qBoost
+        binding.textFilterQDisplay.text = "Q = ${String.format("%.1f", settings.filterQFactor)} ($qCwCharacter, ${totalModDepth.toInt()}Hz mod)"
         
         // Background noise level (0-100%)
         binding.seekBarBackgroundNoise.progress = (settings.backgroundNoiseLevel * 100).toInt()  // Convert to 0-based
-        binding.textBackgroundNoiseDisplay.text = "${(settings.backgroundNoiseLevel * 100).toInt()}%"
+        val noiseLevel = (settings.backgroundNoiseLevel * 100).toInt()
+        val description = when {
+            noiseLevel == 0 -> "Off"
+            noiseLevel < 20 -> "Very Quiet"
+            noiseLevel < 40 -> "Quiet"
+            noiseLevel < 60 -> "Moderate"
+            noiseLevel < 80 -> "Strong"
+            noiseLevel < 95 -> "Very Strong"
+            else -> "Maximum"
+        }
+        val recommendation = when {
+            noiseLevel in 80..95 -> " (Recommended for CW)"
+            noiseLevel in 60..79 -> " (Good for testing)"
+            noiseLevel < 60 -> " (Light background)"
+            else -> " (May mask signal)"
+        }
+        binding.textBackgroundNoiseDisplay.text = "$noiseLevel% ($description$recommendation)"
         
         // Filter offset settings
         // Primary filter offset (-200 to +200 Hz)
@@ -547,8 +775,36 @@ class SettingsFragment : Fragment() {
         val secondarySign = if (settings.secondaryFilterOffset >= 0) "+" else ""
         binding.textSecondaryFilterOffsetDisplay.text = "$secondarySign${settings.secondaryFilterOffset} Hz"
         
+        // LFO settings
+        // LFO 1 Frequency (0.05-0.5 Hz)
+        val lfo1Progress = ((settings.lfo1FrequencyHz - 0.05f) / 0.45f * 45).toInt().coerceIn(0, 45)
+        binding.seekBarLfo1Frequency.progress = lfo1Progress
+        val lfo1Description = when {
+            settings.lfo1FrequencyHz < 0.1f -> "Very Slow"
+            settings.lfo1FrequencyHz < 0.2f -> "Slow"
+            settings.lfo1FrequencyHz < 0.3f -> "Moderate"
+            settings.lfo1FrequencyHz < 0.4f -> "Fast"
+            else -> "Very Fast"
+        }
+        binding.textLfo1FrequencyDisplay.text = "${String.format("%.2f", settings.lfo1FrequencyHz)} Hz ($lfo1Description)"
+        
+        // LFO 2 Frequency (0.05-0.5 Hz)
+        val lfo2Progress = ((settings.lfo2FrequencyHz - 0.05f) / 0.45f * 45).toInt().coerceIn(0, 45)
+        binding.seekBarLfo2Frequency.progress = lfo2Progress
+        val lfo2Description = when {
+            settings.lfo2FrequencyHz < 0.1f -> "Very Slow"
+            settings.lfo2FrequencyHz < 0.2f -> "Slow"
+            settings.lfo2FrequencyHz < 0.3f -> "Moderate"
+            settings.lfo2FrequencyHz < 0.4f -> "Fast"
+            else -> "Very Fast"
+        }
+        binding.textLfo2FrequencyDisplay.text = "${String.format("%.2f", settings.lfo2FrequencyHz)} Hz ($lfo2Description)"
+
         // Filter ringing checkbox
         binding.checkBoxFilterRinging.isChecked = settings.filterRingingEnabled
+        
+        // Continuous noise checkbox
+        binding.checkBoxContinuousNoise.isChecked = settings.continuousNoiseEnabled
         
         // Update the filter graph with initial values
         updateFilterGraph()
@@ -572,6 +828,10 @@ class SettingsFragment : Fragment() {
         val backgroundNoise = binding.seekBarBackgroundNoise.progress / 100.0f  // 0.0-1.0
         val primaryOffset = binding.seekBarPrimaryFilterOffset.progress - 200  // -200 to +200 Hz
         val secondaryOffset = binding.seekBarSecondaryFilterOffset.progress - 200  // -200 to +200 Hz
+        
+        // LFO settings
+        val lfo1Freq = 0.05f + (binding.seekBarLfo1Frequency.progress / 45.0f * 0.45f)  // 0.05-0.5 Hz
+        val lfo2Freq = 0.05f + (binding.seekBarLfo2Frequency.progress / 45.0f * 0.45f)  // 0.05-0.5 Hz
         
         settings = TrainingSettings(
             speedWpm = speed,
@@ -602,7 +862,15 @@ class SettingsFragment : Fragment() {
             backgroundNoiseLevel = backgroundNoise,
             filterRingingEnabled = binding.checkBoxFilterRinging.isChecked,
             primaryFilterOffset = primaryOffset,
-            secondaryFilterOffset = secondaryOffset
+            secondaryFilterOffset = secondaryOffset,
+            
+            // CW LFO settings
+            lfo1FrequencyHz = lfo1Freq,
+            lfo2FrequencyHz = lfo2Freq,
+            continuousNoiseEnabled = binding.checkBoxContinuousNoise.isChecked,
+            
+            // UI State settings
+            lastExpandedSettingsTab = settings.lastExpandedSettingsTab
         )
         
         settings.save(requireContext())
@@ -832,6 +1100,7 @@ class SettingsFragment : Fragment() {
     }
     
     private fun setupHelpTooltips() {
+        // Signal (Tone) section help tooltips
         binding.helpToneFrequency.setOnClickListener {
             Toast.makeText(requireContext(), 
                 "Sets the CW tone frequency (300-1000 Hz). " +
@@ -866,6 +1135,54 @@ class SettingsFragment : Fragment() {
                 "Tone frequency affects the sharpness of all styles.", 
                 Toast.LENGTH_LONG).show()
         }
+        
+        // Noise section help tooltips
+        binding.helpBackgroundNoise.setOnClickListener {
+            Toast.makeText(requireContext(), 
+                "Sets the CW background noise level (0-100%). " +
+                "80-95% recommended for realistic CW training. " +
+                "This creates atmospheric noise using Brownian carrier with LFO-modulated filtering. " +
+                "Must enable 'Background Noise' checkbox first.", 
+                Toast.LENGTH_LONG).show()
+        }
+        
+        binding.helpFilterBandwidth.setOnClickListener {
+            Toast.makeText(requireContext(), 
+                "Sets the primary filter bandwidth (100-2000 Hz). " +
+                "Controls the frequency range of the CW filter effect:\n" +
+                "• Very Sharp (100-300Hz): Classic narrow CW\n" +
+                "• Sharp (300-500Hz): Standard amateur radio\n" +
+                "• Normal (500-1000Hz): Wide reception\n" +
+                "• Wide (1000-2000Hz): Broadcast style\n" +
+                "Also affects LFO modulation range.", 
+                Toast.LENGTH_LONG).show()
+        }
+        
+        binding.helpFilterQ.setOnClickListener {
+            Toast.makeText(requireContext(), 
+                "Sets filter selectivity/sharpness (1-20). " +
+                "Higher values create sharper filtering and stronger atmospheric effects:\n" +
+                "• Gentle (1-5): Mild filtering\n" +
+                "• Mild (5-8): Light CW character\n" +
+                "• Sharp (8-12): Standard CW\n" +
+                "• Very Sharp (12-16): Strong CW\n" +
+                "• Extreme (16-20): Maximum effect\n" +
+                "Also multiplies LFO modulation depth.", 
+                Toast.LENGTH_LONG).show()
+        }
+        
+        binding.helpLfo1Frequency.setOnClickListener {
+            Toast.makeText(requireContext(), 
+                "Sets primary LFO frequency (0.05-0.5 Hz). " +
+                "Controls the speed of atmospheric modulation:\n" +
+                "• Very Slow (0.05-0.1Hz): Realistic slow variations\n" +
+                "• Slow (0.1-0.2Hz): Standard atmospheric\n" +
+                "• Moderate (0.2-0.3Hz): Active filtering\n" +
+                "• Fast (0.3-0.4Hz): Dramatic effects\n" +
+                "• Very Fast (0.4-0.5Hz): Rapid modulation\n" +
+                "Lower values sound more realistic.", 
+                Toast.LENGTH_LONG).show()
+        }
     }
     
     private fun updateEnvelopeGraph() {
@@ -873,5 +1190,23 @@ class SettingsFragment : Fragment() {
         val keyingStyle = binding.seekBarKeyingStyle.progress
         val toneFrequency = binding.seekBarToneFrequency.progress * 10 + 300
         binding.envelopeGraph.updateEnvelope(envelopeMs, keyingStyle, toneFrequency)
+    }
+
+    /**
+     * Update continuous noise settings if it's currently active
+     */
+    private fun updateContinuousNoiseIfActive() {
+        if (morseCodeGenerator.isTestNoiseActive()) {
+            morseCodeGenerator.updateNoiseSettings(settings)
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Stop any continuous noise when leaving settings
+        if (::morseCodeGenerator.isInitialized) {
+            morseCodeGenerator.stopTestNoise()
+            morseCodeGenerator.release()
+        }
     }
 } 

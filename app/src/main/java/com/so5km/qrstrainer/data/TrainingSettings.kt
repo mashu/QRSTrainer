@@ -37,7 +37,15 @@ data class TrainingSettings(
     val backgroundNoiseLevel: Float = 0.1f,    // Background noise level (0.0-1.0)
     val filterRingingEnabled: Boolean = false,  // Enable/disable filter ringing effect (OFF by default)
     val primaryFilterOffset: Int = 0,          // Primary filter offset from tone freq (-200 to +200 Hz)
-    val secondaryFilterOffset: Int = 0         // Secondary filter offset from tone freq (-200 to +200 Hz)
+    val secondaryFilterOffset: Int = 0,        // Secondary filter offset from tone freq (-200 to +200 Hz)
+    
+    // === CW LFO SETTINGS ===
+    val lfo1FrequencyHz: Float = 0.1f,         // Primary LFO frequency in Hz (0.05-0.5)
+    val lfo2FrequencyHz: Float = 0.17f,        // Secondary LFO frequency in Hz (0.05-0.5)
+    val continuousNoiseEnabled: Boolean = false, // Enable continuous noise playback for testing
+    
+    // === UI STATE SETTINGS ===
+    val lastExpandedSettingsTab: String = "audio"  // Remember which settings tab was last expanded
 ) {
     companion object {
         private const val PREFS_NAME = "morse_trainer_settings"
@@ -72,6 +80,14 @@ data class TrainingSettings(
         private const val KEY_FILTER_RINGING = "filter_ringing"
         private const val KEY_PRIMARY_FILTER_OFFSET = "primary_filter_offset"
         private const val KEY_SECONDARY_FILTER_OFFSET = "secondary_filter_offset"
+        
+        // CW LFO settings keys
+        private const val KEY_LFO1_FREQUENCY = "lfo1_frequency"
+        private const val KEY_LFO2_FREQUENCY = "lfo2_frequency"
+        private const val KEY_CONTINUOUS_NOISE = "continuous_noise"
+        
+        // UI State settings keys
+        private const val KEY_LAST_EXPANDED_SETTINGS_TAB = "last_expanded_settings_tab"
         
         /**
          * Load settings from SharedPreferences
@@ -108,7 +124,15 @@ data class TrainingSettings(
                 backgroundNoiseLevel = prefs.getFloat(KEY_BACKGROUND_NOISE, 0.1f),
                 filterRingingEnabled = prefs.getBoolean(KEY_FILTER_RINGING, false),
                 primaryFilterOffset = prefs.getInt(KEY_PRIMARY_FILTER_OFFSET, 0),
-                secondaryFilterOffset = prefs.getInt(KEY_SECONDARY_FILTER_OFFSET, 0)
+                secondaryFilterOffset = prefs.getInt(KEY_SECONDARY_FILTER_OFFSET, 0),
+                
+                // CW LFO settings
+                lfo1FrequencyHz = prefs.getFloat(KEY_LFO1_FREQUENCY, 0.1f),
+                lfo2FrequencyHz = prefs.getFloat(KEY_LFO2_FREQUENCY, 0.17f),
+                continuousNoiseEnabled = prefs.getBoolean(KEY_CONTINUOUS_NOISE, false),
+                
+                // UI State settings
+                lastExpandedSettingsTab = prefs.getString(KEY_LAST_EXPANDED_SETTINGS_TAB, "audio") ?: "audio"
             )
         }
     }
@@ -149,6 +173,14 @@ data class TrainingSettings(
             putBoolean(KEY_FILTER_RINGING, filterRingingEnabled)
             putInt(KEY_PRIMARY_FILTER_OFFSET, primaryFilterOffset)
             putInt(KEY_SECONDARY_FILTER_OFFSET, secondaryFilterOffset)
+            
+            // CW LFO settings
+            putFloat(KEY_LFO1_FREQUENCY, lfo1FrequencyHz)
+            putFloat(KEY_LFO2_FREQUENCY, lfo2FrequencyHz)
+            putBoolean(KEY_CONTINUOUS_NOISE, continuousNoiseEnabled)
+            
+            // UI State settings
+            putString(KEY_LAST_EXPANDED_SETTINGS_TAB, lastExpandedSettingsTab)
             apply()
         }
     }

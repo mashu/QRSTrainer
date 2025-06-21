@@ -107,8 +107,8 @@ class MorseCodeGenerator(private val context: Context) {
         shouldStop = false
         shouldPause = false
         
-        // Start continuous background noise if enabled
-        if (settings.backgroundNoiseLevel > 0 && !isNoisePlayingContinuously) {
+        // Start continuous background noise ONLY if checkbox is enabled AND noise level > 0
+        if (settings.filterRingingEnabled && settings.backgroundNoiseLevel > 0 && !isNoisePlayingContinuously) {
             startContinuousNoise()
         }
         
@@ -321,6 +321,7 @@ class MorseCodeGenerator(private val context: Context) {
             var amplitude = sin(angle) * currentSettings.appVolumeLevel // Use app volume setting
             
             // Apply subtle filter warmth to signal if enabled (minimal processing)
+            // This does NOT affect timing - just subtle tone coloring
             if (currentSettings.filterRingingEnabled) {
                 amplitude = applySignalWarmth(amplitude, toneFrequency)
             }
@@ -373,31 +374,14 @@ class MorseCodeGenerator(private val context: Context) {
             buffer[i] = (amplitude * Short.MAX_VALUE).toInt().coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
         }
         
-        // Add ringing tail after the tone if filter ringing is enabled
-        if (currentSettings.filterRingingEnabled && currentSettings.filterQFactor > 3.0) {
-            val ringingTailDuration = minOf(50, durationMs / 2) // Up to 50ms ringing tail
-            val ringingTailSamples = (SAMPLE_RATE * ringingTailDuration / 1000.0).toInt()
-            val ringingEndIndex = minOf(endIndex + ringingTailSamples, buffer.size)
-            
-            for (i in endIndex until ringingEndIndex) {
-                val ringingIndex = i - endIndex
-                val ringingPhase = 2.0 * PI * ringingIndex * currentSettings.toneFrequencyHz / SAMPLE_RATE
-                val ringingDecay = exp(-ringingIndex * 0.0008) // Exponential decay
-                val ringingAmplitude = 0.3 * (currentSettings.filterQFactor / 20.0) * ringingDecay
-                val ringing = sin(ringingPhase) * ringingAmplitude
-                
-                buffer[i] = (ringing * Short.MAX_VALUE).toInt()
-                    .coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
-            }
-            
-            return ringingEndIndex
-        }
-        
+        // CRITICAL: Always return the exact calculated endIndex
+        // Do NOT add any ringing tails or extensions that would affect timing
+        // The letters must play for their exact intended duration
         return endIndex
     }
     
     /**
-     * Add silence to the buffer, but preserve any existing ringing
+     * Add silence to the buffer for proper spacing
      */
     private fun addSilenceToBuffer(
         buffer: ShortArray,
@@ -409,15 +393,10 @@ class MorseCodeGenerator(private val context: Context) {
         val samples = (SAMPLE_RATE * durationMs / 1000.0).toInt()
         val endIndex = minOf(startIndex + samples, buffer.size)
         
-        // Fill with zeros (silence), but only if there's no existing ringing
+        // Fill with clean silence - no ringing preservation needed
+        // This ensures proper timing between letters and words
         for (i in startIndex until endIndex) {
-            // If there's already audio content (ringing), mix it with silence rather than overwrite
-            if (buffer[i] != 0.toShort()) {
-                // Allow existing ringing to continue, just reduce amplitude slightly
-                buffer[i] = (buffer[i] * 0.8).toInt().toShort()
-            } else {
-                buffer[i] = 0
-            }
+            buffer[i] = 0
         }
         
         return endIndex
@@ -676,24 +655,25 @@ class MorseCodeGenerator(private val context: Context) {
     
     /**
      * Start continuous background noise that plays throughout the session
+     * Only starts if the filter ringing checkbox is enabled AND noise level > 0
      */
     private fun startContinuousNoise() {
         if (isNoisePlayingContinuously) return
+        
+        android.util.Log.d("MorseCodeGenerator", "Starting CW background noise - Checkbox enabled: ${currentSettings.filterRingingEnabled}, Noise level: ${(currentSettings.backgroundNoiseLevel * 100).toInt()}%")
         
         isNoisePlayingContinuously = true
         shouldStopNoise = false
         
         noiseThread = Thread {
             try {
-                android.util.Log.d("MorseCodeGenerator", "Starting continuous background noise at ${(currentSettings.backgroundNoiseLevel * 100).toInt()}%")
-                
                 noiseAudioTrack?.play()
                 
                 val chunkSize = 1024
                 val noiseBuffer = ShortArray(chunkSize)
                 
                 while (!shouldStopNoise && isNoisePlayingContinuously) {
-                    // Generate filtered noise chunk
+                    // Generate CW-filtered noise chunk
                     generateFilteredNoiseChunk(noiseBuffer)
                     
                     try {
@@ -713,7 +693,7 @@ class MorseCodeGenerator(private val context: Context) {
                 android.util.Log.e("MorseCodeGenerator", "Error in continuous noise playback: ${e.message}")
             } finally {
                 isNoisePlayingContinuously = false
-                android.util.Log.d("MorseCodeGenerator", "Continuous background noise stopped")
+                android.util.Log.d("MorseCodeGenerator", "CW background noise stopped")
             }
         }
         
@@ -744,8 +724,8 @@ class MorseCodeGenerator(private val context: Context) {
     }
     
     /**
-     * Generate a chunk of CW-filtered background noise with characteristic ringing
-     * This is where the main filter processing happens - noise gets the full CW filter treatment
+     * Generate realistic CW radio background noise
+     * Uses Brownian noise carrier with LFO-modulated bandpass filtering (like the reference)
      */
     private fun generateFilteredNoiseChunk(buffer: ShortArray) {
         val centerFreq = currentSettings.toneFrequencyHz.toDouble()
@@ -754,80 +734,188 @@ class MorseCodeGenerator(private val context: Context) {
         val primaryOffset = currentSettings.primaryFilterOffset.toDouble()
         val secondaryOffset = currentSettings.secondaryFilterOffset.toDouble()
         val qFactor = currentSettings.filterQFactor.toDouble()
-        val noiseLevel = currentSettings.backgroundNoiseLevel * currentSettings.appVolumeLevel
+        val noiseLevel = currentSettings.backgroundNoiseLevel * currentSettings.appVolumeLevel * 0.6f
         
-        // Calculate effective filter positions
+        // Calculate base filter frequencies
         val primaryFilterFreq = centerFreq + primaryOffset
         val secondaryFilterFreq = centerFreq + secondaryOffset
         
+        // Initialize state if needed
+        if (!::cwFilterState.isInitialized) {
+            cwFilterState = CWFilterState()
+        }
+        
+        // Atmospheric intensity affects modulation depth (like the reference)
+        val atmosphericIntensity = minOf(3.0, 0.5 + qFactor / 20.0)
+        
+        // Debug logging
+        if (cwFilterState.chunkCounter % 1000 == 0) {
+            android.util.Log.d("MorseCodeGenerator", "CW Brownian Noise: primaryFreq=${primaryFilterFreq.toInt()}Hz, atmosphericIntensity=$atmosphericIntensity, level=$noiseLevel")
+        }
+        
+        // Generate Brownian noise with bandpass filtering (like the reference)
         for (i in buffer.indices) {
-            var totalNoise = 0.0
+            val sampleTime = (cwFilterState.chunkCounter * 1024 + i).toDouble() / SAMPLE_RATE
             
-            if (currentSettings.filterRingingEnabled) {
-                // Generate CW-characteristic filtered noise with proper ringing
-                // Sample across the audio spectrum and apply realistic filter responses
-                
-                for (freqComponent in 0 until 20) {
-                    // Sample frequencies across a wider range (±1000Hz)
-                    val testFreq = centerFreq + (freqComponent - 10) * 100.0
-                    
-                    // Generate noise at this frequency component
-                    val rawNoise = (Math.random() - 0.5) * 2.0
-                    
-                    // Calculate how much this frequency passes through each filter
-                    val primaryFreqDiff = abs(testFreq - primaryFilterFreq)
-                    val secondaryFreqDiff = abs(testFreq - secondaryFilterFreq)
-                    
-                    // Apply realistic filter curves with Q-factor
-                    val primaryResponse = 1.0 / (1.0 + (2.0 * primaryFreqDiff / primaryBandwidth).pow(2.0 * qFactor))
-                    val secondaryResponse = 1.0 / (1.0 + (2.0 * secondaryFreqDiff / secondaryBandwidth).pow(2.0 * qFactor))
-                    
-                    // Combine filter responses
-                    val combinedResponse = if (abs(primaryOffset - secondaryOffset) < primaryBandwidth / 2) {
-                        // Overlapping filters - additive response
-                        (primaryResponse + secondaryResponse) / 2.0
-                    } else {
-                        // Separate filters - cascaded response  
-                        primaryResponse * secondaryResponse
-                    }
-                    
-                    // Add CW filter ringing characteristics
-                    var filteredComponent = rawNoise * combinedResponse
-                    
-                    // Add characteristic CW filter ringing for narrow filters
-                    if (qFactor > 3.0 && combinedResponse > 0.1) {
-                        val ringingPhase = 2.0 * PI * i * testFreq / SAMPLE_RATE
-                        val ringingDecay = exp(-i * 0.0005) // Slower decay for noise ringing
-                        val ringingIntensity = (qFactor / 20.0) * combinedResponse * 0.4
-                        
-                        // Create the characteristic "echoing" ringing sound
-                        val ringing = sin(ringingPhase) * ringingIntensity * ringingDecay
-                        val ringingHarmonic = sin(ringingPhase * 1.5) * ringingIntensity * 0.3 * ringingDecay
-                        
-                        filteredComponent += ringing + ringingHarmonic
-                    }
-                    
-                    totalNoise += filteredComponent
-                }
-                
-                // Normalize and apply noise level
-                totalNoise = (totalNoise / 20.0) * noiseLevel * 0.4
-                
-                // Add extra character for very narrow filters (more ringing)
-                if (primaryBandwidth < 300 || secondaryBandwidth < 300) {
-                    val extraRinging = sin(2.0 * PI * i * centerFreq / SAMPLE_RATE) * 
-                                     (Math.random() - 0.5) * noiseLevel * 0.1 * (qFactor / 10.0)
-                    totalNoise += extraRinging
-                }
-                
-            } else {
-                // No filtering - just white noise
-                totalNoise = (Math.random() - 0.5) * 2.0 * noiseLevel * 0.3
+            // STEP 1: Generate Brownian noise carrier (like reference implementation)
+            val brown = (Math.random() * 2 - 1) * 0.02 * atmosphericIntensity
+            cwFilterState.brownianState = (cwFilterState.brownianState + brown) / 1.02
+            
+            // STEP 2: Slow atmospheric modulation (like reference)
+            cwFilterState.lfo1Phase += 0.0001
+            val slowVar = sin(cwFilterState.lfo1Phase) * 0.05 * atmosphericIntensity * 3.0
+            
+            // STEP 3: Random pops and crackles (like reference)
+            val popProbability = 0.9995 - (atmosphericIntensity * 0.0002)
+            val pop = if (Math.random() > popProbability) {
+                (Math.random() * 2 - 1) * 0.05 * atmosphericIntensity
+            } else 0.0
+            
+            cwFilterState.brownianState2 = (cwFilterState.brownianState2 + cwFilterState.brownianState) / 2 + slowVar + pop
+            val brownianNoise = cwFilterState.brownianState2 * 4.0
+            
+            // STEP 4: Calculate LFO-modulated filter frequencies (KEY TO CW CHARACTER!)
+            val lfo1 = sin(2.0 * PI * sampleTime * currentSettings.lfo1FrequencyHz) // Configurable primary LFO
+            val lfo2 = sin(2.0 * PI * sampleTime * currentSettings.lfo2FrequencyHz) // Configurable secondary LFO  
+            
+            // Make modulation much stronger and Q-factor dependent
+            val baseModDepth = atmosphericIntensity * 15.0 // Increased from 5.0 to 15.0
+            val qFactorBoost = (qFactor / 5.0).coerceIn(1.0, 4.0) // Q factor multiplies modulation
+            val modDepth = baseModDepth * qFactorBoost
+            
+            val currentPrimaryFreq = primaryFilterFreq + (lfo1 * modDepth)
+            val currentSecondaryFreq = secondaryFilterFreq + (lfo2 * modDepth * 0.8)
+            
+            // Debug: Log modulation values occasionally
+            if (cwFilterState.chunkCounter % 2000 == 0 && i == 0) {
+                android.util.Log.d("MorseCodeGenerator", "LFO Modulation: baseDepth=${baseModDepth.toInt()}Hz, qBoost=${qFactorBoost.toString().take(4)}, totalDepth=${modDepth.toInt()}Hz, currentFreqs=${currentPrimaryFreq.toInt()}/${currentSecondaryFreq.toInt()}Hz")
             }
             
-            buffer[i] = (totalNoise * Short.MAX_VALUE).toInt()
+            // STEP 5: Apply bandpass filtering with modulated frequencies
+            var filteredNoise = applySimulatedBandpassFilter(
+                brownianNoise, currentPrimaryFreq, primaryBandwidth, qFactor
+            )
+            
+            // STEP 6: Apply secondary bandpass filter
+            val secondaryFiltered = applySimulatedBandpassFilter(
+                brownianNoise, currentSecondaryFreq, secondaryBandwidth, qFactor * 0.8
+            )
+            filteredNoise = (filteredNoise * 0.7 + secondaryFiltered * 0.5)
+            
+            // STEP 7: Add notch filtering for higher atmospheric settings (like reference)
+            if (atmosphericIntensity > 1.0) {
+                val notchFreq = primaryFilterFreq * 1.5
+                val notchLFO = sin(2.0 * PI * sampleTime * (0.05 + atmosphericIntensity * 0.01))
+                val notchModulation = notchLFO * 150.0 * atmosphericIntensity
+                val currentNotchFreq = notchFreq + notchModulation
+                
+                val notchResponse = applySimulatedNotchFilter(filteredNoise, currentNotchFreq)
+                filteredNoise = notchResponse
+            }
+            
+            // STEP 8: Add resonance jumps (like reference)
+            if (Math.random() < 0.15 * (qFactor / 20.0)) {
+                val jumpAmount = (Math.random() * 15 - 7.5) * (qFactor / 20.0) * 0.1
+                filteredNoise *= (1.0 + jumpAmount)
+            }
+            
+            // Debug: Log some sample values
+            if (cwFilterState.chunkCounter % 5000 == 0 && i == 0) {
+                android.util.Log.d("MorseCodeGenerator", "Brownian values: brownianNoise=${brownianNoise.toString().take(6)}, filteredNoise=${filteredNoise.toString().take(6)}, final=${(filteredNoise * noiseLevel * Short.MAX_VALUE).toInt()}")
+            }
+            
+            // Apply final level and clamp
+            buffer[i] = (filteredNoise * noiseLevel * Short.MAX_VALUE).toInt()
                 .coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
         }
+        
+        // Update chunk counter
+        cwFilterState.chunkCounter++
     }
+    
+    /**
+     * Simulate bandpass filter response (like Web Audio API biquad filter)
+     */
+    private fun applySimulatedBandpassFilter(
+        input: Double, 
+        centerFreq: Double, 
+        bandwidth: Double, 
+        qFactor: Double
+    ): Double {
+        // Calculate Q from bandwidth: Q = centerFreq / bandwidth
+        val actualQ = centerFreq / maxOf(50.0, bandwidth)
+        val effectiveQ = minOf(actualQ, qFactor)
+        
+        // Make the frequency response more pronounced for CW character
+        val freqDiff = abs(centerFreq - 600.0) // Distance from 600Hz reference
+        val normalizedDiff = freqDiff / bandwidth
+        
+        // Sharper rolloff for more pronounced filtering effect
+        val freqResponse = 1.0 / (1.0 + (effectiveQ * normalizedDiff * normalizedDiff))
+        
+        // Boost the Q response to make filtering more audible
+        val qResponse = (effectiveQ / 8.0).coerceIn(0.4, 2.0) // Increased range
+        
+        // Apply the filtering with more pronounced effect
+        return input * freqResponse * qResponse
+    }
+    
+    /**
+     * Simulate notch filter response
+     */
+    private fun applySimulatedNotchFilter(input: Double, notchFreq: Double): Double {
+        // Simple notch filter simulation
+        val notchResponse = 1.0 - (1.0 / (1.0 + abs(notchFreq - 600.0) / 100.0))
+        return input * (0.7 + notchResponse * 0.3)
+    }
+    
+    // State for CW filter modulation
+    private data class CWFilterState(
+        var brownianState: Double = 0.0,
+        var brownianState2: Double = 0.0,
+        var lfo1Phase: Double = 0.0,
+        var lfo2Phase: Double = 0.0,
+        var notchLFOPhase: Double = 0.0,
+        var chunkCounter: Int = 0
+    )
+    
+    private lateinit var cwFilterState: CWFilterState
+    
+    /**
+     * Start continuous noise for testing CW filter parameters
+     * This is independent of training mode and can be used for real-time parameter adjustment
+     */
+    fun startTestNoise(settings: TrainingSettings) {
+        if (isNoisePlayingContinuously) {
+            stopTestNoise()
+        }
+        
+        currentSettings = settings
+        android.util.Log.d("MorseCodeGenerator", "Starting CW test noise - Level: ${(settings.backgroundNoiseLevel * 100).toInt()}%, LFO1: ${settings.lfo1FrequencyHz}Hz, LFO2: ${settings.lfo2FrequencyHz}Hz")
+        startContinuousNoise()
+    }
+    
+    /**
+     * Stop continuous test noise
+     */
+    fun stopTestNoise() {
+        android.util.Log.d("MorseCodeGenerator", "Stopping CW test noise")
+        stopContinuousNoise()
+    }
+    
+    /**
+     * Update settings for continuous noise testing in real-time
+     */
+    fun updateNoiseSettings(settings: TrainingSettings) {
+        if (isNoisePlayingContinuously) {
+            currentSettings = settings
+            android.util.Log.d("MorseCodeGenerator", "Updated CW test noise settings - Level: ${(settings.backgroundNoiseLevel * 100).toInt()}%, Q: ${settings.filterQFactor}, LFO1: ${settings.lfo1FrequencyHz}Hz, LFO2: ${settings.lfo2FrequencyHz}Hz")
+        }
+    }
+    
+    /**
+     * Check if test noise is currently playing
+     */
+    fun isTestNoiseActive(): Boolean = isNoisePlayingContinuously
 
 } 

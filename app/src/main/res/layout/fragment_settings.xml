@@ -497,7 +497,7 @@
 
         </androidx.cardview.widget.CardView>
 
-        <!-- Audio Generation Settings Collapsible Section -->
+        <!-- Signal (Tone) Settings - For Letter Playback -->
         <androidx.cardview.widget.CardView
             style="@style/Card.Modern"
             android:layout_width="match_parent"
@@ -511,7 +511,7 @@
 
                 <!-- Collapsible Header -->
                 <LinearLayout
-                    android:id="@+id/headerAudioSettings"
+                    android:id="@+id/headerSignalSettings"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:background="?android:attr/selectableItemBackground"
@@ -528,11 +528,11 @@
                         android:layout_weight="1"
                         android:drawableStart="@drawable/ic_menu_gallery"
                         android:drawablePadding="12dp"
-                        android:text="Audio Settings"
+                        android:text="Signal (Tone) - Letter Playback"
                         android:textSize="18sp" />
 
                     <ImageView
-                        android:id="@+id/iconAudioExpand"
+                        android:id="@+id/iconSignalExpand"
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:layout_gravity="center_vertical"
@@ -543,7 +543,7 @@
 
                 <!-- Collapsible Content -->
                 <LinearLayout
-                    android:id="@+id/contentAudioSettings"
+                    android:id="@+id/contentSignalSettings"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
@@ -754,22 +754,183 @@
                         android:layout_marginBottom="16dp"
                         android:background="@drawable/card_background_modern" />
 
+                    <TextView
+                        style="@style/Text.Caption"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="These settings control the tone used for Morse code letter playback. Adjust tone frequency, volume, envelope shape, and keying style to customize the signal characteristics."
+                        android:textSize="10sp"
+                        android:textColor="@color/grey_600" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </androidx.cardview.widget.CardView>
+
+        <!-- Noise Settings - For CW Background Filtering -->
+        <androidx.cardview.widget.CardView
+            style="@style/Card.Modern"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <!-- Collapsible Header -->
+                <LinearLayout
+                    android:id="@+id/headerNoiseSettings"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:orientation="horizontal"
+                    android:padding="16dp">
+
+                    <TextView
+                        style="@style/Text.Title"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical"
+                        android:layout_weight="1"
+                        android:drawableStart="@drawable/ic_menu_camera"
+                        android:drawablePadding="12dp"
+                        android:text="Noise - CW Background Filtering"
+                        android:textSize="18sp" />
+
+                    <ImageView
+                        android:id="@+id/iconNoiseExpand"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_gravity="center_vertical"
+                        android:src="@drawable/ic_expand_more"
+                        android:rotation="0" />
+
+                </LinearLayout>
+
+                <!-- Collapsible Content -->
+                <LinearLayout
+                    android:id="@+id/contentNoiseSettings"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:visibility="gone">
+
+                    <!-- Filter Ringing Enable -->
+                    <CheckBox
+                        android:id="@+id/checkBoxFilterRinging"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:buttonTint="@color/primary_blue"
+                        android:checked="false"
+                        android:text="Enable Background Noise (Realistic CW Sound)"
+                        android:textColor="@color/grey_800"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <!-- Continuous Noise Testing -->
+                    <CheckBox
+                        android:id="@+id/checkBoxContinuousNoise"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:buttonTint="@color/accent_orange"
+                        android:checked="false"
+                        android:text="Test Noise Continuously (Real-time parameter testing)"
+                        android:textColor="@color/grey_800"
+                        android:textSize="12sp" />
+
                     <!-- Filter Graph -->
                     <com.so5km.qrstrainer.ui.views.CWFilterGraphView
                         android:id="@+id/filterGraphView"
                         android:layout_width="match_parent"
                         android:layout_height="150dp"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="16dp"
                         android:background="@drawable/card_background_modern" />
 
-                    <!-- Primary Filter Bandwidth -->
-                    <TextView
-                        style="@style/Text.Subtitle"
-                        android:layout_width="wrap_content"
+                    <!-- Background Noise Level -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
-                        android:text="Primary Filter Bandwidth"
-                        android:textSize="14sp" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        
+                        <TextView
+                            style="@style/Text.Subtitle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Background Noise Level"
+                            android:textSize="14sp" />
+                            
+                        <TextView
+                            android:id="@+id/helpBackgroundNoise"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:text="?"
+                            android:textAlignment="center"
+                            android:textColor="@color/accent_orange"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:gravity="center" />
+                    </LinearLayout>
+
+                    <SeekBar
+                        android:id="@+id/seekBarBackgroundNoise"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:max="100"
+                        android:progress="10"
+                        android:progressTint="@color/accent_orange"
+                        android:thumbTint="@color/accent_orange" />
+
+                    <TextView
+                        android:id="@+id/textBackgroundNoiseDisplay"
+                        style="@style/Text.Caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="16dp"
+                        android:text="10%"
+                        android:textSize="12sp" />
+
+                    <!-- Primary Filter Bandwidth -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        
+                        <TextView
+                            style="@style/Text.Subtitle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Primary Filter Bandwidth"
+                            android:textSize="14sp" />
+                            
+                        <TextView
+                            android:id="@+id/helpFilterBandwidth"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:text="?"
+                            android:textAlignment="center"
+                            android:textColor="@color/accent_green"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:gravity="center" />
+                    </LinearLayout>
 
                     <SeekBar
                         android:id="@+id/seekBarFilterBandwidth"
@@ -821,13 +982,33 @@
                         android:textSize="12sp" />
 
                     <!-- Filter Q Factor (Ringing) -->
-                    <TextView
-                        style="@style/Text.Subtitle"
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
-                        android:text="Filter Selectivity (Q Factor)"
-                        android:textSize="14sp" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        
+                        <TextView
+                            style="@style/Text.Subtitle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Filter Selectivity (Q Factor)"
+                            android:textSize="14sp" />
+                            
+                        <TextView
+                            android:id="@+id/helpFilterQ"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:text="?"
+                            android:textAlignment="center"
+                            android:textColor="@color/secondary_purple"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:gravity="center" />
+                    </LinearLayout>
 
                     <SeekBar
                         android:id="@+id/seekBarFilterQ"
@@ -847,35 +1028,6 @@
                         android:layout_gravity="center_horizontal"
                         android:layout_marginBottom="16dp"
                         android:text="Q = 5.0"
-                        android:textSize="12sp" />
-
-                    <!-- Background Noise Level -->
-                    <TextView
-                        style="@style/Text.Subtitle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="8dp"
-                        android:text="Background Noise Level"
-                        android:textSize="14sp" />
-
-                    <SeekBar
-                        android:id="@+id/seekBarBackgroundNoise"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="4dp"
-                        android:max="100"
-                        android:progress="10"
-                        android:progressTint="@color/accent_orange"
-                        android:thumbTint="@color/accent_orange" />
-
-                    <TextView
-                        android:id="@+id/textBackgroundNoiseDisplay"
-                        style="@style/Text.Caption"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center_horizontal"
-                        android:layout_marginBottom="16dp"
-                        android:text="10%"
                         android:textSize="12sp" />
 
                     <!-- Primary Filter Offset -->
@@ -932,27 +1084,93 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center_horizontal"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="16dp"
                         android:text="0 Hz"
                         android:textSize="12sp" />
 
-                    <!-- Filter Ringing Enable -->
-                    <CheckBox
-                        android:id="@+id/checkBoxFilterRinging"
+                    <!-- LFO 1 Frequency -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        
+                        <TextView
+                            style="@style/Text.Subtitle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Primary LFO Frequency"
+                            android:textSize="14sp" />
+                            
+                        <TextView
+                            android:id="@+id/helpLfo1Frequency"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:text="?"
+                            android:textAlignment="center"
+                            android:textColor="@color/accent_cyan"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:gravity="center" />
+                    </LinearLayout>
+
+                    <SeekBar
+                        android:id="@+id/seekBarLfo1Frequency"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:max="45"
+                        android:progress="5"
+                        android:progressTint="@color/accent_cyan"
+                        android:thumbTint="@color/accent_cyan" />
+
+                    <TextView
+                        android:id="@+id/textLfo1FrequencyDisplay"
+                        style="@style/Text.Caption"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
-                        android:buttonTint="@color/primary_blue"
-                        android:checked="false"
-                        android:text="Enable Filter Ringing (Realistic CW Sound)"
-                        android:textColor="@color/grey_800"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="16dp"
+                        android:text="0.10 Hz"
+                        android:textSize="12sp" />
+
+                    <!-- LFO 2 Frequency -->
+                    <TextView
+                        style="@style/Text.Subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="Secondary LFO Frequency"
+                        android:textSize="14sp" />
+
+                    <SeekBar
+                        android:id="@+id/seekBarLfo2Frequency"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:max="45"
+                        android:progress="12"
+                        android:progressTint="@color/accent_cyan"
+                        android:thumbTint="@color/accent_cyan" />
+
+                    <TextView
+                        android:id="@+id/textLfo2FrequencyDisplay"
+                        style="@style/Text.Caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="16dp"
+                        android:text="0.17 Hz"
                         android:textSize="12sp" />
 
                     <TextView
                         style="@style/Text.Caption"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Adjust filter offsets to move filters relative to each other. Overlapping filters create sharper responses, while separated filters create wider passbands or notch effects."
+                        android:text="These settings create realistic CW background noise using Brownian noise with LFO-modulated bandpass filtering. Enable 'Background Noise' checkbox first, then adjust parameters. Use 'Test Continuously' for real-time experimentation. LFO frequencies control atmospheric modulation speed - lower values (0.05-0.15Hz) create slow, realistic variations."
                         android:textSize="10sp"
                         android:textColor="@color/grey_600" />
 
