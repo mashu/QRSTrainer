@@ -267,6 +267,47 @@ class SettingsFragment : Fragment() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
+        // App volume settings (0-100%)
+        binding.seekBarAppVolume.max = 100  // 0-100%
+        binding.seekBarAppVolume.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val volume = progress  // 0-100%
+                binding.textAppVolumeDisplay.text = "$volume%"
+                if (fromUser) saveSettings()
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        // Audio envelope settings (1-20ms)
+        binding.seekBarAudioEnvelope.max = 19  // 1-20ms
+        binding.seekBarAudioEnvelope.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val envelope = progress + 1  // 1-20ms
+                binding.textAudioEnvelopeDisplay.text = "$envelope ms"
+                if (fromUser) saveSettings()
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        // Keying style settings
+        binding.seekBarKeyingStyle.max = 2  // 0-2
+        binding.seekBarKeyingStyle.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val style = when (progress) {
+                    0 -> "Hard Keying"
+                    1 -> "Soft Keying" 
+                    2 -> "Smooth Keying"
+                    else -> "Hard Keying"
+                }
+                binding.textKeyingStyleDisplay.text = style
+                if (fromUser) saveSettings()
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
         // Word spacing settings (0-1000 ms)
         binding.seekBarWordSpacing.max = 100  // 0-1000 ms
         binding.seekBarWordSpacing.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -437,6 +478,24 @@ class SettingsFragment : Fragment() {
         binding.seekBarToneFrequency.progress = (settings.toneFrequencyHz - 300) / 10  // Convert to 0-based
         binding.textToneFrequencyDisplay.text = "${settings.toneFrequencyHz} Hz"
         
+        // App volume (0-100%)
+        binding.seekBarAppVolume.progress = (settings.appVolumeLevel * 100).toInt()  // Convert to 0-based
+        binding.textAppVolumeDisplay.text = "${(settings.appVolumeLevel * 100).toInt()}%"
+        
+        // Audio envelope (1-20ms)
+        binding.seekBarAudioEnvelope.progress = settings.audioEnvelopeMs - 1  // Convert to 0-based
+        binding.textAudioEnvelopeDisplay.text = "${settings.audioEnvelopeMs} ms"
+        
+        // Keying style
+        binding.seekBarKeyingStyle.progress = settings.keyingStyle  // Already 0-based
+        val keyingStyleDisplay = when (settings.keyingStyle) {
+            0 -> "Hard Keying"
+            1 -> "Soft Keying"
+            2 -> "Smooth Keying"
+            else -> "Hard Keying"
+        }
+        binding.textKeyingStyleDisplay.text = keyingStyleDisplay
+        
         // Farnsworth timing (0-35 WPM)
         binding.seekBarFarnsworth.progress = settings.farnsworthWpm  // Already 0-based
         val farnsworthDisplay = if (settings.farnsworthWpm == 0) "0 WPM (disabled)" else "${settings.farnsworthWpm} WPM"
@@ -522,6 +581,9 @@ class SettingsFragment : Fragment() {
             farnsworthWpm = binding.seekBarFarnsworth.progress,
             wordSpacingMs = binding.seekBarWordSpacing.progress * 10,
             groupSpacingMs = binding.seekBarGroupSpacing.progress * 10,
+            appVolumeLevel = binding.seekBarAppVolume.progress / 100.0f,
+            audioEnvelopeMs = binding.seekBarAudioEnvelope.progress + 1,
+            keyingStyle = binding.seekBarKeyingStyle.progress,
             
             // CW Filter settings
             filterBandwidthHz = filterBandwidth,

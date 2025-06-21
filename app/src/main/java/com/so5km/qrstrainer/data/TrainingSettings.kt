@@ -26,6 +26,9 @@ data class TrainingSettings(
     val toneFrequencyHz: Int = 600,            // Tone frequency in Hz (300-1000)
     val wordSpacingMs: Int = 0,                // Extra word spacing in ms (0 = default)
     val groupSpacingMs: Int = 0,               // Extra group spacing in ms (0 = default)
+    val appVolumeLevel: Float = 0.7f,          // App-specific volume (0.0-1.0)
+    val audioEnvelopeMs: Int = 5,              // Audio envelope rise/fall time (1-20ms)
+    val keyingStyle: Int = 0,                  // Keying style: 0=Hard, 1=Soft, 2=Smooth
     
     // === CW FILTER SETTINGS ===
     val filterBandwidthHz: Int = 500,          // Primary filter bandwidth in Hz (100-2000)
@@ -57,6 +60,9 @@ data class TrainingSettings(
         private const val KEY_TONE_FREQUENCY = "tone_frequency"
         private const val KEY_WORD_SPACING = "word_spacing"
         private const val KEY_GROUP_SPACING = "group_spacing"
+        private const val KEY_APP_VOLUME = "app_volume"
+        private const val KEY_AUDIO_ENVELOPE = "audio_envelope"
+        private const val KEY_KEYING_STYLE = "keying_style"
         
         // CW Filter settings keys
         private const val KEY_FILTER_BANDWIDTH = "filter_bandwidth"
@@ -91,6 +97,9 @@ data class TrainingSettings(
                 toneFrequencyHz = prefs.getInt(KEY_TONE_FREQUENCY, 600),
                 wordSpacingMs = prefs.getInt(KEY_WORD_SPACING, 0),
                 groupSpacingMs = prefs.getInt(KEY_GROUP_SPACING, 0),
+                appVolumeLevel = prefs.getFloat(KEY_APP_VOLUME, 0.7f),
+                audioEnvelopeMs = prefs.getInt(KEY_AUDIO_ENVELOPE, 5),
+                keyingStyle = prefs.getInt(KEY_KEYING_STYLE, 0),
                 
                 // CW Filter settings
                 filterBandwidthHz = prefs.getInt(KEY_FILTER_BANDWIDTH, 500),
@@ -128,6 +137,9 @@ data class TrainingSettings(
             putInt(KEY_TONE_FREQUENCY, toneFrequencyHz)
             putInt(KEY_WORD_SPACING, wordSpacingMs)
             putInt(KEY_GROUP_SPACING, groupSpacingMs)
+            putFloat(KEY_APP_VOLUME, appVolumeLevel)
+            putInt(KEY_AUDIO_ENVELOPE, audioEnvelopeMs)
+            putInt(KEY_KEYING_STYLE, keyingStyle)
             
             // CW Filter settings
             putInt(KEY_FILTER_BANDWIDTH, filterBandwidthHz)

@@ -16,7 +16,7 @@ class MorseCodeGenerator(private val context: Context) {
     
     companion object {
         private const val SAMPLE_RATE = 44100
-        private const val ENVELOPE_MS = 5 // 5ms envelope for smooth transitions
+        // ENVELOPE_MS now configurable via settings
     }
     
     private var audioTrack: AudioTrack? = null
@@ -304,30 +304,61 @@ class MorseCodeGenerator(private val context: Context) {
         val endIndex = minOf(startIndex + samples, buffer.size)
         
         // Calculate envelope samples (minimum 1 sample, maximum 10% of duration)
-        val envelopeSamples = maxOf(1, minOf(samples / 10, SAMPLE_RATE * ENVELOPE_MS / 1000))
+        val envelopeMs = currentSettings.audioEnvelopeMs
+        val envelopeSamples = maxOf(1, minOf(samples / 10, SAMPLE_RATE * envelopeMs / 1000))
         
         for (i in startIndex until endIndex) {
             val sampleIndex = i - startIndex
             val angle = 2.0 * PI * sampleIndex * toneFrequency / SAMPLE_RATE
-            var amplitude = sin(angle) * 0.7 // 70% volume
+            var amplitude = sin(angle) * currentSettings.appVolumeLevel // Use app volume setting
             
             // Apply CW filter effects if enabled
             if (currentSettings.filterRingingEnabled) {
                 amplitude = applyCWFilterEffects(amplitude, sampleIndex, toneFrequency)
             }
             
-            // Apply smooth envelope
-            when {
-                sampleIndex < envelopeSamples -> {
-                    // Smooth fade in using cosine curve
-                    val fadeRatio = sampleIndex.toDouble() / envelopeSamples
-                    amplitude *= 0.5 * (1.0 - cos(PI * fadeRatio))
+            // Apply envelope based on keying style
+            when (currentSettings.keyingStyle) {
+                0 -> { // Hard keying - minimal envelope
+                    val hardEnvelopeSamples = maxOf(1, envelopeSamples / 3)
+                    when {
+                        sampleIndex < hardEnvelopeSamples -> {
+                            val fadeRatio = sampleIndex.toDouble() / hardEnvelopeSamples
+                            amplitude *= fadeRatio
+                        }
+                        sampleIndex >= samples - hardEnvelopeSamples -> {
+                            val fadeIndex = samples - 1 - sampleIndex
+                            val fadeRatio = fadeIndex.toDouble() / hardEnvelopeSamples
+                            amplitude *= fadeRatio
+                        }
+                    }
                 }
-                sampleIndex >= samples - envelopeSamples -> {
-                    // Smooth fade out using cosine curve
-                    val fadeIndex = samples - 1 - sampleIndex
-                    val fadeRatio = fadeIndex.toDouble() / envelopeSamples
-                    amplitude *= 0.5 * (1.0 - cos(PI * fadeRatio))
+                1 -> { // Soft keying - normal envelope
+                    when {
+                        sampleIndex < envelopeSamples -> {
+                            val fadeRatio = sampleIndex.toDouble() / envelopeSamples
+                            amplitude *= 0.5 * (1.0 - cos(PI * fadeRatio))
+                        }
+                        sampleIndex >= samples - envelopeSamples -> {
+                            val fadeIndex = samples - 1 - sampleIndex
+                            val fadeRatio = fadeIndex.toDouble() / envelopeSamples
+                            amplitude *= 0.5 * (1.0 - cos(PI * fadeRatio))
+                        }
+                    }
+                }
+                2 -> { // Smooth keying - extended envelope
+                    val smoothEnvelopeSamples = envelopeSamples * 2
+                    when {
+                        sampleIndex < smoothEnvelopeSamples -> {
+                            val fadeRatio = sampleIndex.toDouble() / smoothEnvelopeSamples
+                            amplitude *= sin(PI * fadeRatio / 2.0).pow(2)
+                        }
+                        sampleIndex >= samples - smoothEnvelopeSamples -> {
+                            val fadeIndex = samples - 1 - sampleIndex
+                            val fadeRatio = fadeIndex.toDouble() / smoothEnvelopeSamples
+                            amplitude *= sin(PI * fadeRatio / 2.0).pow(2)
+                        }
+                    }
                 }
             }
             
@@ -390,7 +421,8 @@ class MorseCodeGenerator(private val context: Context) {
     private fun applyOverallEnvelope(buffer: ShortArray) {
         if (buffer.isEmpty()) return
         
-        val envelopeSamples = SAMPLE_RATE * ENVELOPE_MS * 2 / 1000 // 10ms envelope
+        val envelopeMs = currentSettings.audioEnvelopeMs * 2 // Double for overall envelope
+        val envelopeSamples = SAMPLE_RATE * envelopeMs / 1000
         val actualEnvelopeSamples = minOf(envelopeSamples, buffer.size / 10)
         
         // Fade in at the very beginning
@@ -750,23 +782,56 @@ class MorseCodeGenerator(private val context: Context) {
     
     /**
      * Generate a chunk of filtered background noise
+     * Enhanced to properly simulate filter effects on noise spectrum
      */
     private fun generateFilteredNoiseChunk(buffer: ShortArray) {
         val centerFreq = currentSettings.toneFrequencyHz.toDouble()
-        val bandwidth = currentSettings.filterBandwidthHz.toDouble()
-        val noiseLevel = currentSettings.backgroundNoiseLevel
+        val primaryBandwidth = currentSettings.filterBandwidthHz.toDouble()
+        val secondaryBandwidth = currentSettings.secondaryFilterBandwidthHz.toDouble()
+        val primaryOffset = currentSettings.primaryFilterOffset.toDouble()
+        val secondaryOffset = currentSettings.secondaryFilterOffset.toDouble()
+        val qFactor = currentSettings.filterQFactor.toDouble()
+        val noiseLevel = currentSettings.backgroundNoiseLevel * currentSettings.appVolumeLevel
         
         for (i in buffer.indices) {
             // Generate white noise
-            var noise = (Math.random() - 0.5) * 2.0 * noiseLevel * 0.3 // Reduced amplitude for background
+            var noise = (Math.random() - 0.5) * 2.0 * noiseLevel * 0.2 // Background level
             
-            // Apply simple bandpass filtering to the noise
-            // This simulates how the CW filter affects background noise
+            // Apply realistic bandpass filtering to the noise
             if (currentSettings.filterRingingEnabled) {
-                // Simple frequency domain filtering approximation
-                // In reality this would be more complex, but this gives the right effect
-                val filterResponse = calculateSimpleFilterResponse(centerFreq, bandwidth)
-                noise *= filterResponse
+                // Calculate effective filter positions
+                val primaryFilterFreq = centerFreq + primaryOffset
+                val secondaryFilterFreq = centerFreq + secondaryOffset
+                
+                // Generate noise components at different frequencies and filter them
+                var filteredNoise = 0.0
+                
+                // Sample multiple frequency components to simulate filtered noise spectrum
+                for (freqSample in 0 until 10) {
+                    val testFreq = centerFreq + (freqSample - 5) * 100 // Sample ±500Hz around center
+                    
+                    // Calculate filter response for this frequency
+                    val primaryFreqDiff = abs(testFreq - primaryFilterFreq)
+                    val secondaryFreqDiff = abs(testFreq - secondaryFilterFreq)
+                    
+                    val primaryResponse = 1.0 / (1.0 + (primaryFreqDiff / (primaryBandwidth / 2.0)).pow(qFactor / 5.0))
+                    val secondaryResponse = 1.0 / (1.0 + (secondaryFreqDiff / (secondaryBandwidth / 2.0)).pow(qFactor / 5.0))
+                    
+                    // Combine filter responses
+                    val combinedResponse = if (abs(primaryOffset - secondaryOffset) < 100) {
+                        // Overlapping filters - additive response
+                        (primaryResponse + secondaryResponse) / 2.0
+                    } else {
+                        // Separate filters - cascaded response
+                        sqrt(primaryResponse * secondaryResponse)
+                    }
+                    
+                    // Add filtered noise component
+                    val freqNoise = (Math.random() - 0.5) * 2.0 * combinedResponse
+                    filteredNoise += freqNoise
+                }
+                
+                noise = filteredNoise / 10.0 * noiseLevel * 0.3
             }
             
             buffer[i] = (noise * Short.MAX_VALUE).toInt()
