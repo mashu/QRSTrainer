@@ -31,21 +31,29 @@ data class TrainingSettings(
     val keyingStyle: Int = 0,                  // Keying style: 0=Hard, 1=Soft, 2=Smooth
     
     // === CW FILTER SETTINGS ===
-    val filterBandwidthHz: Int = 500,          // Primary filter bandwidth in Hz (100-2000)
-    val secondaryFilterBandwidthHz: Int = 500, // Secondary filter bandwidth in Hz (100-2000)
-    val filterQFactor: Float = 5.0f,           // Q factor for filter ringing (1.0-20.0)
-    val backgroundNoiseLevel: Float = 0.1f,    // Background noise level (0.0-1.0)
+    val filterBandwidthHz: Int = 250,          // Primary filter bandwidth in Hz (100-2000)
+    val secondaryFilterBandwidthHz: Int = 300, // Secondary filter bandwidth in Hz (100-2000)
+    val filterQFactor: Float = 15.0f,           // Q factor for filter ringing (1.0-20.0) - Moderate Q for pleasant sound
+    val backgroundNoiseLevel: Float = 0.3f,    // Background noise level (0.0-1.0) - DEPRECATED, use noiseVolume instead  
+    val noiseVolume: Float = 0.3f,             // Independent noise volume (0.0-1.0) - Moderate level for pleasant background
     val filterRingingEnabled: Boolean = false,  // Enable/disable filter ringing effect (OFF by default)
     val primaryFilterOffset: Int = 0,          // Primary filter offset from tone freq (-200 to +200 Hz)
-    val secondaryFilterOffset: Int = 0,        // Secondary filter offset from tone freq (-200 to +200 Hz)
+    val secondaryFilterOffset: Int = 30,        // Secondary filter offset from tone freq (-200 to +200 Hz)
     
     // === CW LFO SETTINGS ===
     val lfo1FrequencyHz: Float = 0.1f,         // Primary LFO frequency in Hz (0.05-0.5)
     val lfo2FrequencyHz: Float = 0.17f,        // Secondary LFO frequency in Hz (0.05-0.5)
     val continuousNoiseEnabled: Boolean = false, // Enable continuous noise playback for testing
     
+    // === CW ATMOSPHERIC SETTINGS ===
+    val atmosphericIntensity: Float = 2.0f,    // Atmospheric noise intensity (0.5-5.0) - Moderate, pleasant default
+    val crackleIntensity: Float = 0.05f,       // Random pops and crackles (0.01-0.2) - Light, subtle interference
+    val resonanceJumpRate: Float = 0.3f,       // Resonance jump frequency (0.1-2.0) - Gentle CW pings
+    val driftSpeed: Float = 0.4f,              // Frequency drift speed (0.1-2.0) - Slow, natural drift
+    
     // === UI STATE SETTINGS ===
-    val lastExpandedSettingsTab: String = "audio"  // Remember which settings tab was last expanded
+    val lastExpandedSettingsTab: String = "audio",  // Remember which settings tab was last expanded
+    val warmth: Float = 8.0f // matches reference Warmth setting
 ) {
     companion object {
         private const val PREFS_NAME = "morse_trainer_settings"
@@ -77,6 +85,7 @@ data class TrainingSettings(
         private const val KEY_SECONDARY_FILTER_BANDWIDTH = "secondary_filter_bandwidth"
         private const val KEY_FILTER_Q_FACTOR = "filter_q_factor"
         private const val KEY_BACKGROUND_NOISE = "background_noise"
+        private const val KEY_NOISE_VOLUME = "noise_volume"
         private const val KEY_FILTER_RINGING = "filter_ringing"
         private const val KEY_PRIMARY_FILTER_OFFSET = "primary_filter_offset"
         private const val KEY_SECONDARY_FILTER_OFFSET = "secondary_filter_offset"
@@ -85,6 +94,13 @@ data class TrainingSettings(
         private const val KEY_LFO1_FREQUENCY = "lfo1_frequency"
         private const val KEY_LFO2_FREQUENCY = "lfo2_frequency"
         private const val KEY_CONTINUOUS_NOISE = "continuous_noise"
+        
+        // CW Atmospheric settings keys
+        private const val KEY_ATMOSPHERIC_INTENSITY = "atmospheric_intensity"
+        private const val KEY_CRACKLE_INTENSITY = "crackle_intensity"
+        private const val KEY_RESONANCE_JUMP_RATE = "resonance_jump_rate"
+        private const val KEY_DRIFT_SPEED = "drift_speed"
+        private const val KEY_WARMTH = "warmth"
         
         // UI State settings keys
         private const val KEY_LAST_EXPANDED_SETTINGS_TAB = "last_expanded_settings_tab"
@@ -118,21 +134,29 @@ data class TrainingSettings(
                 keyingStyle = prefs.getInt(KEY_KEYING_STYLE, 0),
                 
                 // CW Filter settings
-                filterBandwidthHz = prefs.getInt(KEY_FILTER_BANDWIDTH, 500),
-                secondaryFilterBandwidthHz = prefs.getInt(KEY_SECONDARY_FILTER_BANDWIDTH, 500),
-                filterQFactor = prefs.getFloat(KEY_FILTER_Q_FACTOR, 5.0f),
-                backgroundNoiseLevel = prefs.getFloat(KEY_BACKGROUND_NOISE, 0.1f),
+                filterBandwidthHz = prefs.getInt(KEY_FILTER_BANDWIDTH, 250),
+                secondaryFilterBandwidthHz = prefs.getInt(KEY_SECONDARY_FILTER_BANDWIDTH, 300),
+                filterQFactor = prefs.getFloat(KEY_FILTER_Q_FACTOR, 15.0f),
+                backgroundNoiseLevel = prefs.getFloat(KEY_BACKGROUND_NOISE, 0.3f),
+                noiseVolume = prefs.getFloat(KEY_NOISE_VOLUME, 0.3f),
                 filterRingingEnabled = prefs.getBoolean(KEY_FILTER_RINGING, false),
                 primaryFilterOffset = prefs.getInt(KEY_PRIMARY_FILTER_OFFSET, 0),
-                secondaryFilterOffset = prefs.getInt(KEY_SECONDARY_FILTER_OFFSET, 0),
+                secondaryFilterOffset = prefs.getInt(KEY_SECONDARY_FILTER_OFFSET, 30),
                 
                 // CW LFO settings
                 lfo1FrequencyHz = prefs.getFloat(KEY_LFO1_FREQUENCY, 0.1f),
                 lfo2FrequencyHz = prefs.getFloat(KEY_LFO2_FREQUENCY, 0.17f),
                 continuousNoiseEnabled = prefs.getBoolean(KEY_CONTINUOUS_NOISE, false),
                 
+                // CW Atmospheric settings
+                atmosphericIntensity = prefs.getFloat(KEY_ATMOSPHERIC_INTENSITY, 2.0f),
+                crackleIntensity = prefs.getFloat(KEY_CRACKLE_INTENSITY, 0.05f),
+                resonanceJumpRate = prefs.getFloat(KEY_RESONANCE_JUMP_RATE, 0.3f),
+                driftSpeed = prefs.getFloat(KEY_DRIFT_SPEED, 0.4f),
+                
                 // UI State settings
-                lastExpandedSettingsTab = prefs.getString(KEY_LAST_EXPANDED_SETTINGS_TAB, "audio") ?: "audio"
+                lastExpandedSettingsTab = prefs.getString(KEY_LAST_EXPANDED_SETTINGS_TAB, "audio") ?: "audio",
+                warmth = prefs.getFloat(KEY_WARMTH, 8.0f)
             )
         }
     }
@@ -170,6 +194,7 @@ data class TrainingSettings(
             putInt(KEY_SECONDARY_FILTER_BANDWIDTH, secondaryFilterBandwidthHz)
             putFloat(KEY_FILTER_Q_FACTOR, filterQFactor)
             putFloat(KEY_BACKGROUND_NOISE, backgroundNoiseLevel)
+            putFloat(KEY_NOISE_VOLUME, noiseVolume)
             putBoolean(KEY_FILTER_RINGING, filterRingingEnabled)
             putInt(KEY_PRIMARY_FILTER_OFFSET, primaryFilterOffset)
             putInt(KEY_SECONDARY_FILTER_OFFSET, secondaryFilterOffset)
@@ -179,9 +204,57 @@ data class TrainingSettings(
             putFloat(KEY_LFO2_FREQUENCY, lfo2FrequencyHz)
             putBoolean(KEY_CONTINUOUS_NOISE, continuousNoiseEnabled)
             
+            // CW Atmospheric settings
+            putFloat(KEY_ATMOSPHERIC_INTENSITY, atmosphericIntensity)
+            putFloat(KEY_CRACKLE_INTENSITY, crackleIntensity)
+            putFloat(KEY_RESONANCE_JUMP_RATE, resonanceJumpRate)
+            putFloat(KEY_DRIFT_SPEED, driftSpeed)
+            
             // UI State settings
             putString(KEY_LAST_EXPANDED_SETTINGS_TAB, lastExpandedSettingsTab)
+            putFloat(KEY_WARMTH, warmth)
             apply()
         }
+    }
+    
+    /**
+     * Reset only audio-related settings to defaults while preserving training behavior and progress
+     */
+    fun resetAudioSettings(): TrainingSettings {
+        val defaults = TrainingSettings()
+        return this.copy(
+            // Reset all audio generation settings to defaults
+            toneFrequencyHz = defaults.toneFrequencyHz,
+            wordSpacingMs = defaults.wordSpacingMs,
+            groupSpacingMs = defaults.groupSpacingMs,
+            appVolumeLevel = defaults.appVolumeLevel,
+            audioEnvelopeMs = defaults.audioEnvelopeMs,
+            keyingStyle = defaults.keyingStyle,
+            
+            // Reset all CW filter settings to defaults
+            filterBandwidthHz = defaults.filterBandwidthHz,
+            secondaryFilterBandwidthHz = defaults.secondaryFilterBandwidthHz,
+            filterQFactor = defaults.filterQFactor,
+            backgroundNoiseLevel = defaults.backgroundNoiseLevel,
+            noiseVolume = defaults.noiseVolume,
+            filterRingingEnabled = defaults.filterRingingEnabled,
+            primaryFilterOffset = defaults.primaryFilterOffset,
+            secondaryFilterOffset = defaults.secondaryFilterOffset,
+            
+            // Reset all CW LFO settings to defaults
+            lfo1FrequencyHz = defaults.lfo1FrequencyHz,
+            lfo2FrequencyHz = defaults.lfo2FrequencyHz,
+            continuousNoiseEnabled = defaults.continuousNoiseEnabled,
+            
+            // Reset all CW atmospheric settings to defaults
+            atmosphericIntensity = defaults.atmosphericIntensity,
+            crackleIntensity = defaults.crackleIntensity,
+            resonanceJumpRate = defaults.resonanceJumpRate,
+            driftSpeed = defaults.driftSpeed,
+            warmth = defaults.warmth
+            
+            // Note: Training behavior settings (speedWpm, kochLevel, etc.) are NOT reset
+            // Note: UI state settings (lastExpandedSettingsTab) are NOT reset
+        )
     }
 } 

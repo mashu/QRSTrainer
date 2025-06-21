@@ -903,6 +903,55 @@
                         android:text="10%"
                         android:textSize="12sp" />
 
+                    <!-- Noise Volume (Independent) -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        
+                        <TextView
+                            style="@style/Text.Subtitle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Noise Volume (Independent)"
+                            android:textSize="14sp" />
+                            
+                        <TextView
+                            android:id="@+id/helpNoiseVolume"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:text="?"
+                            android:textAlignment="center"
+                            android:textColor="@color/accent_orange"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:gravity="center" />
+                    </LinearLayout>
+
+                    <SeekBar
+                        android:id="@+id/seekBarNoiseVolume"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:max="100"
+                        android:progress="40"
+                        android:progressTint="@color/accent_orange"
+                        android:thumbTint="@color/accent_orange" />
+
+                    <TextView
+                        android:id="@+id/textNoiseVolumeDisplay"
+                        style="@style/Text.Caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="16dp"
+                        android:text="40%"
+                        android:textSize="12sp" />
+
                     <!-- Primary Filter Bandwidth -->
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -1166,11 +1215,263 @@
                         android:text="0.17 Hz"
                         android:textSize="12sp" />
 
+                    <!-- Atmospheric Intensity -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Atmospheric Intensity"
+                            android:textSize="14sp"
+                            android:textColor="@color/grey_800" />
+                        
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="?"
+                            android:textSize="12sp"
+                            android:textColor="@color/accent_orange"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:padding="4dp" />
+                        
+                        <TextView
+                            android:id="@+id/atmosphericIntensityValue"
+                            android:layout_width="50dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="3.0"
+                            android:textSize="12sp"
+                            android:textColor="@color/grey_600"
+                            android:gravity="end" />
+                    </LinearLayout>
+                    
+                    <SeekBar
+                        android:id="@+id/atmosphericIntensitySeekBar"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginBottom="16dp"
+                        android:max="90"
+                        android:progress="50"
+                        android:progressTint="@color/primary_blue"
+                        android:thumbTint="@color/primary_blue" />
+                    
+                    <!-- Warmth -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Warmth"
+                            android:textSize="14sp"
+                            android:textColor="@color/grey_800" />
+                        
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="?"
+                            android:textSize="12sp"
+                            android:textColor="@color/accent_orange"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:padding="4dp" />
+                        
+                        <TextView
+                            android:id="@+id/warmthValue"
+                            android:layout_width="50dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="8.0dB"
+                            android:textSize="12sp"
+                            android:textColor="@color/grey_600"
+                            android:gravity="end" />
+                    </LinearLayout>
+                    
+                    <SeekBar
+                        android:id="@+id/warmthSeekBar"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginBottom="16dp"
+                        android:max="150"
+                        android:progress="80"
+                        android:progressTint="@color/primary_blue"
+                        android:thumbTint="@color/primary_blue" />
+
+                    <!-- Crackle Intensity -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Static &amp; Crackle"
+                            android:textSize="14sp"
+                            android:textColor="@color/grey_800" />
+                        
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="?"
+                            android:textSize="12sp"
+                            android:textColor="@color/accent_orange"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:padding="4dp" />
+                        
+                        <TextView
+                            android:id="@+id/crackleIntensityValue"
+                            android:layout_width="50dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="0.25"
+                            android:textSize="12sp"
+                            android:textColor="@color/grey_600"
+                            android:gravity="end" />
+                    </LinearLayout>
+                    
+                    <SeekBar
+                        android:id="@+id/crackleIntensitySeekBar"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginBottom="16dp"
+                        android:max="190"
+                        android:progress="24"
+                        android:progressTint="@color/primary_blue"
+                        android:thumbTint="@color/primary_blue" />
+
+                    <!-- Resonance Jump Rate -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Filter Resonance Jumps"
+                            android:textSize="14sp"
+                            android:textColor="@color/grey_800" />
+                        
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="?"
+                            android:textSize="12sp"
+                            android:textColor="@color/accent_orange"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:padding="4dp" />
+                        
+                        <TextView
+                            android:id="@+id/resonanceJumpRateValue"
+                            android:layout_width="50dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="0.8"
+                            android:textSize="12sp"
+                            android:textColor="@color/grey_600"
+                            android:gravity="end" />
+                    </LinearLayout>
+                    
+                    <SeekBar
+                        android:id="@+id/resonanceJumpRateSeekBar"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginBottom="16dp"
+                        android:max="190"
+                        android:progress="70"
+                        android:progressTint="@color/primary_blue"
+                        android:thumbTint="@color/primary_blue" />
+
+                    <!-- Drift Speed -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Frequency Drift"
+                            android:textSize="14sp"
+                            android:textColor="@color/grey_800" />
+                        
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="?"
+                            android:textSize="12sp"
+                            android:textColor="@color/accent_orange"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:padding="4dp" />
+                        
+                        <TextView
+                            android:id="@+id/driftSpeedValue"
+                            android:layout_width="50dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="0.8"
+                            android:textSize="12sp"
+                            android:textColor="@color/grey_600"
+                            android:gravity="end" />
+                    </LinearLayout>
+                    
+                    <SeekBar
+                        android:id="@+id/driftSpeedSeekBar"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginBottom="16dp"
+                        android:max="190"
+                        android:progress="70"
+                        android:progressTint="@color/primary_blue"
+                        android:thumbTint="@color/primary_blue" />
+
+                    <!-- Reset Audio Settings Button -->
+                    <Button
+                        android:id="@+id/buttonResetAudioSettings"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="16dp"
+                        android:background="@drawable/button_keyboard_selector"
+                        android:text="Reset Audio Settings to Defaults"
+                        android:textColor="@color/white"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:padding="12dp"
+                        android:drawableStart="@drawable/ic_menu_camera"
+                        android:drawablePadding="8dp"
+                        android:gravity="center" />
+
                     <TextView
                         style="@style/Text.Caption"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="These settings create realistic CW background noise using Brownian noise with LFO-modulated bandpass filtering. Enable 'Background Noise' checkbox first, then adjust parameters. Use 'Test Continuously' for real-time experimentation. LFO frequencies control atmospheric modulation speed - lower values (0.05-0.15Hz) create slow, realistic variations."
+                        android:text="These settings create realistic CW background noise using Brownian noise with LFO-modulated bandpass filtering. Enable 'Background Noise' checkbox first, then adjust parameters. Use 'Test Continuously' for real-time experimentation. Atmospheric Intensity controls overall modulation depth, while other parameters fine-tune specific effects."
                         android:textSize="10sp"
                         android:textColor="@color/grey_600" />
 

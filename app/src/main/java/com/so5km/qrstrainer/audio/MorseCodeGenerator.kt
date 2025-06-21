@@ -8,6 +8,8 @@ import com.so5km.qrstrainer.data.MorseCode
 import com.so5km.qrstrainer.data.TrainingSettings
 import kotlin.math.*
 
+// DSP components moved to separate files for better code organization
+
 /**
  * Generates and plays Morse code audio with configurable settings
  * Improved version with continuous sequence generation and better envelope handling
@@ -34,6 +36,9 @@ class MorseCodeGenerator(private val context: Context) {
     private var isNoisePlayingContinuously = false
     @Volatile
     private var shouldStopNoise = false
+    
+    // Professional CW noise generator
+    private val cwNoiseGenerator = CWNoiseGenerator(SAMPLE_RATE)
     
     // Current settings
     private var currentSettings: TrainingSettings = TrainingSettings()
@@ -673,8 +678,8 @@ class MorseCodeGenerator(private val context: Context) {
                 val noiseBuffer = ShortArray(chunkSize)
                 
                 while (!shouldStopNoise && isNoisePlayingContinuously) {
-                    // Generate CW-filtered noise chunk
-                    generateFilteredNoiseChunk(noiseBuffer)
+                    // Generate CW-filtered noise chunk using professional CW noise generator
+                    cwNoiseGenerator.generateRealisticCWNoise(noiseBuffer, currentSettings)
                     
                     try {
                         val bytesWritten = noiseAudioTrack!!.write(noiseBuffer, 0, chunkSize)
@@ -723,163 +728,47 @@ class MorseCodeGenerator(private val context: Context) {
         isNoisePlayingContinuously = false
     }
     
-    /**
-     * Generate realistic CW radio background noise
-     * Uses Brownian noise carrier with LFO-modulated bandpass filtering (like the reference)
-     */
-    private fun generateFilteredNoiseChunk(buffer: ShortArray) {
-        val centerFreq = currentSettings.toneFrequencyHz.toDouble()
-        val primaryBandwidth = currentSettings.filterBandwidthHz.toDouble()
-        val secondaryBandwidth = currentSettings.secondaryFilterBandwidthHz.toDouble()
-        val primaryOffset = currentSettings.primaryFilterOffset.toDouble()
-        val secondaryOffset = currentSettings.secondaryFilterOffset.toDouble()
-        val qFactor = currentSettings.filterQFactor.toDouble()
-        val noiseLevel = currentSettings.backgroundNoiseLevel * currentSettings.appVolumeLevel * 0.6f
-        
-        // Calculate base filter frequencies
-        val primaryFilterFreq = centerFreq + primaryOffset
-        val secondaryFilterFreq = centerFreq + secondaryOffset
-        
-        // Initialize state if needed
-        if (!::cwFilterState.isInitialized) {
-            cwFilterState = CWFilterState()
-        }
-        
-        // Atmospheric intensity affects modulation depth (like the reference)
-        val atmosphericIntensity = minOf(3.0, 0.5 + qFactor / 20.0)
-        
-        // Debug logging
-        if (cwFilterState.chunkCounter % 1000 == 0) {
-            android.util.Log.d("MorseCodeGenerator", "CW Brownian Noise: primaryFreq=${primaryFilterFreq.toInt()}Hz, atmosphericIntensity=$atmosphericIntensity, level=$noiseLevel")
-        }
-        
-        // Generate Brownian noise with bandpass filtering (like the reference)
-        for (i in buffer.indices) {
-            val sampleTime = (cwFilterState.chunkCounter * 1024 + i).toDouble() / SAMPLE_RATE
-            
-            // STEP 1: Generate Brownian noise carrier (like reference implementation)
-            val brown = (Math.random() * 2 - 1) * 0.02 * atmosphericIntensity
-            cwFilterState.brownianState = (cwFilterState.brownianState + brown) / 1.02
-            
-            // STEP 2: Slow atmospheric modulation (like reference)
-            cwFilterState.lfo1Phase += 0.0001
-            val slowVar = sin(cwFilterState.lfo1Phase) * 0.05 * atmosphericIntensity * 3.0
-            
-            // STEP 3: Random pops and crackles (like reference)
-            val popProbability = 0.9995 - (atmosphericIntensity * 0.0002)
-            val pop = if (Math.random() > popProbability) {
-                (Math.random() * 2 - 1) * 0.05 * atmosphericIntensity
-            } else 0.0
-            
-            cwFilterState.brownianState2 = (cwFilterState.brownianState2 + cwFilterState.brownianState) / 2 + slowVar + pop
-            val brownianNoise = cwFilterState.brownianState2 * 4.0
-            
-            // STEP 4: Calculate LFO-modulated filter frequencies (KEY TO CW CHARACTER!)
-            val lfo1 = sin(2.0 * PI * sampleTime * currentSettings.lfo1FrequencyHz) // Configurable primary LFO
-            val lfo2 = sin(2.0 * PI * sampleTime * currentSettings.lfo2FrequencyHz) // Configurable secondary LFO  
-            
-            // Make modulation much stronger and Q-factor dependent
-            val baseModDepth = atmosphericIntensity * 15.0 // Increased from 5.0 to 15.0
-            val qFactorBoost = (qFactor / 5.0).coerceIn(1.0, 4.0) // Q factor multiplies modulation
-            val modDepth = baseModDepth * qFactorBoost
-            
-            val currentPrimaryFreq = primaryFilterFreq + (lfo1 * modDepth)
-            val currentSecondaryFreq = secondaryFilterFreq + (lfo2 * modDepth * 0.8)
-            
-            // Debug: Log modulation values occasionally
-            if (cwFilterState.chunkCounter % 2000 == 0 && i == 0) {
-                android.util.Log.d("MorseCodeGenerator", "LFO Modulation: baseDepth=${baseModDepth.toInt()}Hz, qBoost=${qFactorBoost.toString().take(4)}, totalDepth=${modDepth.toInt()}Hz, currentFreqs=${currentPrimaryFreq.toInt()}/${currentSecondaryFreq.toInt()}Hz")
-            }
-            
-            // STEP 5: Apply bandpass filtering with modulated frequencies
-            var filteredNoise = applySimulatedBandpassFilter(
-                brownianNoise, currentPrimaryFreq, primaryBandwidth, qFactor
-            )
-            
-            // STEP 6: Apply secondary bandpass filter
-            val secondaryFiltered = applySimulatedBandpassFilter(
-                brownianNoise, currentSecondaryFreq, secondaryBandwidth, qFactor * 0.8
-            )
-            filteredNoise = (filteredNoise * 0.7 + secondaryFiltered * 0.5)
-            
-            // STEP 7: Add notch filtering for higher atmospheric settings (like reference)
-            if (atmosphericIntensity > 1.0) {
-                val notchFreq = primaryFilterFreq * 1.5
-                val notchLFO = sin(2.0 * PI * sampleTime * (0.05 + atmosphericIntensity * 0.01))
-                val notchModulation = notchLFO * 150.0 * atmosphericIntensity
-                val currentNotchFreq = notchFreq + notchModulation
-                
-                val notchResponse = applySimulatedNotchFilter(filteredNoise, currentNotchFreq)
-                filteredNoise = notchResponse
-            }
-            
-            // STEP 8: Add resonance jumps (like reference)
-            if (Math.random() < 0.15 * (qFactor / 20.0)) {
-                val jumpAmount = (Math.random() * 15 - 7.5) * (qFactor / 20.0) * 0.1
-                filteredNoise *= (1.0 + jumpAmount)
-            }
-            
-            // Debug: Log some sample values
-            if (cwFilterState.chunkCounter % 5000 == 0 && i == 0) {
-                android.util.Log.d("MorseCodeGenerator", "Brownian values: brownianNoise=${brownianNoise.toString().take(6)}, filteredNoise=${filteredNoise.toString().take(6)}, final=${(filteredNoise * noiseLevel * Short.MAX_VALUE).toInt()}")
-            }
-            
-            // Apply final level and clamp
-            buffer[i] = (filteredNoise * noiseLevel * Short.MAX_VALUE).toInt()
-                .coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
-        }
-        
-        // Update chunk counter
-        cwFilterState.chunkCounter++
-    }
+    // Old noise generation method moved to CWNoiseGenerator class
+    
+    // Old simplified filter methods replaced with professional BiquadFilter implementation above
     
     /**
-     * Simulate bandpass filter response (like Web Audio API biquad filter)
+     * Apply realistic bandpass filter response for CW background noise
      */
-    private fun applySimulatedBandpassFilter(
+    private fun applyRealisticBandpassFilter(
         input: Double, 
         centerFreq: Double, 
         bandwidth: Double, 
         qFactor: Double
     ): Double {
-        // Calculate Q from bandwidth: Q = centerFreq / bandwidth
-        val actualQ = centerFreq / maxOf(50.0, bandwidth)
-        val effectiveQ = minOf(actualQ, qFactor)
+        // Calculate effective Q factor
+        val effectiveQ = minOf(qFactor, centerFreq / maxOf(100.0, bandwidth))
         
-        // Make the frequency response more pronounced for CW character
-        val freqDiff = abs(centerFreq - 600.0) // Distance from 600Hz reference
+        // Create realistic frequency response curve
+        val freqDiff = abs(centerFreq - 600.0) // Distance from reference frequency
         val normalizedDiff = freqDiff / bandwidth
         
-        // Sharper rolloff for more pronounced filtering effect
-        val freqResponse = 1.0 / (1.0 + (effectiveQ * normalizedDiff * normalizedDiff))
+        // Gentler rolloff for more natural filtering
+        val freqResponse = 1.0 / (1.0 + (normalizedDiff * normalizedDiff / effectiveQ))
         
-        // Boost the Q response to make filtering more audible
-        val qResponse = (effectiveQ / 8.0).coerceIn(0.4, 2.0) // Increased range
+        // Scale response based on Q factor (higher Q = more selective)
+        val qResponse = (0.5 + effectiveQ / 20.0).coerceIn(0.3, 1.5)
         
-        // Apply the filtering with more pronounced effect
         return input * freqResponse * qResponse
     }
     
     /**
-     * Simulate notch filter response
+     * Simulate notch filter response with resonance
      */
-    private fun applySimulatedNotchFilter(input: Double, notchFreq: Double): Double {
-        // Simple notch filter simulation
-        val notchResponse = 1.0 - (1.0 / (1.0 + abs(notchFreq - 600.0) / 100.0))
-        return input * (0.7 + notchResponse * 0.3)
+    private fun applySimulatedNotchFilter(input: Double, notchFreq: Double, qFactor: Double = 8.0): Double {
+        // Enhanced notch filter simulation with Q factor
+        val freqDiff = abs(notchFreq - 600.0)
+        val notchDepth = 1.0 / (1.0 + (qFactor * freqDiff / 100.0))
+        val notchResponse = 1.0 - notchDepth * 0.8 // Deeper notch
+        return input * (0.3 + notchResponse * 0.7) // More pronounced effect
     }
     
-    // State for CW filter modulation
-    private data class CWFilterState(
-        var brownianState: Double = 0.0,
-        var brownianState2: Double = 0.0,
-        var lfo1Phase: Double = 0.0,
-        var lfo2Phase: Double = 0.0,
-        var notchLFOPhase: Double = 0.0,
-        var chunkCounter: Int = 0
-    )
-    
-    private lateinit var cwFilterState: CWFilterState
+    // CW filter state and noise generation now handled by separate classes
     
     /**
      * Start continuous noise for testing CW filter parameters
