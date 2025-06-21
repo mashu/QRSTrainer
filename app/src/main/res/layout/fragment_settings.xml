@@ -551,13 +551,33 @@
                     android:visibility="gone">
 
                     <!-- Tone Frequency -->
-                    <TextView
-                        style="@style/Text.Subtitle"
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
-                        android:text="@string/tone_frequency_label"
-                        android:textSize="14sp" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        
+                        <TextView
+                            style="@style/Text.Subtitle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/tone_frequency_label"
+                            android:textSize="14sp" />
+                            
+                        <TextView
+                            android:id="@+id/helpToneFrequency"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:text="?"
+                            android:textAlignment="center"
+                            android:textColor="@color/primary_blue"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:gravity="center" />
+                    </LinearLayout>
 
                     <SeekBar
                         android:id="@+id/seekBarToneFrequency"
@@ -580,13 +600,33 @@
                         android:textSize="12sp" />
 
                     <!-- App Volume -->
-                    <TextView
-                        style="@style/Text.Subtitle"
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
-                        android:text="App Volume"
-                        android:textSize="14sp" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        
+                        <TextView
+                            style="@style/Text.Subtitle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="App Volume"
+                            android:textSize="14sp" />
+                            
+                        <TextView
+                            android:id="@+id/helpAppVolume"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:text="?"
+                            android:textAlignment="center"
+                            android:textColor="@color/primary_blue"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:gravity="center" />
+                    </LinearLayout>
 
                     <SeekBar
                         android:id="@+id/seekBarAppVolume"
@@ -609,13 +649,33 @@
                         android:textSize="12sp" />
 
                     <!-- Audio Envelope -->
-                    <TextView
-                        style="@style/Text.Subtitle"
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
-                        android:text="Audio Envelope (Rise/Fall Time)"
-                        android:textSize="14sp" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        
+                        <TextView
+                            style="@style/Text.Subtitle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Audio Envelope (Rise/Fall Time)"
+                            android:textSize="14sp" />
+                            
+                        <TextView
+                            android:id="@+id/helpAudioEnvelope"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:text="?"
+                            android:textAlignment="center"
+                            android:textColor="@color/accent_green"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:gravity="center" />
+                    </LinearLayout>
 
                     <SeekBar
                         android:id="@+id/seekBarAudioEnvelope"
@@ -638,13 +698,33 @@
                         android:textSize="12sp" />
 
                     <!-- Keying Style -->
-                    <TextView
-                        style="@style/Text.Subtitle"
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
-                        android:text="Keying Style"
-                        android:textSize="14sp" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        
+                        <TextView
+                            style="@style/Text.Subtitle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Keying Style"
+                            android:textSize="14sp" />
+                            
+                        <TextView
+                            android:id="@+id/helpKeyingStyle"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:text="?"
+                            android:textAlignment="center"
+                            android:textColor="@color/secondary_purple"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:gravity="center" />
+                    </LinearLayout>
 
                     <SeekBar
                         android:id="@+id/seekBarKeyingStyle"
@@ -665,6 +745,14 @@
                         android:layout_marginBottom="16dp"
                         android:text="Hard Keying"
                         android:textSize="12sp" />
+
+                    <!-- Envelope Graph -->
+                    <com.so5km.qrstrainer.ui.views.EnvelopeGraphView
+                        android:id="@+id/envelopeGraph"
+                        android:layout_width="match_parent"
+                        android:layout_height="200dp"
+                        android:layout_marginBottom="16dp"
+                        android:background="@drawable/card_background_modern" />
 
                     <!-- Filter Graph -->
                     <com.so5km.qrstrainer.ui.views.CWFilterGraphView

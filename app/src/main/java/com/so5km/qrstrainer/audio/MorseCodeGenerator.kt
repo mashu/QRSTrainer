@@ -304,17 +304,25 @@ class MorseCodeGenerator(private val context: Context) {
         val endIndex = minOf(startIndex + samples, buffer.size)
         
         // Calculate envelope samples (minimum 1 sample, maximum 10% of duration)
-        val envelopeMs = currentSettings.audioEnvelopeMs
-        val envelopeSamples = maxOf(1, minOf(samples / 10, SAMPLE_RATE * envelopeMs / 1000))
+        // Higher frequencies get sharper envelopes (shorter effective envelope time)
+        val baseEnvelopeMs = currentSettings.audioEnvelopeMs
+        val frequencyFactor = when {
+            toneFrequency >= 800 -> 0.7f // 30% shorter envelope for sharp high frequencies
+            toneFrequency >= 600 -> 1.0f // Normal envelope
+            toneFrequency >= 400 -> 1.3f // 30% longer envelope for gentle mid frequencies
+            else -> 1.6f // 60% longer envelope for very gentle low frequencies
+        }
+        val effectiveEnvelopeMs = (baseEnvelopeMs * frequencyFactor).toInt()
+        val envelopeSamples = maxOf(1, minOf(samples / 10, SAMPLE_RATE * effectiveEnvelopeMs / 1000))
         
         for (i in startIndex until endIndex) {
             val sampleIndex = i - startIndex
             val angle = 2.0 * PI * sampleIndex * toneFrequency / SAMPLE_RATE
             var amplitude = sin(angle) * currentSettings.appVolumeLevel // Use app volume setting
             
-            // Apply CW filter effects if enabled
+            // Apply subtle filter warmth to signal if enabled (minimal processing)
             if (currentSettings.filterRingingEnabled) {
-                amplitude = applyCWFilterEffects(amplitude, sampleIndex, toneFrequency)
+                amplitude = applySignalWarmth(amplitude, toneFrequency)
             }
             
             // Apply envelope based on keying style
@@ -648,67 +656,22 @@ class MorseCodeGenerator(private val context: Context) {
     }
     
     /**
-     * Apply CW filter effects including ringing and bandwidth filtering
-     * Improved to reduce audio chopping and provide more realistic effects
+     * Apply subtle warmth to the signal based on filter settings
+     * This gives the signal character without heavy processing
      */
-    private fun applyCWFilterEffects(amplitude: Double, sampleIndex: Int, toneFrequency: Int): Double {
-        var filteredAmplitude = amplitude
-        
+    private fun applySignalWarmth(amplitude: Double, toneFrequency: Int): Double {
         val centerFreq = currentSettings.toneFrequencyHz.toDouble()
-        val primaryOffset = currentSettings.primaryFilterOffset.toDouble()
-        val secondaryOffset = currentSettings.secondaryFilterOffset.toDouble()
-        val qFactor = currentSettings.filterQFactor.toDouble()
+        val primaryBandwidth = currentSettings.filterBandwidthHz.toDouble()
         
-        // Calculate effective filter positions
-        val primaryFilterFreq = centerFreq + primaryOffset
-        val secondaryFilterFreq = centerFreq + secondaryOffset
-        
-        // Calculate minimum bandwidth to prevent zero bandwidth
-        val minBandwidth = 50.0 // Minimum 50Hz bandwidth
-        val primaryBandwidth = maxOf(minBandwidth, currentSettings.filterBandwidthHz.toDouble())
-        val secondaryBandwidth = maxOf(minBandwidth, currentSettings.secondaryFilterBandwidthHz.toDouble())
-        
-        // Apply dual filter response (more realistic CW filtering)
-        val primaryFreqDiff = abs(toneFrequency - primaryFilterFreq)
-        val secondaryFreqDiff = abs(toneFrequency - secondaryFilterFreq)
-        
-        val primaryResponse = 1.0 / (1.0 + (primaryFreqDiff / (primaryBandwidth / 2.0)).pow(2))
-        val secondaryResponse = 1.0 / (1.0 + (secondaryFreqDiff / (secondaryBandwidth / 2.0)).pow(2))
-        
-        // Combine filter responses (additive for overlapping, multiplicative for cascaded)
-        val combinedResponse = if (abs(primaryOffset - secondaryOffset) < minBandwidth) {
-            // Overlapping filters - additive response
-            (primaryResponse + secondaryResponse) / 2.0
-        } else {
-            // Separate filters - cascaded response
-            sqrt(primaryResponse * secondaryResponse)
+        // Apply very subtle frequency response for warmth
+        val freqDiff = abs(toneFrequency - centerFreq)
+        val warmthFactor = when {
+            primaryBandwidth < 200 -> 0.95 + 0.05 * cos(PI * freqDiff / 100.0) // Narrow = warmer
+            primaryBandwidth > 1000 -> 1.0 // Wide = neutral
+            else -> 0.98 + 0.02 * cos(PI * freqDiff / 200.0) // Medium = slight warmth
         }
         
-        filteredAmplitude *= combinedResponse
-        
-        // Add realistic CW filter ringing only if enabled and Q is reasonable
-        if (qFactor > 2.0) {
-            // Much gentler ringing that doesn't dominate the signal
-            val ringingDecay = exp(-sampleIndex * 0.001) // Faster decay to prevent chopping
-            val ringingAmplitude = 0.05 * (qFactor / 10.0) // Much lower amplitude
-            
-            // Primary filter ringing
-            val primaryRingingPhase = 2.0 * PI * sampleIndex * primaryFilterFreq / SAMPLE_RATE
-            val primaryRinging = sin(primaryRingingPhase) * ringingAmplitude * ringingDecay
-            
-            // Secondary filter ringing (only if filters are separated)
-            val secondaryRinging = if (abs(primaryOffset - secondaryOffset) > minBandwidth) {
-                val secondaryRingingPhase = 2.0 * PI * sampleIndex * secondaryFilterFreq / SAMPLE_RATE
-                sin(secondaryRingingPhase) * ringingAmplitude * 0.5 * ringingDecay
-            } else {
-                0.0
-            }
-            
-            // Add subtle ringing - much less aggressive
-            filteredAmplitude += (primaryRinging + secondaryRinging) * 0.3
-        }
-        
-        return filteredAmplitude.coerceIn(-1.0, 1.0) // Prevent clipping
+        return amplitude * warmthFactor
     }
     
     /**
@@ -781,8 +744,8 @@ class MorseCodeGenerator(private val context: Context) {
     }
     
     /**
-     * Generate a chunk of filtered background noise
-     * Enhanced to properly simulate filter effects on noise spectrum
+     * Generate a chunk of CW-filtered background noise with characteristic ringing
+     * This is where the main filter processing happens - noise gets the full CW filter treatment
      */
     private fun generateFilteredNoiseChunk(buffer: ShortArray) {
         val centerFreq = currentSettings.toneFrequencyHz.toDouble()
@@ -793,64 +756,78 @@ class MorseCodeGenerator(private val context: Context) {
         val qFactor = currentSettings.filterQFactor.toDouble()
         val noiseLevel = currentSettings.backgroundNoiseLevel * currentSettings.appVolumeLevel
         
+        // Calculate effective filter positions
+        val primaryFilterFreq = centerFreq + primaryOffset
+        val secondaryFilterFreq = centerFreq + secondaryOffset
+        
         for (i in buffer.indices) {
-            // Generate white noise
-            var noise = (Math.random() - 0.5) * 2.0 * noiseLevel * 0.2 // Background level
+            var totalNoise = 0.0
             
-            // Apply realistic bandpass filtering to the noise
             if (currentSettings.filterRingingEnabled) {
-                // Calculate effective filter positions
-                val primaryFilterFreq = centerFreq + primaryOffset
-                val secondaryFilterFreq = centerFreq + secondaryOffset
+                // Generate CW-characteristic filtered noise with proper ringing
+                // Sample across the audio spectrum and apply realistic filter responses
                 
-                // Generate noise components at different frequencies and filter them
-                var filteredNoise = 0.0
-                
-                // Sample multiple frequency components to simulate filtered noise spectrum
-                for (freqSample in 0 until 10) {
-                    val testFreq = centerFreq + (freqSample - 5) * 100 // Sample ±500Hz around center
+                for (freqComponent in 0 until 20) {
+                    // Sample frequencies across a wider range (±1000Hz)
+                    val testFreq = centerFreq + (freqComponent - 10) * 100.0
                     
-                    // Calculate filter response for this frequency
+                    // Generate noise at this frequency component
+                    val rawNoise = (Math.random() - 0.5) * 2.0
+                    
+                    // Calculate how much this frequency passes through each filter
                     val primaryFreqDiff = abs(testFreq - primaryFilterFreq)
                     val secondaryFreqDiff = abs(testFreq - secondaryFilterFreq)
                     
-                    val primaryResponse = 1.0 / (1.0 + (primaryFreqDiff / (primaryBandwidth / 2.0)).pow(qFactor / 5.0))
-                    val secondaryResponse = 1.0 / (1.0 + (secondaryFreqDiff / (secondaryBandwidth / 2.0)).pow(qFactor / 5.0))
+                    // Apply realistic filter curves with Q-factor
+                    val primaryResponse = 1.0 / (1.0 + (2.0 * primaryFreqDiff / primaryBandwidth).pow(2.0 * qFactor))
+                    val secondaryResponse = 1.0 / (1.0 + (2.0 * secondaryFreqDiff / secondaryBandwidth).pow(2.0 * qFactor))
                     
                     // Combine filter responses
-                    val combinedResponse = if (abs(primaryOffset - secondaryOffset) < 100) {
+                    val combinedResponse = if (abs(primaryOffset - secondaryOffset) < primaryBandwidth / 2) {
                         // Overlapping filters - additive response
                         (primaryResponse + secondaryResponse) / 2.0
                     } else {
-                        // Separate filters - cascaded response
-                        sqrt(primaryResponse * secondaryResponse)
+                        // Separate filters - cascaded response  
+                        primaryResponse * secondaryResponse
                     }
                     
-                    // Add filtered noise component
-                    val freqNoise = (Math.random() - 0.5) * 2.0 * combinedResponse
-                    filteredNoise += freqNoise
+                    // Add CW filter ringing characteristics
+                    var filteredComponent = rawNoise * combinedResponse
+                    
+                    // Add characteristic CW filter ringing for narrow filters
+                    if (qFactor > 3.0 && combinedResponse > 0.1) {
+                        val ringingPhase = 2.0 * PI * i * testFreq / SAMPLE_RATE
+                        val ringingDecay = exp(-i * 0.0005) // Slower decay for noise ringing
+                        val ringingIntensity = (qFactor / 20.0) * combinedResponse * 0.4
+                        
+                        // Create the characteristic "echoing" ringing sound
+                        val ringing = sin(ringingPhase) * ringingIntensity * ringingDecay
+                        val ringingHarmonic = sin(ringingPhase * 1.5) * ringingIntensity * 0.3 * ringingDecay
+                        
+                        filteredComponent += ringing + ringingHarmonic
+                    }
+                    
+                    totalNoise += filteredComponent
                 }
                 
-                noise = filteredNoise / 10.0 * noiseLevel * 0.3
+                // Normalize and apply noise level
+                totalNoise = (totalNoise / 20.0) * noiseLevel * 0.4
+                
+                // Add extra character for very narrow filters (more ringing)
+                if (primaryBandwidth < 300 || secondaryBandwidth < 300) {
+                    val extraRinging = sin(2.0 * PI * i * centerFreq / SAMPLE_RATE) * 
+                                     (Math.random() - 0.5) * noiseLevel * 0.1 * (qFactor / 10.0)
+                    totalNoise += extraRinging
+                }
+                
+            } else {
+                // No filtering - just white noise
+                totalNoise = (Math.random() - 0.5) * 2.0 * noiseLevel * 0.3
             }
             
-            buffer[i] = (noise * Short.MAX_VALUE).toInt()
+            buffer[i] = (totalNoise * Short.MAX_VALUE).toInt()
                 .coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
         }
     }
-    
-    /**
-     * Calculate a simple filter response for noise filtering
-     */
-    private fun calculateSimpleFilterResponse(centerFreq: Double, bandwidth: Double): Double {
-        // This is a simplified version - in reality the noise would have spectral content
-        // across all frequencies and would be filtered accordingly
-        // For our purposes, we'll use a constant that represents the average filter response
-        return when {
-            bandwidth < 300 -> 0.3  // Narrow filter - significant noise reduction
-            bandwidth < 600 -> 0.5  // Medium filter - moderate noise reduction  
-            bandwidth < 1200 -> 0.7 // Wide filter - less noise reduction
-            else -> 0.9            // Very wide filter - minimal noise reduction
-        }
-    }
+
 } 

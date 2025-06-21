@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared attributes -->
+    <attr name="gridColor" format="color" />
+    <attr name="textColor" format="color" />
+    
+    <!-- Custom attributes for CWFilterGraphView -->
+    <declare-styleable name="CWFilterGraphView">
+        <attr name="primaryColor" format="color" />
+        <attr name="secondaryColor" format="color" />
+        <attr name="gridColor" />
+        <attr name="textColor" />
+    </declare-styleable>
+    
+    <!-- Custom attributes for EnvelopeGraphView -->
+    <declare-styleable name="EnvelopeGraphView">
+        <attr name="envelopeColor" format="color" />
+        <attr name="fillColor" format="color" />
+        <attr name="gridColor" />
+        <attr name="textColor" />
+    </declare-styleable>
+</resources> 

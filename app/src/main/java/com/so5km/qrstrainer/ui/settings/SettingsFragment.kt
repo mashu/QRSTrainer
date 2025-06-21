@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.SeekBar
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.so5km.qrstrainer.R
 import com.so5km.qrstrainer.data.MorseCode
@@ -261,6 +262,7 @@ class SettingsFragment : Fragment() {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 val frequency = progress * 10 + 300  // 300-1000 Hz
                 binding.textToneFrequencyDisplay.text = "$frequency Hz"
+                updateEnvelopeGraph() // Tone frequency affects envelope sharpness
                 if (fromUser) saveSettings()
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -285,6 +287,7 @@ class SettingsFragment : Fragment() {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 val envelope = progress + 1  // 1-20ms
                 binding.textAudioEnvelopeDisplay.text = "$envelope ms"
+                updateEnvelopeGraph()
                 if (fromUser) saveSettings()
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -302,6 +305,7 @@ class SettingsFragment : Fragment() {
                     else -> "Hard Keying"
                 }
                 binding.textKeyingStyleDisplay.text = style
+                updateEnvelopeGraph()
                 if (fromUser) saveSettings()
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -424,6 +428,9 @@ class SettingsFragment : Fragment() {
         binding.checkBoxFilterRinging.setOnCheckedChangeListener { _, _ ->
             saveSettings()
         }
+        
+        // Help tooltips
+        setupHelpTooltips()
     }
 
     private fun loadCurrentSettings() {
@@ -495,6 +502,9 @@ class SettingsFragment : Fragment() {
             else -> "Hard Keying"
         }
         binding.textKeyingStyleDisplay.text = keyingStyleDisplay
+        
+        // Update envelope graph with loaded settings
+        updateEnvelopeGraph()
         
         // Farnsworth timing (0-35 WPM)
         binding.seekBarFarnsworth.progress = settings.farnsworthWpm  // Already 0-based
@@ -819,5 +829,49 @@ class SettingsFragment : Fragment() {
         
         // Constrain to valid range
         return result.coerceIn(-200.0, 200.0)
+    }
+    
+    private fun setupHelpTooltips() {
+        binding.helpToneFrequency.setOnClickListener {
+            Toast.makeText(requireContext(), 
+                "Sets the CW tone frequency (300-1000 Hz). " +
+                "Higher frequencies create sharper envelopes and more cutting audio. " +
+                "Lower frequencies sound warmer and more mellow. " +
+                "Standard amateur radio CW is typically 400-800 Hz.", 
+                Toast.LENGTH_LONG).show()
+        }
+        
+        binding.helpAppVolume.setOnClickListener {
+            Toast.makeText(requireContext(), 
+                "Controls the volume level for this app independently from your device's system volume. " +
+                "Useful for setting the perfect training volume without affecting other apps.", 
+                Toast.LENGTH_LONG).show()
+        }
+        
+        binding.helpAudioEnvelope.setOnClickListener {
+            Toast.makeText(requireContext(), 
+                "Controls how quickly the audio signal rises and falls (1-20ms). " +
+                "Shorter times create sharper, more aggressive keying. " +
+                "Longer times create smoother, gentler keying transitions. " +
+                "Higher tone frequencies naturally create sharper envelopes.", 
+                Toast.LENGTH_LONG).show()
+        }
+        
+        binding.helpKeyingStyle.setOnClickListener {
+            Toast.makeText(requireContext(), 
+                "Sets the envelope curve shape:\n" +
+                "• Hard: Linear rise/fall (telegraph style)\n" +
+                "• Soft: Smooth cosine curve (amateur radio)\n" +
+                "• Smooth: Extended gentle curve (contest style)\n" +
+                "Tone frequency affects the sharpness of all styles.", 
+                Toast.LENGTH_LONG).show()
+        }
+    }
+    
+    private fun updateEnvelopeGraph() {
+        val envelopeMs = binding.seekBarAudioEnvelope.progress + 1
+        val keyingStyle = binding.seekBarKeyingStyle.progress
+        val toneFrequency = binding.seekBarToneFrequency.progress * 10 + 300
+        binding.envelopeGraph.updateEnvelope(envelopeMs, keyingStyle, toneFrequency)
     }
 } 
