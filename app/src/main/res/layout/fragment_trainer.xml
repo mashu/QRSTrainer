@@ -164,46 +164,7 @@
             android:textAlignment="center"
             android:textSize="12sp" />
 
-        <!-- Sequence Delay Progress Bar -->
-        <LinearLayout
-            android:id="@+id/layoutSequenceDelay"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:orientation="vertical"
-            android:visibility="gone">
 
-            <TextView
-                android:id="@+id/textSequenceDelayStatus"
-                style="@style/Text.Caption"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginBottom="8dp"
-                android:text="Next sequence in..."
-                android:textSize="12sp" />
-
-            <ProgressBar
-                android:id="@+id/progressSequenceDelay"
-                style="?android:attr/progressBarStyleHorizontal"
-                android:layout_width="match_parent"
-                android:layout_height="6dp"
-                android:layout_marginHorizontal="32dp"
-                android:layout_marginBottom="4dp"
-                android:max="100"
-                android:progress="0"
-                android:progressDrawable="@drawable/progress_bar_modern" />
-
-            <TextView
-                android:id="@+id/textSequenceDelayTime"
-                style="@style/Text.Caption"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:text="2.0s"
-                android:textSize="12sp" />
-
-        </LinearLayout>
 
         <!-- Play Controls -->
         <LinearLayout
@@ -308,5 +269,77 @@
             android:useDefaultMargins="false" />
 
     </LinearLayout>
+
+    <!-- Floating Progress Bar Overlay -->
+    <FrameLayout
+        android:id="@+id/layoutSequenceDelayOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        android:clickable="true"
+        android:focusable="true"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- Progress Card with Glassmorphism Effect -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/cardSequenceDelay"
+            style="@style/Card.Modern"
+            android:layout_width="280dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginHorizontal="32dp"
+            app:cardElevation="16dp"
+            app:cardCornerRadius="16dp"
+            android:backgroundTint="#F5FFFFFF"
+            android:alpha="0.98">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="24dp"
+                android:gravity="center"
+                android:background="@drawable/card_background_modern">
+
+                <TextView
+                    android:id="@+id/textSequenceDelayStatus"
+                    style="@style/Text.Subtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:text="Next sequence in..."
+                    android:textAlignment="center"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <ProgressBar
+                    android:id="@+id/progressSequenceDelay"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="8dp"
+                    android:layout_marginBottom="12dp"
+                    android:max="100"
+                    android:progress="0"
+                    android:progressDrawable="@drawable/progress_bar_modern" />
+
+                <TextView
+                    android:id="@+id/textSequenceDelayTime"
+                    style="@style/Text.Caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="2.0s"
+                    android:textAlignment="center"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/primary_blue" />
+
+            </LinearLayout>
+
+        </androidx.cardview.widget.CardView>
+
+    </FrameLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout> 

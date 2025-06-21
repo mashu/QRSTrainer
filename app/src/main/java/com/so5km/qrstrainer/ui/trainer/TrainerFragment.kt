@@ -820,19 +820,28 @@ class TrainerFragment : Fragment() {
         totalDelayTime = delayMs
         delayStartTime = System.currentTimeMillis()
         
-        // Show the progress bar layout
-        binding.layoutSequenceDelay.visibility = View.VISIBLE
+        // Show the progress bar overlay
+        binding.layoutSequenceDelayOverlay.visibility = View.VISIBLE
         binding.progressSequenceDelay.progress = 0
         binding.textSequenceDelayTime.text = String.format("%.1fs", delayMs / 1000.0)
         
         // Set different colors and text for level changes
         if (isLevelChange) {
             binding.textSequenceDelayStatus.text = "Level change delay..."
-            // Use orange color for level changes (will need to add this to drawable)
+            // Use orange color for level changes
+            binding.textSequenceDelayTime.setTextColor(ContextCompat.getColor(requireContext(), R.color.accent_orange))
         } else {
             binding.textSequenceDelayStatus.text = "Next sequence in..."
             // Use default blue color for normal delays
+            binding.textSequenceDelayTime.setTextColor(ContextCompat.getColor(requireContext(), R.color.primary_blue))
         }
+        
+        // Fade in animation
+        binding.layoutSequenceDelayOverlay.alpha = 0f
+        binding.layoutSequenceDelayOverlay.animate()
+            .alpha(1f)
+            .setDuration(200)
+            .start()
         
         android.util.Log.d("TrainerFragment", "Progress bar shown, starting updates")
         
@@ -846,7 +855,16 @@ class TrainerFragment : Fragment() {
     private fun hideSequenceDelayProgress() {
         if (_binding == null) return
         
-        binding.layoutSequenceDelay.visibility = View.GONE
+        // Fade out animation
+        binding.layoutSequenceDelayOverlay.animate()
+            .alpha(0f)
+            .setDuration(150)
+            .withEndAction {
+                if (_binding != null) {
+                    binding.layoutSequenceDelayOverlay.visibility = View.GONE
+                }
+            }
+            .start()
         
         // Cancel any running progress updates
         delayHandler?.removeCallbacks(delayRunnable ?: return)
@@ -862,7 +880,7 @@ class TrainerFragment : Fragment() {
         
         delayHandler = Handler(Looper.getMainLooper())
         delayRunnable = Runnable {
-            if (_binding != null && binding.layoutSequenceDelay.visibility == View.VISIBLE) {
+            if (_binding != null && binding.layoutSequenceDelayOverlay.visibility == View.VISIBLE) {
                 val elapsed = System.currentTimeMillis() - delayStartTime
                 val progress = (elapsed.toFloat() / totalDelayTime * 100).toInt().coerceIn(0, 100)
                 val remaining = ((totalDelayTime - elapsed) / 1000.0).coerceAtLeast(0.0)
@@ -871,7 +889,7 @@ class TrainerFragment : Fragment() {
                 binding.textSequenceDelayTime.text = String.format("%.1fs", remaining)
                 
                 // Continue updating if not finished
-                if (progress < 100 && binding.layoutSequenceDelay.visibility == View.VISIBLE) {
+                if (progress < 100 && binding.layoutSequenceDelayOverlay.visibility == View.VISIBLE) {
                     delayHandler?.postDelayed(delayRunnable!!, 50) // Update every 50ms
                 }
             }
