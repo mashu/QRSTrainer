@@ -394,6 +394,35 @@
                         android:text="No delay (immediate)"
                         android:textSize="12sp" />
 
+                    <!-- Level Change Delay -->
+                    <TextView
+                        style="@style/Text.Subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="Level Change Delay"
+                        android:textSize="14sp" />
+
+                    <SeekBar
+                        android:id="@+id/seekBarLevelChangeDelay"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:max="50"
+                        android:progress="15"
+                        android:progressTint="@color/accent_orange"
+                        android:thumbTint="@color/accent_orange" />
+
+                    <TextView
+                        android:id="@+id/textLevelChangeDelayDisplay"
+                        style="@style/Text.Caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="16dp"
+                        android:text="1.5 seconds"
+                        android:textSize="12sp" />
+
                     <!-- Farnsworth Timing - MOVED TO TRAINING SECTION -->
                     <TextView
                         style="@style/Text.Subtitle"

@@ -21,7 +21,7 @@ android {
         create("release") {
             keyAlias = "qrstrainer"
             keyPassword = System.getenv("KEYSTORE_PASSWORD")
-            storeFile = file("../qrstrainer-release-key.jks")
+            storeFile = file("${rootProject.projectDir}/qrstrainer-release-key.jks")
             storePassword = System.getenv("KEYSTORE_PASSWORD")
         }
     }

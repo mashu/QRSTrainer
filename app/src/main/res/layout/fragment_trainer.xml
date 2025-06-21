@@ -164,6 +164,47 @@
             android:textAlignment="center"
             android:textSize="12sp" />
 
+        <!-- Sequence Delay Progress Bar -->
+        <LinearLayout
+            android:id="@+id/layoutSequenceDelay"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/textSequenceDelayStatus"
+                style="@style/Text.Caption"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginBottom="8dp"
+                android:text="Next sequence in..."
+                android:textSize="12sp" />
+
+            <ProgressBar
+                android:id="@+id/progressSequenceDelay"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="6dp"
+                android:layout_marginHorizontal="32dp"
+                android:layout_marginBottom="4dp"
+                android:max="100"
+                android:progress="0"
+                android:progressDrawable="@drawable/progress_bar_modern" />
+
+            <TextView
+                android:id="@+id/textSequenceDelayTime"
+                style="@style/Text.Caption"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:text="2.0s"
+                android:textSize="12sp" />
+
+        </LinearLayout>
+
         <!-- Play Controls -->
         <LinearLayout
             android:layout_width="match_parent"

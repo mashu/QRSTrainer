@@ -46,6 +46,12 @@ class TrainerFragment : Fragment() {
     private var previousUserInput: String = ""
     private var previousWasCorrect: Boolean = false
     
+    // Sequence delay progress tracking
+    private var delayHandler: Handler? = null
+    private var delayRunnable: Runnable? = null
+    private var delayStartTime: Long = 0
+    private var totalDelayTime: Long = 0
+    
     // Lifecycle state tracking
     private var wasPlayingWhenPaused = false
 
@@ -79,6 +85,7 @@ class TrainerFragment : Fragment() {
         super.onResume()
         // Reload settings when returning to trainer (e.g., from settings screen)
         settings = TrainingSettings.load(requireContext())
+        android.util.Log.d("TrainerFragment", "Settings loaded - sequence delay: ${settings.sequenceDelayMs}ms")
         updateProgressDisplay()
         createKeyboard()  // Update keyboard in case level changed
         
@@ -430,6 +437,9 @@ class TrainerFragment : Fragment() {
         cancelTimeout()
         timeoutHandler?.removeCallbacksAndMessages(null)
         
+        // Hide progress bar
+        hideSequenceDelayProgress()
+        
         // Stop any current audio playback completely
         stopAudioCompletely()
         
@@ -531,6 +541,9 @@ class TrainerFragment : Fragment() {
         // Stop any ongoing audio operations completely
         stopAudioCompletely()
         
+        // Hide progress bar
+        hideSequenceDelayProgress()
+        
         // Reset all state variables
         currentState = TrainingState.READY
         isWaitingForAnswer = false
@@ -607,10 +620,25 @@ class TrainerFragment : Fragment() {
             updateProgressDisplay()
             updateUIState()
             
-            // Use different delay if level advanced to give user time to see the advancement
+            // Calculate delay: use separate settings for level changes vs normal sequences
             val baseDelay = settings.sequenceDelayMs.toLong()
-            val delay = if (levelAdvanced) maxOf(baseDelay, 2000L) else baseDelay // Minimum 2s for level advancement
-            scheduleNextSequence(delay)
+            val delay = if (levelAdvanced) {
+                // Use level change delay setting
+                settings.levelChangeDelayMs.toLong()
+            } else {
+                // Use user's configured sequence delay (including 0 for instant)
+                baseDelay
+            }
+            
+            // Show delay info in status
+            if (delay == 0L) {
+                binding.textStatus.text = getString(R.string.correct_answer) + " (instant next)"
+            } else {
+                binding.textStatus.text = getString(R.string.correct_answer) + " (${delay/1000.0}s delay)"
+            }
+            
+            android.util.Log.d("TrainerFragment", "Correct answer - baseDelay: ${baseDelay}ms, levelAdvanced: $levelAdvanced, finalDelay: ${delay}ms")
+            scheduleNextSequence(delay, levelAdvanced)
             
         } else {
             // Record incorrect answers for each character
@@ -627,10 +655,25 @@ class TrainerFragment : Fragment() {
             updateProgressDisplay()
             updateUIState()
             
-            // Use different delay if level dropped to give user time to see the drop
+            // Calculate delay: use separate settings for level changes vs normal sequences
             val baseDelay = settings.sequenceDelayMs.toLong()
-            val delay = if (levelDropped) maxOf(baseDelay, 2000L) else baseDelay // Minimum 2s for level drop
-            scheduleNextSequence(delay)
+            val delay = if (levelDropped) {
+                // Use level change delay setting
+                settings.levelChangeDelayMs.toLong()
+            } else {
+                // Use user's configured sequence delay (including 0 for instant)
+                baseDelay
+            }
+            
+            // Show delay info in status
+            if (delay == 0L) {
+                binding.textStatus.text = getString(R.string.incorrect_answer, currentSequence) + " (instant next)"
+            } else {
+                binding.textStatus.text = getString(R.string.incorrect_answer, currentSequence) + " (${delay/1000.0}s delay)"
+            }
+            
+            android.util.Log.d("TrainerFragment", "Incorrect answer - baseDelay: ${baseDelay}ms, levelDropped: $levelDropped, finalDelay: ${delay}ms")
+            scheduleNextSequence(delay, levelDropped)
         }
     }
 
@@ -663,10 +706,16 @@ class TrainerFragment : Fragment() {
         updateProgressDisplay()
         updateUIState()
         
-        // Schedule next sequence (timeout gets longer delay, level drop gets even longer)
-        val timeoutDelay = maxOf(settings.sequenceDelayMs.toLong(), 2000L) // Minimum 2s for timeout
-        val delay = if (levelDropped) maxOf(timeoutDelay, 3000L) else timeoutDelay // Minimum 3s for level drop
-        scheduleNextSequence(delay)
+        // Calculate delay: use separate settings for level changes vs normal sequences
+        val baseDelay = settings.sequenceDelayMs.toLong()
+        val delay = if (levelDropped) {
+            // Use level change delay setting
+            settings.levelChangeDelayMs.toLong()
+        } else {
+            // For timeout without level change, use max of base delay or 2s
+            maxOf(baseDelay, 2000L)
+        }
+        scheduleNextSequence(delay, levelDropped)
     }
 
     private fun checkLevelAdvancement(): Boolean {
@@ -730,23 +779,105 @@ class TrainerFragment : Fragment() {
         }
     }
     
-    private fun scheduleNextSequence(delayMs: Long) {
+    /**
+     * Schedule the next sequence with optional delay.
+     * If delay is 0, starts immediately (no progress bar).
+     * If delay > 0, shows a progress bar during the delay period.
+     */
+    private fun scheduleNextSequence(delayMs: Long, isLevelChange: Boolean = false) {
+        android.util.Log.d("TrainerFragment", "scheduleNextSequence called with delay: ${delayMs}ms")
+        
         // Cancel any existing scheduled sequence
         timeoutHandler?.removeCallbacksAndMessages(null)
         
         if (delayMs == 0L) {
+            android.util.Log.d("TrainerFragment", "Zero delay - starting immediately")
             // No delay - start immediately
             if (!isDetached && _binding != null && currentState == TrainingState.FINISHED) {
                 startNewSequence()
             }
         } else {
-            // Schedule next sequence with delay
+            android.util.Log.d("TrainerFragment", "Showing progress bar for ${delayMs}ms delay")
+            // Show progress bar and schedule next sequence with delay
+            showSequenceDelayProgress(delayMs, isLevelChange)
+            
             Handler(Looper.getMainLooper()).postDelayed({
                 if (!isDetached && _binding != null && currentState == TrainingState.FINISHED) {
+                    hideSequenceDelayProgress()
                     startNewSequence()
                 }
             }, delayMs)
         }
+    }
+    
+    /**
+     * Show the sequence delay progress bar and start updating it
+     */
+    private fun showSequenceDelayProgress(delayMs: Long, isLevelChange: Boolean) {
+        android.util.Log.d("TrainerFragment", "showSequenceDelayProgress called with ${delayMs}ms")
+        if (_binding == null) return
+        
+        totalDelayTime = delayMs
+        delayStartTime = System.currentTimeMillis()
+        
+        // Show the progress bar layout
+        binding.layoutSequenceDelay.visibility = View.VISIBLE
+        binding.progressSequenceDelay.progress = 0
+        binding.textSequenceDelayTime.text = String.format("%.1fs", delayMs / 1000.0)
+        
+        // Set different colors and text for level changes
+        if (isLevelChange) {
+            binding.textSequenceDelayStatus.text = "Level change delay..."
+            // Use orange color for level changes (will need to add this to drawable)
+        } else {
+            binding.textSequenceDelayStatus.text = "Next sequence in..."
+            // Use default blue color for normal delays
+        }
+        
+        android.util.Log.d("TrainerFragment", "Progress bar shown, starting updates")
+        
+        // Start updating progress
+        updateSequenceDelayProgress(isLevelChange)
+    }
+    
+    /**
+     * Hide the sequence delay progress bar
+     */
+    private fun hideSequenceDelayProgress() {
+        if (_binding == null) return
+        
+        binding.layoutSequenceDelay.visibility = View.GONE
+        
+        // Cancel any running progress updates
+        delayHandler?.removeCallbacks(delayRunnable ?: return)
+        delayHandler = null
+        delayRunnable = null
+    }
+    
+    /**
+     * Update the sequence delay progress bar
+     */
+    private fun updateSequenceDelayProgress(isLevelChange: Boolean) {
+        if (_binding == null || totalDelayTime <= 0) return
+        
+        delayHandler = Handler(Looper.getMainLooper())
+        delayRunnable = Runnable {
+            if (_binding != null && binding.layoutSequenceDelay.visibility == View.VISIBLE) {
+                val elapsed = System.currentTimeMillis() - delayStartTime
+                val progress = (elapsed.toFloat() / totalDelayTime * 100).toInt().coerceIn(0, 100)
+                val remaining = ((totalDelayTime - elapsed) / 1000.0).coerceAtLeast(0.0)
+                
+                binding.progressSequenceDelay.progress = progress
+                binding.textSequenceDelayTime.text = String.format("%.1fs", remaining)
+                
+                // Continue updating if not finished
+                if (progress < 100 && binding.layoutSequenceDelay.visibility == View.VISIBLE) {
+                    delayHandler?.postDelayed(delayRunnable!!, 50) // Update every 50ms
+                }
+            }
+        }
+        
+        delayHandler?.post(delayRunnable!!)
     }
 
     override fun onDestroyView() {
@@ -754,6 +885,7 @@ class TrainerFragment : Fragment() {
         morseGenerator.stop()
         morseGenerator.release()  // Clean up ToneGenerator resources
         cancelTimeout()
+        hideSequenceDelayProgress() // Clean up delay handler
         _binding = null
     }
 } 

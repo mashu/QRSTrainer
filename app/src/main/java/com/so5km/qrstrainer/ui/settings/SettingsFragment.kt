@@ -302,6 +302,19 @@ class SettingsFragment : Fragment() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
+        // Level change delay settings (0-5 seconds)
+        binding.seekBarLevelChangeDelay.max = 50  // 0-5 seconds
+        binding.seekBarLevelChangeDelay.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val delay = progress / 10.0  // 0.0-5.0 seconds
+                val displayText = if (delay == 0.0) "No delay (immediate)" else "${String.format("%.1f", delay)} seconds"
+                binding.textLevelChangeDelayDisplay.text = displayText
+                if (fromUser) saveSettings()
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
         // Farnsworth timing settings (0-35 WPM, 0 = disabled) - MOVED TO TRAINING SECTION
         // This affects character spacing and training difficulty, not basic audio generation
         binding.seekBarFarnsworth.max = 35  // 0-35 WPM
@@ -879,6 +892,12 @@ class SettingsFragment : Fragment() {
         val delayDisplayText = if (delaySeconds == 0.0) "No delay (immediate)" else "${String.format("%.1f", delaySeconds)} seconds"
         binding.textSequenceDelayDisplay.text = delayDisplayText
         
+        // Load level change delay settings
+        val levelChangeDelaySeconds = settings.levelChangeDelayMs / 1000.0
+        binding.seekBarLevelChangeDelay.progress = (levelChangeDelaySeconds * 10).toInt()  // Convert to 0-based
+        val levelChangeDelayDisplayText = if (levelChangeDelaySeconds == 0.0) "No delay (immediate)" else "${String.format("%.1f", levelChangeDelaySeconds)} seconds"
+        binding.textLevelChangeDelayDisplay.text = levelChangeDelayDisplayText
+        
         // Load new audio settings
         // Tone frequency (300-1000 Hz)
         binding.seekBarToneFrequency.progress = (settings.toneFrequencyHz - 300) / 10  // Convert to 0-based
@@ -1071,6 +1090,7 @@ class SettingsFragment : Fragment() {
         val timeout = binding.seekBarTimeout.progress + 1  // 1-31 (updated for new range)
         val requiredCorrect = binding.seekBarRequiredCorrect.progress + 1  // 1-30 (updated for new range)
         val sequenceDelayMs = (binding.seekBarSequenceDelay.progress * 100)  // 0-5000ms
+        val levelChangeDelayMs = (binding.seekBarLevelChangeDelay.progress * 100)  // 0-5000ms
         
         // CW Filter settings
         val filterBandwidth = binding.seekBarFilterBandwidth.progress * 10 + 100  // 100-2000 Hz
@@ -1102,6 +1122,7 @@ class SettingsFragment : Fragment() {
             repeatSpacingMs = repeatSpacingMs,
             requiredCorrectToAdvance = requiredCorrect,
             sequenceDelayMs = sequenceDelayMs,
+            levelChangeDelayMs = levelChangeDelayMs,
             mistakesToDropLevel = binding.seekBarMistakesToDrop.progress,
             
             // Audio settings
@@ -1152,6 +1173,7 @@ class SettingsFragment : Fragment() {
         val timeout = binding.seekBarTimeout.progress + 1  // 1-31 (updated for new range)
         val requiredCorrect = binding.seekBarRequiredCorrect.progress + 1  // 1-30 (updated for new range)
         val sequenceDelayMs = (binding.seekBarSequenceDelay.progress * 100)  // 0-5000ms
+        val levelChangeDelayMs = (binding.seekBarLevelChangeDelay.progress * 100)  // 0-5000ms
         
         // CW Filter settings
         val filterBandwidth = binding.seekBarFilterBandwidth.progress * 10 + 100  // 100-2000 Hz
@@ -1183,6 +1205,7 @@ class SettingsFragment : Fragment() {
             repeatSpacingMs = repeatSpacingMs,
             requiredCorrectToAdvance = requiredCorrect,
             sequenceDelayMs = sequenceDelayMs,
+            levelChangeDelayMs = levelChangeDelayMs,
             mistakesToDropLevel = binding.seekBarMistakesToDrop.progress,
             
             // Audio settings
