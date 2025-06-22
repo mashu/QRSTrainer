@@ -42,8 +42,30 @@ class SettingsFragment : Fragment() {
         setupUI()
         setupCollapsibleSections()
         loadCurrentSettings()
+        
+        // Check if settings were reset due to an update
+        checkForSettingsReset()
 
         return root
+    }
+    
+    /**
+     * Check if settings were reset due to an app update and show a notification
+     */
+    private fun checkForSettingsReset() {
+        if (settings.settingsResetDueToUpdate) {
+            // Show notification about settings reset
+            AlertDialog.Builder(requireContext())
+                .setTitle("Settings Updated")
+                .setMessage("Your settings have been updated to the latest defaults due to an app update. " +
+                           "Your training progress has been preserved.")
+                .setPositiveButton("OK") { _, _ ->
+                    // Clear the reset flag once the user has acknowledged it
+                    settings = settings.clearResetFlag()
+                    settings.save(requireContext())
+                }
+                .show()
+        }
     }
 
     private fun setupCollapsibleSections() {

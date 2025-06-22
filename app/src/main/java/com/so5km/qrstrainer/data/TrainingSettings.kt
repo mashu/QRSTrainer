@@ -2,6 +2,8 @@ package com.so5km.qrstrainer.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
+import android.util.Log
 
 /**
  * Training settings for the Morse code trainer
@@ -54,10 +56,22 @@ data class TrainingSettings(
     
     // === UI STATE SETTINGS ===
     val lastExpandedSettingsTab: String = "audio",  // Remember which settings tab was last expanded
-    val warmth: Float = 8.0f // matches reference Warmth setting
+    val warmth: Float = 8.0f, // matches reference Warmth setting
+    
+    // === SYSTEM FLAGS ===
+    val settingsResetDueToUpdate: Boolean = false // Flag indicating settings were reset due to version change
 ) {
     companion object {
         private const val PREFS_NAME = "morse_trainer_settings"
+        private const val TAG = "TrainingSettings"
+        
+        // Configuration version - increment this when defaults change significantly
+        private const val CURRENT_CONFIG_VERSION = 1
+        private const val KEY_CONFIG_VERSION = "config_version"
+        
+        // App version tracking
+        private const val KEY_LAST_APP_VERSION_CODE = "last_app_version_code"
+        private const val KEY_SETTINGS_RESET_FLAG = "settings_reset_due_to_update"
         
         // Training behavior settings keys
         private const val KEY_SPEED_WPM = "speed_wpm"
@@ -109,10 +123,61 @@ data class TrainingSettings(
         
         /**
          * Load settings from SharedPreferences
+         * If app version has changed, reset to defaults
          */
         fun load(context: Context): TrainingSettings {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            return TrainingSettings(
+            
+            // Check for app version changes
+            checkAppVersionChange(context, prefs)
+            
+            // Check if config version matches current version
+            val savedConfigVersion = prefs.getInt(KEY_CONFIG_VERSION, 0)
+            var settingsWereReset = false
+            
+            if (savedConfigVersion < CURRENT_CONFIG_VERSION) {
+                Log.i(TAG, "Config version changed from $savedConfigVersion to $CURRENT_CONFIG_VERSION - resetting to defaults")
+                settingsWereReset = true
+                
+                // Version mismatch - create new settings with defaults and save them
+                val defaultSettings = TrainingSettings(settingsResetDueToUpdate = true)
+                
+                // Preserve the user's current Koch level and progress-related settings
+                // This ensures we don't reset their training progress when updating defaults
+                if (savedConfigVersion > 0) {
+                    val preservedKochLevel = if (prefs.contains(KEY_KOCH_LEVEL)) {
+                        prefs.getInt(KEY_KOCH_LEVEL, 2)
+                    } else {
+                        defaultSettings.kochLevel
+                    }
+                    
+                    val preservedLevelLocked = if (prefs.contains(KEY_LEVEL_LOCKED)) {
+                        prefs.getBoolean(KEY_LEVEL_LOCKED, false)
+                    } else {
+                        defaultSettings.isLevelLocked
+                    }
+                    
+                    // Create a new settings object with preserved progress values
+                    val updatedSettings = defaultSettings.copy(
+                        kochLevel = preservedKochLevel,
+                        isLevelLocked = preservedLevelLocked
+                    )
+                    
+                    // Save the updated settings
+                    updatedSettings.save(context)
+                    return updatedSettings
+                }
+                
+                // If this is first run or very old version, just use all defaults
+                defaultSettings.save(context)
+                return defaultSettings
+            }
+            
+            // Check if settings were reset flag is set
+            val resetFlag = prefs.getBoolean(KEY_SETTINGS_RESET_FLAG, false)
+            
+            // Config version matches, load normally
+            val settings = TrainingSettings(
                 // Training behavior settings
                 speedWpm = prefs.getInt(KEY_SPEED_WPM, 25),
                 kochLevel = prefs.getInt(KEY_KOCH_LEVEL, 2),
@@ -159,8 +224,51 @@ data class TrainingSettings(
                 
                 // UI State settings
                 lastExpandedSettingsTab = prefs.getString(KEY_LAST_EXPANDED_SETTINGS_TAB, "audio") ?: "audio",
-                warmth = prefs.getFloat(KEY_WARMTH, 8.0f)
+                warmth = prefs.getFloat(KEY_WARMTH, 8.0f),
+                
+                // System flags
+                settingsResetDueToUpdate = resetFlag
             )
+            
+            // If we read the reset flag, clear it for next time
+            if (resetFlag) {
+                prefs.edit().putBoolean(KEY_SETTINGS_RESET_FLAG, false).apply()
+            }
+            
+            return settings
+        }
+        
+        /**
+         * Check if the app version has changed since last run
+         * This allows for version-specific migrations or updates
+         */
+        private fun checkAppVersionChange(context: Context, prefs: SharedPreferences) {
+            try {
+                val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+                val currentVersionCode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                    packageInfo.longVersionCode.toInt()
+                } else {
+                    @Suppress("DEPRECATION")
+                    packageInfo.versionCode
+                }
+                
+                val lastVersionCode = prefs.getInt(KEY_LAST_APP_VERSION_CODE, 0)
+                
+                if (lastVersionCode != currentVersionCode) {
+                    Log.i(TAG, "App version changed from $lastVersionCode to $currentVersionCode")
+                    
+                    // Perform version-specific migrations here if needed
+                    // For example:
+                    // if (lastVersionCode < 10 && currentVersionCode >= 10) {
+                    //     // Perform migration for version 10
+                    // }
+                    
+                    // Save the new version code
+                    prefs.edit().putInt(KEY_LAST_APP_VERSION_CODE, currentVersionCode).apply()
+                }
+            } catch (e: PackageManager.NameNotFoundException) {
+                Log.e(TAG, "Failed to get package info", e)
+            }
         }
     }
     
@@ -170,6 +278,12 @@ data class TrainingSettings(
     fun save(context: Context) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit().apply {
+            // Save config version
+            putInt(KEY_CONFIG_VERSION, CURRENT_CONFIG_VERSION)
+            
+            // Save reset flag
+            putBoolean(KEY_SETTINGS_RESET_FLAG, settingsResetDueToUpdate)
+            
             // Training behavior settings
             putInt(KEY_SPEED_WPM, speedWpm)
             putInt(KEY_KOCH_LEVEL, kochLevel)
@@ -256,9 +370,13 @@ data class TrainingSettings(
             resonanceJumpRate = defaults.resonanceJumpRate,
             driftSpeed = defaults.driftSpeed,
             warmth = defaults.warmth
-            
-            // Note: Training behavior settings (speedWpm, kochLevel, etc.) are NOT reset
-            // Note: UI state settings (lastExpandedSettingsTab) are NOT reset
         )
+    }
+    
+    /**
+     * Clear the settings reset flag
+     */
+    fun clearResetFlag(): TrainingSettings {
+        return this.copy(settingsResetDueToUpdate = false)
     }
 } 
