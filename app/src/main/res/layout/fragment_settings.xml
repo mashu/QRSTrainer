@@ -864,12 +864,13 @@
                         android:textStyle="bold" />
 
                     <!-- Continuous Noise Testing -->
-                    <CheckBox
-                        android:id="@+id/checkBoxContinuousNoise"
+                    <Switch
+                        android:id="@+id/switchContinuousNoise"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="16dp"
-                        android:buttonTint="@color/accent_orange"
+                        android:thumbTint="@color/accent_orange"
+                        android:trackTint="@color/grey_400"
                         android:checked="false"
                         android:text="Test Noise Continuously (Real-time parameter testing)"
                         android:textColor="@color/grey_800"

@@ -831,12 +831,12 @@ class SettingsFragment : Fragment() {
             updateContinuousNoiseIfActive()
         }
         
-        // Continuous noise testing checkbox
-        binding.checkBoxContinuousNoise.isChecked = settings.continuousNoiseEnabled
-        binding.checkBoxContinuousNoise.setOnCheckedChangeListener { _, isChecked ->
+        // Continuous noise testing switch
+        binding.switchContinuousNoise.isChecked = settings.continuousNoiseEnabled
+        binding.switchContinuousNoise.setOnCheckedChangeListener { _, isChecked ->
             saveSettings()
             
-            // Start or stop continuous noise testing based on checkbox
+            // Start or stop continuous noise testing based on switch
             if (isChecked) {
                 morseCodeGenerator?.startTestNoise(getCurrentSettings())
             } else {
@@ -1073,8 +1073,8 @@ class SettingsFragment : Fragment() {
         // Filter ringing checkbox
         binding.checkBoxFilterRinging.isChecked = settings.filterRingingEnabled
         
-        // Continuous noise testing checkbox
-        binding.checkBoxContinuousNoise.isChecked = settings.continuousNoiseEnabled
+        // Continuous noise testing switch
+        binding.switchContinuousNoise.isChecked = settings.continuousNoiseEnabled
         
         // Update the filter graph with initial values
         updateFilterGraph()
@@ -1147,7 +1147,7 @@ class SettingsFragment : Fragment() {
             // CW LFO settings
             lfo1FrequencyHz = lfo1Freq,
             lfo2FrequencyHz = lfo2Freq,
-            continuousNoiseEnabled = binding.checkBoxContinuousNoise.isChecked,
+            continuousNoiseEnabled = binding.switchContinuousNoise.isChecked,
             
             // CW Atmospheric settings
             atmosphericIntensity = atmosphericIntensity,
@@ -1230,7 +1230,7 @@ class SettingsFragment : Fragment() {
             // CW LFO settings
             lfo1FrequencyHz = lfo1Freq,
             lfo2FrequencyHz = lfo2Freq,
-            continuousNoiseEnabled = binding.checkBoxContinuousNoise.isChecked,
+            continuousNoiseEnabled = binding.switchContinuousNoise.isChecked,
             
             // CW Atmospheric settings
             atmosphericIntensity = atmosphericIntensity,
@@ -1257,7 +1257,7 @@ class SettingsFragment : Fragment() {
     
     private fun updateContinuousNoiseIfActive() {
         // Update continuous noise settings in real-time if it's currently playing
-        if (binding.checkBoxContinuousNoise.isChecked) {
+        if (binding.switchContinuousNoise.isChecked) {
             morseCodeGenerator?.updateNoiseSettings(getCurrentSettings())
         }
     }
@@ -1289,7 +1289,7 @@ class SettingsFragment : Fragment() {
                 settings.save(requireContext())
                 
                 // Stop continuous noise if playing
-                if (binding.checkBoxContinuousNoise.isChecked) {
+                if (binding.switchContinuousNoise.isChecked) {
                     morseCodeGenerator?.stopTestNoise()
                 }
                 
@@ -1507,6 +1507,54 @@ class SettingsFragment : Fragment() {
         val keyingStyle = binding.seekBarKeyingStyle.progress
         val toneFrequency = binding.seekBarToneFrequency.progress * 10 + 300
         binding.envelopeGraph.updateEnvelope(envelopeMs, keyingStyle, toneFrequency)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Stop continuous noise testing when fragment is paused (user navigates away)
+        if (::morseCodeGenerator.isInitialized && binding.switchContinuousNoise.isChecked) {
+            morseCodeGenerator.stopTestNoise()
+            // Update switch state to reflect that noise is no longer playing
+            binding.switchContinuousNoise.setOnCheckedChangeListener(null) // Temporarily remove listener
+            binding.switchContinuousNoise.isChecked = false
+            // Restore listener
+            binding.switchContinuousNoise.setOnCheckedChangeListener { _, isChecked ->
+                saveSettings()
+                
+                // Start or stop continuous noise testing based on switch
+                if (isChecked) {
+                    morseCodeGenerator?.startTestNoise(getCurrentSettings())
+                } else {
+                    morseCodeGenerator?.stopTestNoise()
+                }
+            }
+            saveSettings() // Save the updated state
+        }
+    }
+    
+    override fun onResume() {
+        super.onResume()
+        // Sync switch state with actual noise playback state
+        if (::morseCodeGenerator.isInitialized) {
+            val isNoiseActuallyPlaying = morseCodeGenerator.isTestNoiseActive()
+            if (binding.switchContinuousNoise.isChecked != isNoiseActuallyPlaying) {
+                // Update switch to match actual state
+                binding.switchContinuousNoise.setOnCheckedChangeListener(null) // Temporarily remove listener
+                binding.switchContinuousNoise.isChecked = isNoiseActuallyPlaying
+                // Restore listener
+                binding.switchContinuousNoise.setOnCheckedChangeListener { _, isChecked ->
+                    saveSettings()
+                    
+                    // Start or stop continuous noise testing based on switch
+                    if (isChecked) {
+                        morseCodeGenerator?.startTestNoise(getCurrentSettings())
+                    } else {
+                        morseCodeGenerator?.stopTestNoise()
+                    }
+                }
+                saveSettings() // Save the corrected state
+            }
+        }
     }
 
     override fun onDestroy() {
