@@ -14,12 +14,12 @@ data class TrainingSettings(
     val isLevelLocked: Boolean = false,        // Whether to lock at current level
     val groupSizeMin: Int = 1,                 // Minimum group size
     val groupSizeMax: Int = 5,                 // Maximum group size
-    val answerTimeoutSeconds: Int = 3,         // Timeout for answers
+    val answerTimeoutSeconds: Int = 10,        // Timeout for answers (after playout finishes)
     val repeatCount: Int = 1,                  // How many times to repeat each sequence
     val repeatSpacingMs: Int = 0,              // Milliseconds between repeats
     val requiredCorrectToAdvance: Int = 3,     // Required correct answers to advance level
-    val sequenceDelayMs: Int = 0,              // Delay between sequences after answering
-    val levelChangeDelayMs: Int = 1500,        // Delay when level changes (advancement/drop)
+    val sequenceDelayMs: Int = 1000,           // Delay between sequences after answering (1 second)
+    val levelChangeDelayMs: Int = 1000,        // Delay when level changes (advancement/drop) (1 second)
     val mistakesToDropLevel: Int = 1,          // Number of mistakes to cause level drop (0 = disabled)
     val farnsworthWpm: Int = 0,                // Farnsworth timing WPM (0 = disabled) - affects character timing
     
@@ -119,12 +119,12 @@ data class TrainingSettings(
                 isLevelLocked = prefs.getBoolean(KEY_LEVEL_LOCKED, false),
                 groupSizeMin = prefs.getInt(KEY_GROUP_SIZE_MIN, 1),
                 groupSizeMax = prefs.getInt(KEY_GROUP_SIZE_MAX, 5),
-                answerTimeoutSeconds = prefs.getInt(KEY_ANSWER_TIMEOUT, 3),
+                answerTimeoutSeconds = prefs.getInt(KEY_ANSWER_TIMEOUT, 10),
                 repeatCount = prefs.getInt(KEY_REPEAT_COUNT, 1),
                 repeatSpacingMs = prefs.getInt(KEY_REPEAT_SPACING, 0),
                 requiredCorrectToAdvance = prefs.getInt(KEY_REQUIRED_CORRECT, 3),
-                sequenceDelayMs = prefs.getInt(KEY_SEQUENCE_DELAY, 0),
-                levelChangeDelayMs = prefs.getInt(KEY_LEVEL_CHANGE_DELAY, 1500),
+                sequenceDelayMs = prefs.getInt(KEY_SEQUENCE_DELAY, 1000),
+                levelChangeDelayMs = prefs.getInt(KEY_LEVEL_CHANGE_DELAY, 1000),
                 mistakesToDropLevel = prefs.getInt(KEY_MISTAKES_TO_DROP, 1),
                 farnsworthWpm = prefs.getInt(KEY_FARNSWORTH_WPM, 0),
                 

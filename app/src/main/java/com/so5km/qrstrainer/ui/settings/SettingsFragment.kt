@@ -257,7 +257,7 @@ class SettingsFragment : Fragment() {
         binding.seekBarTimeout.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 val timeout = progress + 1  // 1-31 seconds (minimum 1s for rapid training!)
-                binding.textTimeoutDisplay.text = "$timeout seconds"
+                binding.textTimeoutDisplay.text = "$timeout seconds (after playback)"
                 if (fromUser) saveSettings()
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -295,7 +295,7 @@ class SettingsFragment : Fragment() {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 val delay = progress / 10.0  // 0.0-5.0 seconds
                 val displayText = if (delay == 0.0) "No delay (immediate)" else "${String.format("%.1f", delay)} seconds"
-                binding.textSequenceDelayDisplay.text = displayText
+                binding.textSequenceDelayDisplay.text = displayText + " between sequences"
                 if (fromUser) saveSettings()
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -308,7 +308,7 @@ class SettingsFragment : Fragment() {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 val delay = progress / 10.0  // 0.0-5.0 seconds
                 val displayText = if (delay == 0.0) "No delay (immediate)" else "${String.format("%.1f", delay)} seconds"
-                binding.textLevelChangeDelayDisplay.text = displayText
+                binding.textLevelChangeDelayDisplay.text = displayText + " when level changes"
                 if (fromUser) saveSettings()
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -917,7 +917,7 @@ class SettingsFragment : Fragment() {
         
         // Load timeout settings
         binding.seekBarTimeout.progress = settings.answerTimeoutSeconds - 1  // Convert to 0-based (updated for new range)
-        binding.textTimeoutDisplay.text = "${settings.answerTimeoutSeconds} seconds"
+        binding.textTimeoutDisplay.text = "${settings.answerTimeoutSeconds} seconds (after playback)"
         
         // Load required correct settings
         binding.seekBarRequiredCorrect.progress = settings.requiredCorrectToAdvance - 1  // Convert to 0-based (updated for new range)
@@ -932,13 +932,13 @@ class SettingsFragment : Fragment() {
         val delaySeconds = settings.sequenceDelayMs / 1000.0
         binding.seekBarSequenceDelay.progress = (delaySeconds * 10).toInt()  // Convert to 0-based
         val delayDisplayText = if (delaySeconds == 0.0) "No delay (immediate)" else "${String.format("%.1f", delaySeconds)} seconds"
-        binding.textSequenceDelayDisplay.text = delayDisplayText
+        binding.textSequenceDelayDisplay.text = delayDisplayText + " between sequences"
         
         // Load level change delay settings
         val levelChangeDelaySeconds = settings.levelChangeDelayMs / 1000.0
         binding.seekBarLevelChangeDelay.progress = (levelChangeDelaySeconds * 10).toInt()  // Convert to 0-based
         val levelChangeDelayDisplayText = if (levelChangeDelaySeconds == 0.0) "No delay (immediate)" else "${String.format("%.1f", levelChangeDelaySeconds)} seconds"
-        binding.textLevelChangeDelayDisplay.text = levelChangeDelayDisplayText
+        binding.textLevelChangeDelayDisplay.text = levelChangeDelayDisplayText + " when level changes"
         
         // Load new audio settings
         // Tone frequency (300-1000 Hz)
