@@ -459,6 +459,24 @@ class SettingsFragment : Fragment() {
                 binding.textFilterBandwidthDisplay.text = "$bandwidth Hz ($cwCharacter, ~${modDepth.toInt()}Hz LFO range)"
                 
                 if (fromUser) {
+                    // Check if reducing bandwidth would cause combined bandwidth to be too small
+                    val currentSecondaryBandwidth = binding.seekBarSecondaryFilterBandwidth.progress * 10 + 100
+                    val primaryOffset = binding.seekBarPrimaryFilterOffset.progress - 200
+                    val secondaryOffset = binding.seekBarSecondaryFilterOffset.progress - 200
+                    val centerOffset = abs(primaryOffset - secondaryOffset)
+                    
+                    // If filters are close and both becoming too narrow, adjust secondary filter
+                    if (centerOffset < 100 && bandwidth < 150 && currentSecondaryBandwidth < 150) {
+                        // Ensure at least one filter has reasonable bandwidth to maintain tone coverage
+                        val newSecondaryBandwidth = (150 - (bandwidth - 100)).coerceIn(100, 300)
+                        val newSecondaryProgress = ((newSecondaryBandwidth - 100) / 10).toInt()
+                        
+                        binding.seekBarSecondaryFilterBandwidth.setOnSeekBarChangeListener(null)
+                        binding.seekBarSecondaryFilterBandwidth.progress = newSecondaryProgress
+                        binding.textSecondaryFilterBandwidthDisplay.text = "$newSecondaryBandwidth Hz"
+                        binding.seekBarSecondaryFilterBandwidth.setOnSeekBarChangeListener(this)
+                    }
+                    
                     // Trigger offset constraint check by simulating offset change
                     val currentPrimaryProgress = binding.seekBarPrimaryFilterOffset.progress
                     binding.seekBarPrimaryFilterOffset.setOnSeekBarChangeListener(null)
@@ -479,7 +497,26 @@ class SettingsFragment : Fragment() {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 val bandwidth = progress * 10 + 100  // 100-2000 Hz
                 binding.textSecondaryFilterBandwidthDisplay.text = "$bandwidth Hz"
+                
                 if (fromUser) {
+                    // Check if reducing bandwidth would cause combined bandwidth to be too small
+                    val currentPrimaryBandwidth = binding.seekBarFilterBandwidth.progress * 10 + 100
+                    val primaryOffset = binding.seekBarPrimaryFilterOffset.progress - 200
+                    val secondaryOffset = binding.seekBarSecondaryFilterOffset.progress - 200
+                    val centerOffset = abs(primaryOffset - secondaryOffset)
+                    
+                    // If filters are close and both becoming too narrow, adjust primary filter
+                    if (centerOffset < 100 && bandwidth < 150 && currentPrimaryBandwidth < 150) {
+                        // Ensure at least one filter has reasonable bandwidth to maintain tone coverage
+                        val newPrimaryBandwidth = (150 - (bandwidth - 100)).coerceIn(100, 300)
+                        val newPrimaryProgress = ((newPrimaryBandwidth - 100) / 10).toInt()
+                        
+                        binding.seekBarFilterBandwidth.setOnSeekBarChangeListener(null)
+                        binding.seekBarFilterBandwidth.progress = newPrimaryProgress
+                        binding.textFilterBandwidthDisplay.text = "$newPrimaryBandwidth Hz"
+                        binding.seekBarFilterBandwidth.setOnSeekBarChangeListener(this)
+                    }
+                    
                     // Trigger offset constraint check by simulating offset change
                     val currentSecondaryProgress = binding.seekBarSecondaryFilterOffset.progress
                     binding.seekBarSecondaryFilterOffset.setOnSeekBarChangeListener(null)
@@ -517,6 +554,11 @@ class SettingsFragment : Fragment() {
                 if (fromUser) {
                     updateFilterGraph()
                     saveSettings()
+                    
+                    // Force filter chain reset to ensure Q factor changes are applied
+                    forceFilterReset()
+                    
+                    // Update continuous noise with forced reset
                     updateContinuousNoiseIfActive()
                 }
             }
@@ -1563,6 +1605,16 @@ class SettingsFragment : Fragment() {
         if (::morseCodeGenerator.isInitialized) {
             morseCodeGenerator.stopTestNoise()
             morseCodeGenerator.release()
+        }
+    }
+    
+    /**
+     * Force a reset of the filter chain to ensure parameters are properly applied
+     * This helps ensure Q factor and other settings take immediate effect
+     */
+    private fun forceFilterReset() {
+        if (::morseCodeGenerator.isInitialized) {
+            morseCodeGenerator.resetNoiseGenerator()
         }
     }
 } 

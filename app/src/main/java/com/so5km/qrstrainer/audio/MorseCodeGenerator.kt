@@ -803,6 +803,23 @@ class MorseCodeGenerator(private val context: Context) {
     }
     
     /**
+     * Reset the noise generator to ensure parameter changes take immediate effect
+     * This is particularly useful for Q factor changes which might not be immediately applied
+     */
+    fun resetNoiseGenerator() {
+        cwNoiseGenerator.reset()
+        android.util.Log.d("MorseCodeGenerator", "Reset noise generator to ensure parameter changes take effect")
+        
+        // If noise is currently playing, briefly stop and restart it to apply changes
+        if (isNoisePlayingContinuously) {
+            val currentSettings = this.currentSettings
+            stopTestNoise()
+            Thread.sleep(50) // Brief pause
+            startTestNoise(currentSettings)
+        }
+    }
+    
+    /**
      * Check if test noise is currently playing
      */
     fun isTestNoiseActive(): Boolean = isNoisePlayingContinuously

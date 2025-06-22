@@ -13,6 +13,12 @@ data class CWFilterState(
     // Filter chain
     var filterChain: CWFilterChain? = null,
     
+    // Parameter tracking for state consistency
+    var lastCenterFreq: Double = 600.0,
+    var lastQFactor: Double = 15.0,
+    var lastBandwidth: Double = 250.0,
+    var lastAtmosphericIntensity: Double = 2.0,
+    
     // Resonance jumps
     var resonanceJumpState: Double = 0.0,
     var resonanceDecay: Double = 0.95,

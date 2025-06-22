@@ -32,6 +32,13 @@ class CWFilterChain(private val sampleRate: Int = 44100) {
     private var notchLfoFreq = 0.05
     private var phaserLfoFreq = 0.03
     
+    // Track filter parameters for state consistency
+    private var currentCenterFreq = 600.0
+    private var currentResonance = 15.0
+    private var currentBandwidth = 250.0
+    private var currentWarmth = 8.0
+    private var currentAtmosphericIntensity = 2.0
+    
     fun updateParameters(
         centerFreq: Double, 
         resonance: Double, 
@@ -39,6 +46,28 @@ class CWFilterChain(private val sampleRate: Int = 44100) {
         warmth: Double,
         atmosphericIntensity: Double
     ) {
+        // Store current parameters for state tracking
+        val paramsChanged = centerFreq != currentCenterFreq || 
+                           resonance != currentResonance || 
+                           bandwidth != currentBandwidth || 
+                           warmth != currentWarmth || 
+                           atmosphericIntensity != currentAtmosphericIntensity
+        
+        // Update stored parameters
+        currentCenterFreq = centerFreq
+        currentResonance = resonance
+        currentBandwidth = bandwidth
+        currentWarmth = warmth
+        currentAtmosphericIntensity = atmosphericIntensity
+        
+        // Only update if parameters actually changed
+        if (!paramsChanged) {
+            return
+        }
+        
+        // Log parameter changes for debugging
+        android.util.Log.d("CWFilterChain", "Updating filter params: centerFreq=$centerFreq, Q=$resonance, BW=$bandwidth, warmth=$warmth, atmos=$atmosphericIntensity")
+        
         // Store center frequency for modulation
         frequency = centerFreq
         
@@ -50,6 +79,7 @@ class CWFilterChain(private val sampleRate: Int = 44100) {
         }
         val effectiveQ2 = effectiveQ1 * 0.8
         
+        // Apply Q factor directly to ensure consistent behavior
         bandpass1.setFrequency(centerFreq)
         bandpass1.setQ(effectiveQ1)
         
@@ -65,6 +95,8 @@ class CWFilterChain(private val sampleRate: Int = 44100) {
         
         // Update warmth (peaking filter) - let bandwidth affect warmth too
         val effectiveWarmth = warmth * bandwidthFactor
+        peaking1.setFrequency(550.0)  // Reset frequency to ensure consistency
+        peaking1.setQ(2.0)  // Reset Q to ensure consistency
         peaking1.setGain(effectiveWarmth)
         
         // Setup advanced filters based on atmospheric intensity AND bandwidth
@@ -75,6 +107,7 @@ class CWFilterChain(private val sampleRate: Int = 44100) {
             // Make bandwidth affect notch filter frequency spread
             val notchSpread = 1.1 + (bandwidth / 1000.0) * 0.2  // Wider bandwidth = wider notch spread
             notchFilter!!.setFrequency(frequency * notchSpread)
+            notchFilter!!.setQ(8.0)  // Reset Q to ensure consistency
             notchLfoFreq = 0.05 + (atmosphericIntensity * 0.01)
         }
         
@@ -85,12 +118,17 @@ class CWFilterChain(private val sampleRate: Int = 44100) {
             // Let bandwidth affect allpass character too
             val allpassOffset = 0.98 - (bandwidth / 2000.0) * 0.1  // Wider bandwidth = lower allpass freq
             allpassFilter!!.setFrequency(frequency * allpassOffset)
+            allpassFilter!!.setQ(5.0)  // Reset Q to ensure consistency
         }
         
         // Update LFO frequencies based on atmospheric intensity AND bandwidth
         val bandwidthLfoFactor = (bandwidth / 500.0).coerceIn(0.5, 2.0)  // Bandwidth affects LFO speed
         lfo1Freq = 0.1 * (1.0 + atmosphericIntensity * 0.3) * bandwidthLfoFactor
         lfo2Freq = 0.17 * (1.0 + atmosphericIntensity * 0.2) * bandwidthLfoFactor
+        
+        // Reset compressor to ensure consistent behavior
+        compressor.setFrequency(3000.0)
+        compressor.setQ(0.707)
     }
     
     fun process(input: Double, atmosphericIntensity: Double): Double {
@@ -108,46 +146,59 @@ class CWFilterChain(private val sampleRate: Int = 44100) {
         if (notchLfoPhase > 2.0 * PI) notchLfoPhase -= 2.0 * PI
         if (phaserLfoPhase > 2.0 * PI) phaserLfoPhase -= 2.0 * PI
         
-        // Apply subtle LFO modulation to filter frequencies
+        // Apply more pronounced LFO modulation to filter frequencies
         val lfo1 = sin(lfo1Phase)
         val lfo2 = sin(lfo2Phase)
-        val modDepth1 = minOf(8.0, atmosphericIntensity * 2.0) // Much smaller modulation
-        val modDepth2 = minOf(6.0, atmosphericIntensity * 1.5) // Much smaller modulation
+        
+        // Increase modulation depth significantly to make effects more noticeable
+        val modDepth1 = 15.0 + atmosphericIntensity * 5.0  // Much larger modulation
+        val modDepth2 = 12.0 + atmosphericIntensity * 4.0  // Much larger modulation
         
         // Apply LFO modulation to filter frequencies (update actual filter frequencies)
         bandpass1.setFrequency(frequency + (lfo1 * modDepth1))
         bandpass2.setFrequency(frequency + 30.0 + (lfo2 * modDepth2))
         
-        // Apply modulation (simplified - in real implementation would update coefficients)
+        // Debug logging (occasional)
+        if (Math.random() < 0.0001) {
+            android.util.Log.d("CWFilterChain", "Filter1: ${(frequency + (lfo1 * modDepth1)).toInt()}Hz, Filter2: ${(frequency + 30.0 + (lfo2 * modDepth2)).toInt()}Hz")
+        }
+        
+        // Apply modulation with more pronounced effect
         var output = input
         
-        // Primary filter chain
-        output = bandpass1.process(output)
-        output = bandpass2.process(output)
+        // Primary filter chain - apply with stronger effect
+        output = bandpass1.process(output) * 1.2  // Boost filtered output
+        output = bandpass2.process(output) * 1.1  // Boost filtered output
         output = peaking1.process(output)
         
-        // Advanced filters for higher atmospheric settings (extremely reduced modulation)
+        // Advanced filters for higher atmospheric settings with increased effect
         if (atmosphericIntensity > 2.0 && notchFilter != null) {
             val notchLfo = sin(notchLfoPhase)
-            val notchModDepth = minOf(15.0, 8.0 * atmosphericIntensity) // Even smaller modulation range
-            // Update notch frequency with LFO - keep it close to center
-            val baseNotchFreq = frequency * 1.1 // Much closer to main frequency
+            val notchModDepth = 20.0 + atmosphericIntensity * 10.0  // Much larger modulation range
+            
+            // Update notch frequency with LFO - more pronounced effect
+            val baseNotchFreq = frequency * 1.1
             notchFilter!!.setFrequency(baseNotchFreq + (notchLfo * notchModDepth))
             val notchOutput = notchFilter!!.process(output)
-            output = output * 0.9 + notchOutput * 0.1 // Very subtle notch effect
+            
+            // More pronounced notch effect
+            output = output * 0.7 + notchOutput * 0.3  // 30% notch effect instead of 10%
         }
         
         if (atmosphericIntensity > 4.0 && allpassFilter != null) {
             val phaserLfo = sin(phaserLfoPhase)
-            val phaserModDepth = minOf(20.0, 10.0 * (atmosphericIntensity - 4.0)) // Tiny modulation range
-            val baseAllpassFreq = frequency * 0.98 // Very close to main frequency
+            val phaserModDepth = 30.0 + atmosphericIntensity * 15.0  // Much larger modulation range
+            
+            val baseAllpassFreq = frequency * 0.98
             allpassFilter!!.setFrequency(baseAllpassFreq + (phaserLfo * phaserModDepth))
             val phasedOutput = allpassFilter!!.process(output)
-            output = output * 0.95 + phasedOutput * 0.05 // Barely audible phasing
+            
+            // More pronounced phasing effect
+            output = output * 0.8 + phasedOutput * 0.2  // 20% phasing effect instead of 5%
         }
         
-        // Final compression/limiting
-        output = compressor.process(output)
+        // Final compression/limiting with slight boost
+        output = compressor.process(output) * 1.1
         
         return output
     }

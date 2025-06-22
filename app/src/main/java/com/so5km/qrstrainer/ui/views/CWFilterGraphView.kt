@@ -65,6 +65,9 @@ class CWFilterGraphView @JvmOverloads constructor(
         // Draw grid
         drawGrid(canvas, width, graphHeight, graphTop)
         
+        // Draw tone frequency marker
+        drawToneFrequency(canvas, width, graphHeight, graphTop)
+        
         // Draw frequency response curves
         drawPrimaryFilter(canvas, width, graphHeight, graphTop)
         drawSecondaryFilter(canvas, width, graphHeight, graphTop)
@@ -313,7 +316,18 @@ class CWFilterGraphView @JvmOverloads constructor(
         val secondaryCenter = centerFrequency + secondaryFilterOffset
         val centerOffset = abs(primaryCenter - secondaryCenter)
         
-        return when {
+        // Calculate the edges of each filter
+        val primaryLow = primaryCenter - bandwidthHz / 2f
+        val primaryHigh = primaryCenter + bandwidthHz / 2f
+        val secondaryLow = secondaryCenter - secondaryBandwidthHz / 2f
+        val secondaryHigh = secondaryCenter + secondaryBandwidthHz / 2f
+        
+        // Check if tone frequency is covered by either filter
+        val toneCovered = (centerFrequency >= primaryLow && centerFrequency <= primaryHigh) || 
+                          (centerFrequency >= secondaryLow && centerFrequency <= secondaryHigh)
+        
+        // Calculate combined bandwidth
+        val combinedBW = when {
             centerOffset < 50f -> {
                 // Overlapping filters - combined BW is narrower than the narrower filter
                 minOf(bandwidthHz, secondaryBandwidthHz) * 0.7f
@@ -327,5 +341,40 @@ class CWFilterGraphView @JvmOverloads constructor(
                 bandwidthHz + secondaryBandwidthHz - centerOffset * 0.5f
             }
         }.coerceAtLeast(50f) // Minimum realistic bandwidth
+        
+        // If tone is not covered, we need to ensure the combined response includes it
+        return if (!toneCovered) {
+            // Force a minimum bandwidth that would cover the tone
+            // This is an approximation - in reality, we'd need to adjust filter positions
+            max(combinedBW, 100f)
+        } else {
+            combinedBW
+        }
+    }
+    
+    private fun drawToneFrequency(canvas: Canvas, width: Float, graphHeight: Float, graphTop: Float) {
+        paint.apply {
+            color = Color.parseColor("#9C27B0") // Purple for tone frequency
+            strokeWidth = 2f
+            style = Paint.Style.STROKE
+            pathEffect = DashPathEffect(floatArrayOf(5f, 5f), 0f)
+        }
+        
+        // Draw vertical line at tone frequency
+        val toneX = (centerFrequency / 2000f) * width
+        canvas.drawLine(toneX, graphTop, toneX, graphTop + graphHeight, paint)
+        
+        // Draw tone label
+        textPaint.apply {
+            textSize = 16f
+            color = Color.parseColor("#9C27B0")
+        }
+        val toneLabel = "${centerFrequency.toInt()} Hz"
+        val textWidth = textPaint.measureText(toneLabel)
+        canvas.drawText(toneLabel, toneX - textWidth/2, graphTop - 5f, textPaint)
+        
+        // Reset paint properties
+        paint.pathEffect = null
+        textPaint.color = textColor
     }
 } 

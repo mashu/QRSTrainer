@@ -36,27 +36,43 @@ class CWNoiseGenerator(private val sampleRate: Int = 44100) {
         val driftSpeed = safeSettings.driftSpeed.toDouble()
         val bandwidth = safeSettings.filterBandwidthHz.toDouble() // Use actual bandwidth setting
         
+        // Check if primary settings have changed
+        val settingsChanged = !::cwFilterState.isInitialized || 
+                              cwFilterState.lastCenterFreq != centerFreq ||
+                              cwFilterState.lastQFactor != qFactor ||
+                              cwFilterState.lastBandwidth != bandwidth ||
+                              cwFilterState.lastAtmosphericIntensity != atmosphericIntensity
+        
         // Initialize state if needed
         if (!::cwFilterState.isInitialized) {
             cwFilterState = CWFilterState()
         }
+        
+        // Update tracking parameters
+        cwFilterState.lastCenterFreq = centerFreq
+        cwFilterState.lastQFactor = qFactor
+        cwFilterState.lastBandwidth = bandwidth
+        cwFilterState.lastAtmosphericIntensity = atmosphericIntensity
         
         // Initialize filter chain if needed
         if (cwFilterState.filterChain == null) {
             cwFilterState.filterChain = CWFilterChain(sampleRate)
         }
         
-        // Update filter parameters
-        cwFilterState.filterChain!!.updateParameters(
-            centerFreq = centerFreq,
-            resonance = qFactor,
-            bandwidth = bandwidth,
-            warmth = warmth,
-            atmosphericIntensity = atmosphericIntensity
-        )
+        // Update filter parameters - log changes for debugging
+        if (settingsChanged) {
+            android.util.Log.d("CWNoiseGenerator", "Settings changed: centerFreq=${centerFreq.toInt()}Hz, Q=${qFactor.toString().take(4)}, BW=${bandwidth.toInt()}Hz")
+            cwFilterState.filterChain!!.updateParameters(
+                centerFreq = centerFreq,
+                resonance = qFactor,
+                bandwidth = bandwidth,
+                warmth = warmth,
+                atmosphericIntensity = atmosphericIntensity
+            )
+        }
         
         // Debug logging (less frequent)
-        if (cwFilterState.chunkCounter % 2000L == 0L) {
+        if (cwFilterState.chunkCounter % 1000L == 0L) {
             android.util.Log.d("CWNoiseGenerator", "Professional CW Filter: centerFreq=${centerFreq.toInt()}Hz, Q=${qFactor.toString().take(4)}, noiseVol=${(absoluteNoiseLevel*100).toInt()}%, atmospheric=$atmosphericIntensity")
         }
         
@@ -64,87 +80,85 @@ class CWNoiseGenerator(private val sampleRate: Int = 44100) {
         for (i in buffer.indices) {
             val sampleTime = (cwFilterState.chunkCounter * 1024 + i).toDouble() / sampleRate
             
-            // STEP 1: Generate Brownian noise carrier (matching reference)
-            val brownNoise = (Math.random() * 2 - 1) * 0.02 * minOf(3.0, 0.5 + atmosphericIntensity)
-            cwFilterState.brownianState = (cwFilterState.brownianState + brownNoise) / 1.02
+            // STEP 1: Generate Brownian noise carrier with increased amplitude
+            val brownNoise = (Math.random() * 2 - 1) * 0.04 * minOf(5.0, 0.8 + atmosphericIntensity)
+            cwFilterState.brownianState = (cwFilterState.brownianState + brownNoise) / 1.01  // Slower decay for more low-frequency content
             
-            // STEP 2: Add slow atmospheric modulation (matching reference phase increment)
+            // STEP 2: Add slow atmospheric modulation with increased effect
             cwFilterState.atmosphericPhase += 0.0001
-            val slowVar = sin(cwFilterState.atmosphericPhase) * 0.05 * atmosphericIntensity * 3.0
+            val slowVar = sin(cwFilterState.atmosphericPhase) * 0.08 * atmosphericIntensity * 3.0  // Increased amplitude
             
-            // STEP 3: Add crackles and pops (matching reference probability calculation)
-            val popProbability = 0.9995 - (atmosphericIntensity * 0.0002)
+            // STEP 3: Add crackles and pops with increased intensity
+            val popProbability = 0.9995 - (atmosphericIntensity * 0.0003)  // More frequent pops
             val crackle = if (Math.random() > popProbability) {
-                (Math.random() * 2 - 1) * crackleIntensity * minOf(3.0, 0.5 + atmosphericIntensity)
+                (Math.random() * 2 - 1) * crackleIntensity * minOf(5.0, 0.8 + atmosphericIntensity) * 1.5  // Increased amplitude
             } else 0.0
             
-            // Combine base noise (matching reference)
+            // Combine base noise with increased amplitude
             cwFilterState.atmosphericState = (cwFilterState.atmosphericState + cwFilterState.brownianState) / 2 + slowVar + crackle
-            var baseNoise = cwFilterState.atmosphericState * 4.0 // Increased amplitude like reference
+            var baseNoise = cwFilterState.atmosphericState * 5.0 // Significantly increased amplitude
             
-            // STEP 4: Apply professional DSP filter chain
+            // STEP 4: Apply professional DSP filter chain with increased effect
             var filteredNoise = cwFilterState.filterChain!!.process(baseNoise, atmosphericIntensity)
             
-            // STEP 5: Apply subtle resonance jumps (reduced intensity and better decay)
+            // STEP 5: Apply resonance jumps with increased effect
             val currentTime = System.currentTimeMillis()
-            if (currentTime - cwFilterState.lastResonanceJump > (2000 / (0.00015 * resonanceJumpRate * sampleRate)).toLong()) {
-                if (Math.random() < 0.08 * resonanceJumpRate) { // Reduced chance to 8%
-                    val jumpAmount = (Math.random() * 4 - 2) * resonanceJumpRate // Much smaller jumps
+            if (currentTime - cwFilterState.lastResonanceJump > (1500 / (0.0002 * resonanceJumpRate * sampleRate)).toLong()) {
+                if (Math.random() < 0.12 * resonanceJumpRate) { // Increased chance to 12%
+                    val jumpAmount = (Math.random() * 6 - 3) * resonanceJumpRate * 1.5 // Larger jumps
                     cwFilterState.resonanceJumpState = jumpAmount
-                    cwFilterState.resonanceDecay = 0.92 // Faster decay
+                    cwFilterState.resonanceDecay = 0.94 // Slower decay for more noticeable effect
                     cwFilterState.lastResonanceJump = currentTime
                 }
             }
             
-            // Apply current resonance jump (reduced amplitude)
+            // Apply current resonance jump with increased amplitude
             if (abs(cwFilterState.resonanceJumpState) > 0.05) {
-                val resonanceTone = sin(2.0 * PI * centerFreq * sampleTime) * cwFilterState.resonanceJumpState * 0.03 // Much lower volume
+                val resonanceTone = sin(2.0 * PI * centerFreq * sampleTime) * cwFilterState.resonanceJumpState * 0.06 // Higher volume
                 filteredNoise += resonanceTone
                 cwFilterState.resonanceJumpState *= cwFilterState.resonanceDecay
             }
             
-            // Advanced effects (notch filter singing, phasing) now handled by professional filter chain
-            
-            // STEP 6: Add subtle frequency drift (reduced range and effect)
-            if (currentTime - cwFilterState.lastDriftUpdate > (3000 / maxOf(0.1, driftSpeed)).toLong()) {
-                val driftRange = 15 + (atmosphericIntensity * 20) // Much smaller drift range
+            // STEP 6: Add frequency drift with increased effect
+            if (currentTime - cwFilterState.lastDriftUpdate > (2500 / maxOf(0.1, driftSpeed)).toLong()) {
+                val driftRange = 25 + (atmosphericIntensity * 30) // Larger drift range
                 cwFilterState.frequencyDrift = (Math.random() * driftRange - driftRange/2)
                 cwFilterState.lastDriftUpdate = currentTime
             }
             
-            // Apply current drift (reduced effect)
+            // Apply current drift with increased effect
             if (abs(cwFilterState.frequencyDrift) > 1.0) {
                 val driftedFreq = centerFreq + cwFilterState.frequencyDrift
-                val driftEffect = sin(2.0 * PI * driftedFreq * sampleTime) * 0.02 // Reduced amplitude
+                val driftEffect = sin(2.0 * PI * driftedFreq * sampleTime) * 0.04 // Increased amplitude
                 filteredNoise += driftEffect
-                cwFilterState.frequencyDrift *= 0.999 // Faster decay
+                cwFilterState.frequencyDrift *= 0.998 // Slower decay for more noticeable effect
             }
             
-            // STEP 7: Add deep fading for extreme atmospheric conditions (matching reference)
-            if (atmosphericIntensity > 5.0) {
-                if (currentTime - cwFilterState.lastFadingUpdate > 5000 && Math.random() < 0.15) { // 15% chance every 5 seconds
-                    val fadeDepth = 0.6 + (Math.random() * 0.3) // 60-90% reduction
+            // STEP 7: Add deep fading for atmospheric conditions with increased effect
+            if (atmosphericIntensity > 3.0) {
+                if (currentTime - cwFilterState.lastFadingUpdate > 4000 && Math.random() < 0.2) { // 20% chance every 4 seconds
+                    val fadeDepth = 0.7 + (Math.random() * 0.25) // 70-95% reduction
                     cwFilterState.fadingState = fadeDepth
-                    cwFilterState.fadingDecay = 0.9998 // Very slow recovery like reference
+                    cwFilterState.fadingDecay = 0.9997 // Very slow recovery
                     cwFilterState.lastFadingUpdate = currentTime
                 }
             }
             
-            // Apply current fading
+            // Apply current fading with increased effect
             if (cwFilterState.fadingState > 0.02) {
                 filteredNoise *= (1.0 - cwFilterState.fadingState)
                 cwFilterState.fadingState *= cwFilterState.fadingDecay
             }
             
-            // STEP 8: Add amplitude modulation for very high atmospheric settings (matching reference)
-            if (atmosphericIntensity > 3.0) {
+            // STEP 8: Add amplitude modulation with increased effect
+            if (atmosphericIntensity > 2.0) {  // Lower threshold for AM effect
                 // Update AM parameters
                 if (cwFilterState.amDepth == 0.0) {
-                    cwFilterState.amFrequency = 0.05 + (Math.random() * 0.1 * (atmosphericIntensity - 3.0))
-                    cwFilterState.amDepth = minOf(0.8, (atmosphericIntensity - 3.0) * 0.15)
+                    cwFilterState.amFrequency = 0.08 + (Math.random() * 0.15 * (atmosphericIntensity - 2.0))
+                    cwFilterState.amDepth = minOf(0.9, (atmosphericIntensity - 2.0) * 0.2)  // Increased depth
                 }
                 
-                // Apply AM
+                // Apply AM with increased effect
                 cwFilterState.amPhase += 2.0 * PI * cwFilterState.amFrequency / sampleRate
                 if (cwFilterState.amPhase > 2.0 * PI) cwFilterState.amPhase -= 2.0 * PI
                 
@@ -152,8 +166,8 @@ class CWNoiseGenerator(private val sampleRate: Int = 44100) {
                 filteredNoise *= (1.0 - amModulation)
             }
             
-            // FINAL: Apply volume and clamp (CRITICAL: Use independent absolute noise volume)
-            buffer[i] = (filteredNoise * absoluteNoiseLevel * Short.MAX_VALUE).toInt()
+            // FINAL: Apply volume and clamp with slight boost
+            buffer[i] = (filteredNoise * absoluteNoiseLevel * 1.2 * Short.MAX_VALUE).toInt()
                 .coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
         }
         
