@@ -791,5 +791,103 @@ class MorseCodeGenerator(private val context: Context) {
      * Check if test noise is currently playing
      */
     fun isTestNoiseActive(): Boolean = isNoisePlayingContinuously
+    
+    /**
+     * Play a single character as Morse code
+     * Used for keyboard feedback outside of training sessions
+     */
+    fun playSingleCharacter(
+        char: Char,
+        settings: TrainingSettings,
+        onComplete: (() -> Unit)? = null
+    ) {
+        // Stop any current playback before starting new one
+        stopSequence()
+        
+        currentSettings = settings
+        isPlaying = true
+        isPaused = false
+        shouldStop = false
+        shouldPause = false
+        
+        playbackThread = Thread {
+            try {
+                android.util.Log.d("MorseCodeGenerator", "Playing single character: '$char' at ${settings.speedWpm}wpm")
+                
+                // Generate audio for the single character
+                val dotDuration = calculateDotDuration(settings.speedWpm)
+                val dashDuration = dotDuration * 3
+                val symbolSpacing = dotDuration
+                
+                val pattern = MorseCode.getPattern(char)
+                
+                if (pattern != null) {
+                    // Calculate total samples needed
+                    var totalDuration = 0
+                    for (symbol in pattern) {
+                        when (symbol) {
+                            '.' -> totalDuration += dotDuration
+                            '-' -> totalDuration += dashDuration
+                        }
+                    }
+                    
+                    // Add symbol spacing within pattern
+                    if (pattern.length > 1) {
+                        totalDuration += symbolSpacing * (pattern.length - 1)
+                    }
+                    
+                    // Add small buffer at end
+                    totalDuration += 50
+                    
+                    val totalSamples = (SAMPLE_RATE * totalDuration / 1000.0).toInt()
+                    val audioBuffer = ShortArray(totalSamples)
+                    
+                    // Generate the pattern into the buffer
+                    generatePatternIntoBuffer(
+                        audioBuffer,
+                        0,
+                        pattern,
+                        dotDuration,
+                        dashDuration,
+                        symbolSpacing,
+                        settings.toneFrequencyHz
+                    )
+                    
+                    // Apply overall envelope to prevent clicks
+                    applyOverallEnvelope(audioBuffer)
+                    
+                    if (audioBuffer.isNotEmpty() && !shouldStop) {
+                        // Pre-fill the AudioTrack buffer with initial data
+                        val initialChunkSize = minOf(4096, audioBuffer.size)
+                        val bytesWritten = audioTrack!!.write(audioBuffer, 0, initialChunkSize)
+                        
+                        if (bytesWritten > 0) {
+                            // Start playback
+                            audioTrack?.play()
+                            
+                            // Write remaining data if any
+                            if (initialChunkSize < audioBuffer.size) {
+                                playAudioBuffer(audioBuffer, initialChunkSize)
+                            }
+                        }
+                        
+                        audioTrack?.stop()
+                    }
+                }
+                
+            } catch (e: InterruptedException) {
+                android.util.Log.d("MorseCodeGenerator", "Single character playback interrupted")
+            } catch (e: Exception) {
+                android.util.Log.e("MorseCodeGenerator", "Error during single character playback: ${e.message}")
+                e.printStackTrace()
+            } finally {
+                isPlaying = false
+                isPaused = false
+                onComplete?.invoke()
+            }
+        }
+        
+        playbackThread?.start()
+    }
 
 } 

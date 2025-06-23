@@ -221,14 +221,15 @@ class TrainerFragment : Fragment() {
     private fun enableKeyboard(enabled: Boolean) {
         for (i in 0 until binding.keyboardGrid.childCount) {
             val button = binding.keyboardGrid.getChildAt(i) as? Button
-            button?.isEnabled = enabled
-            button?.alpha = if (enabled) 1.0f else 0.6f
+            button?.isEnabled = true // Always enabled for clicking
+            button?.isActivated = enabled // Use activated state to track session status
+            button?.alpha = 1.0f // Always fully visible
             
-            // Update text color based on enabled state
+            // Update text color based on session state
             val textColor = if (enabled) {
                 ContextCompat.getColor(requireContext(), R.color.keyboard_text_available)
             } else {
-                ContextCompat.getColor(requireContext(), R.color.keyboard_text_disabled)
+                ContextCompat.getColor(requireContext(), R.color.keyboard_text_inactive)
             }
             button?.setTextColor(textColor)
         }
@@ -384,27 +385,31 @@ class TrainerFragment : Fragment() {
     }
 
     private fun onCharacterPressed(char: Char) {
-        // Allow input only when waiting for answer or during playback
-        if (currentState != TrainingState.WAITING && currentState != TrainingState.PLAYING && currentState != TrainingState.PAUSED) return
-        
-        userInput += char
-        updateAnswerDisplay()
-        
-        // Check immediately if this character is wrong
-        val currentIndex = userInput.length - 1
-        if (currentIndex < currentSequence.length) {
-            val isCorrectChar = userInput[currentIndex].equals(currentSequence[currentIndex], ignoreCase = true)
+        // Handle differently based on session state
+        if (currentState == TrainingState.WAITING || currentState == TrainingState.PLAYING || currentState == TrainingState.PAUSED) {
+            // During active session - add to input
+            userInput += char
+            updateAnswerDisplay()
             
-            if (!isCorrectChar) {
-                // Wrong character entered - immediately check answer (which will be marked as incorrect)
-                checkAnswer()
-                return
+            // Check immediately if this character is wrong
+            val currentIndex = userInput.length - 1
+            if (currentIndex < currentSequence.length) {
+                val isCorrectChar = userInput[currentIndex].equals(currentSequence[currentIndex], ignoreCase = true)
+                
+                if (!isCorrectChar) {
+                    // Wrong character entered - immediately check answer (which will be marked as incorrect)
+                    checkAnswer()
+                    return
+                }
             }
-        }
-        
-        // Check if we have entered the complete correct sequence
-        if (userInput.length >= currentSequence.length) {
-            checkAnswer()
+            
+            // Check if we have entered the complete correct sequence
+            if (userInput.length >= currentSequence.length) {
+                checkAnswer()
+            }
+        } else {
+            // Outside of active session - just play the character sound
+            morseGenerator.playSingleCharacter(char, settings)
         }
     }
 

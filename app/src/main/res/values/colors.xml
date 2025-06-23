@@ -66,8 +66,11 @@
     <color name="keyboard_available">#2196F3</color>
     <color name="keyboard_available_pressed">#1976D2</color>
     <color name="keyboard_disabled">#E0E0E0</color>
+    <color name="keyboard_inactive">#4CAF50</color>
+    <color name="keyboard_inactive_pressed">#388E3C</color>
     <color name="keyboard_text_available">#FFFFFF</color>
     <color name="keyboard_text_disabled">#9E9E9E</color>
+    <color name="keyboard_text_inactive">#FFFFFF</color>
     
     <!-- Gradient Colors -->
     <color name="gradient_start">#2196F3</color>

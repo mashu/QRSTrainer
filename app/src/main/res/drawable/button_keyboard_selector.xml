@@ -8,15 +8,39 @@
         </shape>
     </item>
     
-    <!-- Pressed state -->
-    <item android:state_pressed="true">
+    <!-- Pressed state for inactive buttons -->
+    <item android:state_pressed="true" android:state_activated="false" android:state_enabled="true">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/keyboard_inactive_pressed" />
+            <corners android:radius="12dp" />
+        </shape>
+    </item>
+    
+    <!-- Inactive state (not in session but clickable) -->
+    <item android:state_activated="false" android:state_enabled="true">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/keyboard_inactive" />
+            <corners android:radius="12dp" />
+        </shape>
+    </item>
+    
+    <!-- Pressed state for active buttons -->
+    <item android:state_pressed="true" android:state_activated="true">
         <shape android:shape="rectangle">
             <solid android:color="@color/keyboard_available_pressed" />
             <corners android:radius="12dp" />
         </shape>
     </item>
     
-    <!-- Normal state -->
+    <!-- Normal state (in session) -->
+    <item android:state_activated="true">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/keyboard_available" />
+            <corners android:radius="12dp" />
+        </shape>
+    </item>
+    
+    <!-- Default state (fallback) -->
     <item>
         <shape android:shape="rectangle">
             <solid android:color="@color/keyboard_available" />
