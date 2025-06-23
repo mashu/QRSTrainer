@@ -54,6 +54,10 @@ class TrainerFragment : Fragment() {
     
     // Lifecycle state tracking
     private var wasPlayingWhenPaused = false
+    
+    // Session state tracking
+    private var isSessionActive = false
+    private var isNoiseRunning = false
 
     // Training states
     enum class TrainingState {
@@ -117,6 +121,11 @@ class TrainerFragment : Fragment() {
         if (isAudioPlaying && !isPaused) {
             pausePlayback()
         }
+        
+        // Stop noise if session is active
+        if (isNoiseRunning) {
+            stopContinuousNoise()
+        }
     }
 
     private fun initializeComponents() {
@@ -132,7 +141,13 @@ class TrainerFragment : Fragment() {
         
         // New control system
         binding.buttonStart.setOnClickListener {
-            startNewSequence()
+            if (isSessionActive) {
+                // If session is active, replay current sequence
+                playCurrentSequence()
+            } else {
+                // Start a new session
+                startSession()
+            }
         }
         
         binding.buttonPause.setOnClickListener {
@@ -140,7 +155,7 @@ class TrainerFragment : Fragment() {
         }
         
         binding.buttonStop.setOnClickListener {
-            stopTraining()
+            stopSession()
         }
         
         // Legacy controls (hidden by default)
@@ -159,8 +174,16 @@ class TrainerFragment : Fragment() {
                 binding.buttonStart.visibility = View.VISIBLE
                 binding.buttonPause.visibility = View.GONE
                 binding.buttonStop.visibility = View.GONE
-                binding.textStatus.text = "Ready to start training"
-                enableKeyboard(false)
+                
+                if (isSessionActive) {
+                    binding.buttonStart.text = "▶ REPLAY"
+                    binding.buttonStop.visibility = View.VISIBLE
+                } else {
+                    binding.buttonStart.text = "▶ START"
+                }
+                
+                binding.textStatus.text = if (isSessionActive) "Session active - ready for next sequence" else "Ready to start training"
+                enableKeyboard(isSessionActive)
             }
             TrainingState.PLAYING -> {
                 binding.buttonStart.visibility = View.GONE
@@ -186,11 +209,11 @@ class TrainerFragment : Fragment() {
                 enableKeyboard(true)
             }
             TrainingState.FINISHED -> {
-                binding.buttonStart.text = "▶ START"
+                binding.buttonStart.text = if (isSessionActive) "▶ NEXT" else "▶ START"
                 binding.buttonStart.visibility = View.VISIBLE
                 binding.buttonPause.visibility = View.GONE
-                binding.buttonStop.visibility = View.GONE
-                enableKeyboard(false)
+                binding.buttonStop.visibility = if (isSessionActive) View.VISIBLE else View.GONE
+                enableKeyboard(isSessionActive)
             }
         }
     }
@@ -477,7 +500,7 @@ class TrainerFragment : Fragment() {
 
     private fun playCurrentSequence() {
         // Prevent starting playback if already playing or in wrong state
-        if (isAudioPlaying || currentState != TrainingState.READY) {
+        if (isAudioPlaying || currentState == TrainingState.PLAYING) {
             android.util.Log.w("TrainerFragment", "Cannot start playback: isAudioPlaying=$isAudioPlaying, currentState=$currentState")
             return
         }
@@ -492,9 +515,11 @@ class TrainerFragment : Fragment() {
         isPaused = false
         updateUIState()
         
+        // Play the sequence without starting noise (noise is handled at session level)
         morseGenerator.playSequence(
             currentSequence,
-            settings  // Pass the full settings object
+            settings,
+            startNoise = false  // Don't start noise for each sequence
         ) {
             // On playback complete
             Handler(Looper.getMainLooper()).post {
@@ -562,7 +587,7 @@ class TrainerFragment : Fragment() {
         // Clear status message after a short delay
         Handler(Looper.getMainLooper()).postDelayed({
             if (!isDetached && _binding != null && currentState == TrainingState.READY) {
-                binding.textStatus.text = "Ready to start training"
+                binding.textStatus.text = if (isSessionActive) "Session active - ready for next sequence" else "Ready to start training"
             }
         }, 1000)
     }
@@ -766,7 +791,7 @@ class TrainerFragment : Fragment() {
     
     private fun stopAudioCompletely() {
         // Stop audio and reset all audio-related state
-        morseGenerator.stop()
+        morseGenerator.stopSequence() // Only stop the sequence, not the continuous noise
         isAudioPlaying = false
         isPaused = false
         wasPlayingWhenPaused = false
@@ -898,12 +923,72 @@ class TrainerFragment : Fragment() {
         delayHandler?.post(delayRunnable!!)
     }
 
+    /**
+     * Start a new training session
+     */
+    private fun startSession() {
+        // Reset session state
+        isSessionActive = true
+        
+        // Start continuous background noise if enabled
+        if (settings.filterRingingEnabled && settings.backgroundNoiseLevel > 0) {
+            startContinuousNoise()
+        }
+        
+        // Start first sequence
+        startNewSequence()
+    }
+    
+    /**
+     * Stop the current training session
+     */
+    private fun stopSession() {
+        // Stop any ongoing sequence
+        stopTraining()
+        
+        // Stop continuous background noise
+        stopContinuousNoise()
+        
+        // Reset session state
+        isSessionActive = false
+        
+        // Update UI
+        updateUIState()
+    }
+    
+    /**
+     * Start continuous background noise for the session
+     */
+    private fun startContinuousNoise() {
+        if (!isNoiseRunning && settings.filterRingingEnabled && settings.backgroundNoiseLevel > 0) {
+            morseGenerator.startContinuousNoise()
+            isNoiseRunning = true
+            android.util.Log.d("TrainerFragment", "Started continuous background noise for session")
+        }
+    }
+    
+    /**
+     * Stop continuous background noise
+     */
+    private fun stopContinuousNoise() {
+        if (isNoiseRunning) {
+            morseGenerator.stopContinuousNoise()
+            isNoiseRunning = false
+            android.util.Log.d("TrainerFragment", "Stopped continuous background noise")
+        }
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         morseGenerator.stop()
         morseGenerator.release()  // Clean up ToneGenerator resources
         cancelTimeout()
         hideSequenceDelayProgress() // Clean up delay handler
+        
+        // Ensure session is stopped
+        isSessionActive = false
+        isNoiseRunning = false
+        
         _binding = null
     }
 } 

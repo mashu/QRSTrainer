@@ -101,10 +101,11 @@ class MorseCodeGenerator(private val context: Context) {
     fun playSequence(
         sequence: String, 
         settings: TrainingSettings,
+        startNoise: Boolean = true,
         onComplete: (() -> Unit)? = null
     ) {
         // Stop any current playback before starting new one
-        stop()
+        stopSequence()
         
         currentSettings = settings
         isPlaying = true
@@ -113,7 +114,8 @@ class MorseCodeGenerator(private val context: Context) {
         shouldPause = false
         
         // Start continuous background noise ONLY if checkbox is enabled AND noise level > 0
-        if (settings.filterRingingEnabled && settings.backgroundNoiseLevel > 0 && !isNoisePlayingContinuously) {
+        // AND startNoise parameter is true (for session-based noise control)
+        if (startNoise && settings.filterRingingEnabled && settings.backgroundNoiseLevel > 0 && !isNoisePlayingContinuously) {
             startContinuousNoise()
         }
         
@@ -515,7 +517,6 @@ class MorseCodeGenerator(private val context: Context) {
             isPaused = true
             try {
                 audioTrack?.pause()
-                noiseAudioTrack?.pause()
                 android.util.Log.d("MorseCodeGenerator", "Audio paused")
             } catch (e: Exception) {
                 android.util.Log.e("MorseCodeGenerator", "Error pausing AudioTrack: ${e.message}")
@@ -532,9 +533,6 @@ class MorseCodeGenerator(private val context: Context) {
             isPaused = false
             try {
                 audioTrack?.play()
-                if (isNoisePlayingContinuously) {
-                    noiseAudioTrack?.play()
-                }
                 android.util.Log.d("MorseCodeGenerator", "Audio resumed")
             } catch (e: Exception) {
                 android.util.Log.e("MorseCodeGenerator", "Error resuming AudioTrack: ${e.message}")
@@ -543,9 +541,10 @@ class MorseCodeGenerator(private val context: Context) {
     }
     
     /**
-     * Stop current playback
+     * Stop only the current sequence playback (not the background noise)
+     * Used for session-based training where noise continues between sequences
      */
-    fun stop() {
+    fun stopSequence() {
         shouldStop = true
         shouldPause = false
         
@@ -554,9 +553,6 @@ class MorseCodeGenerator(private val context: Context) {
         } catch (e: Exception) {
             android.util.Log.e("MorseCodeGenerator", "Error stopping AudioTrack: ${e.message}")
         }
-        
-        // Stop continuous background noise
-        stopContinuousNoise()
         
         // Interrupt and wait for playback thread to finish
         playbackThread?.interrupt()
@@ -572,6 +568,15 @@ class MorseCodeGenerator(private val context: Context) {
     }
     
     /**
+     * Stop all audio playback including background noise
+     * Used when completely stopping training
+     */
+    fun stop() {
+        stopSequence()
+        stopContinuousNoise()
+    }
+    
+    /**
      * Check if audio is currently playing
      */
     fun isPlaying(): Boolean = isPlaying
@@ -580,6 +585,81 @@ class MorseCodeGenerator(private val context: Context) {
      * Check if audio is currently paused
      */
     fun isPaused(): Boolean = isPaused
+    
+    /**
+     * Check if background noise is currently playing
+     */
+    fun isNoiseActive(): Boolean = isNoisePlayingContinuously
+    
+    /**
+     * Start continuous background noise for session-based training
+     * This keeps noise playing continuously throughout the session
+     */
+    fun startContinuousNoise() {
+        if (isNoisePlayingContinuously) return
+        
+        android.util.Log.d("MorseCodeGenerator", "Starting continuous session noise - Noise level: ${(currentSettings.backgroundNoiseLevel * 100).toInt()}%")
+        
+        isNoisePlayingContinuously = true
+        shouldStopNoise = false
+        
+        noiseThread = Thread {
+            try {
+                noiseAudioTrack?.play()
+                
+                val chunkSize = 1024
+                val noiseBuffer = ShortArray(chunkSize)
+                
+                while (!shouldStopNoise && isNoisePlayingContinuously) {
+                    // Generate CW-filtered noise chunk using professional CW noise generator
+                    cwNoiseGenerator.generateRealisticCWNoise(noiseBuffer, currentSettings)
+                    
+                    try {
+                        val bytesWritten = noiseAudioTrack!!.write(noiseBuffer, 0, chunkSize)
+                        if (bytesWritten <= 0) {
+                            Thread.sleep(1) // Brief pause if write fails
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("MorseCodeGenerator", "Error writing noise: ${e.message}")
+                        break
+                    }
+                }
+                
+                noiseAudioTrack?.stop()
+                
+            } catch (e: Exception) {
+                android.util.Log.e("MorseCodeGenerator", "Error in continuous noise playback: ${e.message}")
+            } finally {
+                isNoisePlayingContinuously = false
+                android.util.Log.d("MorseCodeGenerator", "Continuous session noise stopped")
+            }
+        }
+        
+        noiseThread?.start()
+    }
+    
+    /**
+     * Stop continuous background noise
+     */
+    fun stopContinuousNoise() {
+        shouldStopNoise = true
+        
+        try {
+            noiseAudioTrack?.stop()
+        } catch (e: Exception) {
+            android.util.Log.e("MorseCodeGenerator", "Error stopping noise AudioTrack: ${e.message}")
+        }
+        
+        noiseThread?.interrupt()
+        try {
+            noiseThread?.join(500) // Wait up to 500ms
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+        }
+        noiseThread = null
+        
+        isNoisePlayingContinuously = false
+    }
     
     /**
      * Clean up resources
@@ -657,118 +737,6 @@ class MorseCodeGenerator(private val context: Context) {
         
         return amplitude * warmthFactor
     }
-    
-    /**
-     * Start continuous background noise that plays throughout the session
-     * Only starts if the filter ringing checkbox is enabled AND noise level > 0
-     */
-    private fun startContinuousNoise() {
-        if (isNoisePlayingContinuously) return
-        
-        android.util.Log.d("MorseCodeGenerator", "Starting CW background noise - Checkbox enabled: ${currentSettings.filterRingingEnabled}, Noise level: ${(currentSettings.backgroundNoiseLevel * 100).toInt()}%")
-        
-        isNoisePlayingContinuously = true
-        shouldStopNoise = false
-        
-        noiseThread = Thread {
-            try {
-                noiseAudioTrack?.play()
-                
-                val chunkSize = 1024
-                val noiseBuffer = ShortArray(chunkSize)
-                
-                while (!shouldStopNoise && isNoisePlayingContinuously) {
-                    // Generate CW-filtered noise chunk using professional CW noise generator
-                    cwNoiseGenerator.generateRealisticCWNoise(noiseBuffer, currentSettings)
-                    
-                    try {
-                        val bytesWritten = noiseAudioTrack!!.write(noiseBuffer, 0, chunkSize)
-                        if (bytesWritten <= 0) {
-                            Thread.sleep(1) // Brief pause if write fails
-                        }
-                    } catch (e: Exception) {
-                        android.util.Log.e("MorseCodeGenerator", "Error writing noise: ${e.message}")
-                        break
-                    }
-                }
-                
-                noiseAudioTrack?.stop()
-                
-            } catch (e: Exception) {
-                android.util.Log.e("MorseCodeGenerator", "Error in continuous noise playback: ${e.message}")
-            } finally {
-                isNoisePlayingContinuously = false
-                android.util.Log.d("MorseCodeGenerator", "CW background noise stopped")
-            }
-        }
-        
-        noiseThread?.start()
-    }
-    
-    /**
-     * Stop continuous background noise
-     */
-    private fun stopContinuousNoise() {
-        shouldStopNoise = true
-        
-        try {
-            noiseAudioTrack?.stop()
-        } catch (e: Exception) {
-            android.util.Log.e("MorseCodeGenerator", "Error stopping noise AudioTrack: ${e.message}")
-        }
-        
-        noiseThread?.interrupt()
-        try {
-            noiseThread?.join(500) // Wait up to 500ms
-        } catch (e: InterruptedException) {
-            Thread.currentThread().interrupt()
-        }
-        noiseThread = null
-        
-        isNoisePlayingContinuously = false
-    }
-    
-    // Old noise generation method moved to CWNoiseGenerator class
-    
-    // Old simplified filter methods replaced with professional BiquadFilter implementation above
-    
-    /**
-     * Apply realistic bandpass filter response for CW background noise
-     */
-    private fun applyRealisticBandpassFilter(
-        input: Double, 
-        centerFreq: Double, 
-        bandwidth: Double, 
-        qFactor: Double
-    ): Double {
-        // Calculate effective Q factor
-        val effectiveQ = minOf(qFactor, centerFreq / maxOf(100.0, bandwidth))
-        
-        // Create realistic frequency response curve
-        val freqDiff = abs(centerFreq - 600.0) // Distance from reference frequency
-        val normalizedDiff = freqDiff / bandwidth
-        
-        // Gentler rolloff for more natural filtering
-        val freqResponse = 1.0 / (1.0 + (normalizedDiff * normalizedDiff / effectiveQ))
-        
-        // Scale response based on Q factor (higher Q = more selective)
-        val qResponse = (0.5 + effectiveQ / 20.0).coerceIn(0.3, 1.5)
-        
-        return input * freqResponse * qResponse
-    }
-    
-    /**
-     * Simulate notch filter response with resonance
-     */
-    private fun applySimulatedNotchFilter(input: Double, notchFreq: Double, qFactor: Double = 8.0): Double {
-        // Enhanced notch filter simulation with Q factor
-        val freqDiff = abs(notchFreq - 600.0)
-        val notchDepth = 1.0 / (1.0 + (qFactor * freqDiff / 100.0))
-        val notchResponse = 1.0 - notchDepth * 0.8 // Deeper notch
-        return input * (0.3 + notchResponse * 0.7) // More pronounced effect
-    }
-    
-    // CW filter state and noise generation now handled by separate classes
     
     /**
      * Start continuous noise for testing CW filter parameters
