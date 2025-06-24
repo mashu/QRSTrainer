@@ -21,6 +21,7 @@ import com.so5km.qrstrainer.data.MorseCode
 import com.so5km.qrstrainer.data.ProgressTracker
 import com.so5km.qrstrainer.data.TrainingSettings
 import com.so5km.qrstrainer.databinding.FragmentTrainerBinding
+import com.so5km.qrstrainer.training.CharacterTimingCalculator
 import com.so5km.qrstrainer.training.SequenceGenerator
 
 class TrainerFragment : Fragment() {
@@ -32,6 +33,7 @@ class TrainerFragment : Fragment() {
     private lateinit var sequenceGenerator: SequenceGenerator
     private lateinit var morseGenerator: MorseCodeGenerator
     private lateinit var settings: TrainingSettings
+    private val characterTimingCalculator = CharacterTimingCalculator()
     
     private var currentSequence: String = ""
     private var userInput: String = ""
@@ -58,7 +60,12 @@ class TrainerFragment : Fragment() {
     // Session state tracking
     private var isSessionActive = false
     private var isNoiseRunning = false
-
+    
+    // Response time tracking
+    private var sequenceStartTime: Long = 0
+    private var characterTimings: List<CharacterTimingCalculator.CharacterTiming> = emptyList()
+    private var characterResponseTimes = mutableMapOf<Char, Long>()
+    
     // Training states
     enum class TrainingState {
         READY,      // Ready to start
@@ -391,11 +398,26 @@ class TrainerFragment : Fragment() {
             userInput += char
             updateAnswerDisplay()
             
-            // Check immediately if this character is wrong
+            // Calculate response time for the current character
             val currentIndex = userInput.length - 1
             if (currentIndex < currentSequence.length) {
-                val isCorrectChar = userInput[currentIndex].equals(currentSequence[currentIndex], ignoreCase = true)
+                val currentChar = currentSequence[currentIndex]
+                val responseTimeMs = System.currentTimeMillis() - sequenceStartTime
                 
+                // Find the timing for this character
+                val charIndex = characterTimings.indexOfFirst { it.char == currentChar }
+                if (charIndex >= 0) {
+                    val charResponseTime = characterTimingCalculator.calculateCharacterResponseTime(
+                        characterTimings, charIndex, responseTimeMs
+                    )
+                    // Store the response time for this character
+                    characterResponseTimes[currentChar] = charResponseTime
+                    android.util.Log.d("TrainerFragment", 
+                        "Character response time: '$currentChar' - ${charResponseTime}ms")
+                }
+                
+                // Check if this character is wrong
+                val isCorrectChar = char.equals(currentChar, ignoreCase = true)
                 if (!isCorrectChar) {
                     // Wrong character entered - immediately check answer (which will be marked as incorrect)
                     checkAnswer()
@@ -521,6 +543,13 @@ class TrainerFragment : Fragment() {
         isPaused = false
         updateUIState()
         
+        // Calculate character timings for response time tracking
+        characterTimings = characterTimingCalculator.calculateCharacterTimings(currentSequence, settings)
+        characterResponseTimes.clear()
+        
+        // Record the start time for response time tracking
+        sequenceStartTime = System.currentTimeMillis()
+        
         // Play the sequence without starting noise (noise is handled at session level)
         morseGenerator.playSequence(
             currentSequence,
@@ -636,9 +665,17 @@ class TrainerFragment : Fragment() {
         previousWasCorrect = isCorrect
         
         if (isCorrect) {
-            // Record correct answers for each character
-            currentSequence.forEach { char ->
+            // Record correct answers and response time for each character
+            for (i in currentSequence.indices) {
+                val char = currentSequence[i]
                 progressTracker.recordCorrect(char)
+                
+                // Record response time if we have it
+                val responseTime = characterResponseTimes[char]
+                if (responseTime != null) {
+                    progressTracker.recordResponseTime(char, responseTime)
+                    android.util.Log.d("TrainerFragment", "Recording response time for '$char': ${responseTime}ms")
+                }
             }
             
             binding.textStatus.text = getString(R.string.correct_answer)

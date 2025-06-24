@@ -11,7 +11,9 @@ data class CharacterStats(
     val character: Char,
     val correctCount: Int = 0,
     val incorrectCount: Int = 0,
-    val weight: Double = 1.0  // Weight for sampling probability
+    val weight: Double = 1.0,  // Weight for sampling probability
+    val totalResponseTimeMs: Long = 0,  // Total response time in milliseconds
+    val responseCount: Int = 0  // Number of response time measurements
 ) {
     /**
      * Total attempts for this character
@@ -23,6 +25,13 @@ data class CharacterStats(
      */
     val accuracy: Double get() = if (totalAttempts > 0) {
         (correctCount.toDouble() / totalAttempts) * 100.0
+    } else 0.0
+    
+    /**
+     * Average response time in milliseconds
+     */
+    val averageResponseTimeMs: Double get() = if (responseCount > 0) {
+        totalResponseTimeMs.toDouble() / responseCount
     } else 0.0
     
     /**
@@ -41,6 +50,14 @@ data class CharacterStats(
     fun updateWeight(newWeight: Double): CharacterStats = copy(weight = newWeight)
     
     /**
+     * Add response time measurement
+     */
+    fun addResponseTime(responseTimeMs: Long): CharacterStats = copy(
+        totalResponseTimeMs = totalResponseTimeMs + responseTimeMs,
+        responseCount = responseCount + 1
+    )
+    
+    /**
      * Convert to JSON for persistence
      */
     fun toJson(): JSONObject {
@@ -49,6 +66,8 @@ data class CharacterStats(
             put("correctCount", correctCount)
             put("incorrectCount", incorrectCount)
             put("weight", weight)
+            put("totalResponseTimeMs", totalResponseTimeMs)
+            put("responseCount", responseCount)
         }
     }
     
@@ -61,7 +80,9 @@ data class CharacterStats(
                 character = json.getString("character").first(),
                 correctCount = json.getInt("correctCount"),
                 incorrectCount = json.getInt("incorrectCount"),
-                weight = json.getDouble("weight")
+                weight = json.getDouble("weight"),
+                totalResponseTimeMs = json.optLong("totalResponseTimeMs", 0),
+                responseCount = json.optInt("responseCount", 0)
             )
         }
     }

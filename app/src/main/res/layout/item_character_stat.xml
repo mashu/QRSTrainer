@@ -55,6 +55,16 @@
                 android:text="Accuracy: 85%"
                 android:textSize="14sp" />
 
+            <TextView
+                android:id="@+id/textResponseTime"
+                style="@style/Text.Caption"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Response: 850ms"
+                android:textSize="14sp"
+                android:visibility="gone" />
+
         </LinearLayout>
 
         <!-- Statistics -->

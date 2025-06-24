@@ -19,6 +19,14 @@ class CharacterStatsAdapter : RecyclerView.Adapter<CharacterStatsAdapter.ViewHol
             binding.textAccuracy.text = "Accuracy: ${String.format("%.1f", stats.accuracy)}%"
             binding.textCorrectCount.text = "✓ ${stats.correctCount}"
             binding.textIncorrectCount.text = "✗ ${stats.incorrectCount}"
+            
+            // Display response time if available
+            if (stats.responseCount > 0) {
+                binding.textResponseTime.text = "Response: ${String.format("%.1f", stats.averageResponseTimeMs)}ms"
+                binding.textResponseTime.visibility = android.view.View.VISIBLE
+            } else {
+                binding.textResponseTime.visibility = android.view.View.GONE
+            }
         }
     }
 

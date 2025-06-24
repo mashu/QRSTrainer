@@ -23,6 +23,8 @@ class ProgressTracker(private val context: Context) {
     private var _sessionIncorrect = 0
     private var _sessionStreak = 0
     private var _sessionBestStreak = 0
+    private var _sessionTotalResponseTimeMs = 0L
+    private var _sessionResponseCount = 0
     
     /**
      * Level drop tracking
@@ -35,6 +37,9 @@ class ProgressTracker(private val context: Context) {
     val sessionBestStreak: Int get() = _sessionBestStreak
     val sessionTotal: Int get() = _sessionCorrect + _sessionIncorrect
     val currentLevelMistakes: Int get() = _currentLevelMistakes
+    val sessionAverageResponseTimeMs: Double get() = if (_sessionResponseCount > 0) {
+        _sessionTotalResponseTimeMs.toDouble() / _sessionResponseCount
+    } else 0.0
     
     init {
         loadProgress()
@@ -85,6 +90,19 @@ class ProgressTracker(private val context: Context) {
     }
     
     /**
+     * Record response time for a character
+     */
+    fun recordResponseTime(char: Char, responseTimeMs: Long) {
+        val current = getCharacterStats(char)
+        _characterStats[char] = current.addResponseTime(responseTimeMs)
+        
+        _sessionTotalResponseTimeMs += responseTimeMs
+        _sessionResponseCount++
+        
+        saveProgress()
+    }
+    
+    /**
      * Get characters for the current level with their weights
      */
     fun getWeightedCharacters(level: Int, lettersOnly: Boolean = false): Array<Pair<Char, Double>> {
@@ -120,6 +138,8 @@ class ProgressTracker(private val context: Context) {
         _sessionStreak = 0
         _sessionBestStreak = 0
         _currentLevelMistakes = 0
+        _sessionTotalResponseTimeMs = 0
+        _sessionResponseCount = 0
         saveProgress()
     }
     
@@ -131,6 +151,8 @@ class ProgressTracker(private val context: Context) {
         _sessionIncorrect = 0
         _sessionStreak = 0
         _sessionBestStreak = 0
+        _sessionTotalResponseTimeMs = 0
+        _sessionResponseCount = 0
     }
     
     /**
@@ -156,6 +178,18 @@ class ProgressTracker(private val context: Context) {
     }
     
     /**
+     * Get overall average response time across all characters
+     */
+    fun getOverallAverageResponseTime(): Double {
+        val totalResponseTime = _characterStats.values.sumOf { it.totalResponseTimeMs }
+        val totalResponseCount = _characterStats.values.sumOf { it.responseCount }
+        
+        return if (totalResponseCount > 0) {
+            totalResponseTime.toDouble() / totalResponseCount
+        } else 0.0
+    }
+    
+    /**
      * Save progress to SharedPreferences
      */
     private fun saveProgress() {
@@ -171,6 +205,8 @@ class ProgressTracker(private val context: Context) {
         json.put("sessionIncorrect", _sessionIncorrect)
         json.put("sessionBestStreak", _sessionBestStreak)
         json.put("currentLevelMistakes", _currentLevelMistakes)
+        json.put("sessionTotalResponseTimeMs", _sessionTotalResponseTimeMs)
+        json.put("sessionResponseCount", _sessionResponseCount)
         
         prefs.edit().putString("progress_data", json.toString()).apply()
     }
@@ -195,6 +231,8 @@ class ProgressTracker(private val context: Context) {
             _sessionIncorrect = json.optInt("sessionIncorrect", 0)
             _sessionBestStreak = json.optInt("sessionBestStreak", 0)
             _currentLevelMistakes = json.optInt("currentLevelMistakes", 0)
+            _sessionTotalResponseTimeMs = json.optLong("sessionTotalResponseTimeMs", 0)
+            _sessionResponseCount = json.optInt("sessionResponseCount", 0)
             
         } catch (e: Exception) {
             // If loading fails, start with clean slate

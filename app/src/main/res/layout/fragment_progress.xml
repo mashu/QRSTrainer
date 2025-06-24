@@ -127,6 +127,29 @@
 
             </LinearLayout>
 
+            <!-- Response Time -->
+            <TextView
+                android:id="@+id/textResponseTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="16dp"
+                android:text="Average Response: 0.0 ms"
+                android:textColor="@color/accent_orange"
+                android:textSize="16sp"
+                android:visibility="gone" />
+
+            <!-- Reset Button -->
+            <Button
+                android:id="@+id/buttonResetProgress"
+                style="@style/Button.Accent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="16dp"
+                android:text="Reset Progress"
+                android:textSize="14sp" />
+
         </LinearLayout>
 
     </androidx.cardview.widget.CardView>

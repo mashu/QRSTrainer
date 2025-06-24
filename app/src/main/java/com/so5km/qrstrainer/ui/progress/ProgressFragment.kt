@@ -33,15 +33,22 @@ class ProgressFragment : Fragment() {
         settings = TrainingSettings.load(requireContext())
         
         setupRecyclerView()
-        updateStatistics()
+        updateOverallStatistics()
+        updateCharacterStatistics()
+        
+        binding.buttonResetProgress.setOnClickListener {
+            resetProgress()
+        }
 
         return root
     }
     
     override fun onResume() {
         super.onResume()
-        // Refresh data when returning to this fragment
-        updateStatistics()
+        // Reload settings when returning to progress screen
+        settings = TrainingSettings.load(requireContext())
+        updateOverallStatistics()
+        updateCharacterStatistics()
     }
 
     private fun setupRecyclerView() {
@@ -50,8 +57,8 @@ class ProgressFragment : Fragment() {
         binding.recyclerViewStats.adapter = adapter
     }
 
-    private fun updateStatistics() {
-        // Update both overall and character statistics
+    private fun resetProgress() {
+        progressTracker.resetProgress()
         updateOverallStatistics()
         updateCharacterStatistics()
     }
@@ -60,6 +67,15 @@ class ProgressFragment : Fragment() {
         // Overall accuracy across all characters
         val overallAccuracy = progressTracker.getOverallAccuracy()
         binding.textOverallAccuracy.text = String.format("%.1f%%", overallAccuracy)
+        
+        // Overall average response time
+        val overallResponseTime = progressTracker.getOverallAverageResponseTime()
+        if (overallResponseTime > 0) {
+            binding.textResponseTime.text = String.format("%.1f ms", overallResponseTime)
+            binding.textResponseTime.visibility = View.VISIBLE
+        } else {
+            binding.textResponseTime.visibility = View.GONE
+        }
         
         // Session statistics
         val sessionCorrect = progressTracker.sessionCorrect
