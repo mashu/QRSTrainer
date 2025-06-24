@@ -87,8 +87,8 @@ class ProgressTracker(private val context: Context) {
     /**
      * Get characters for the current level with their weights
      */
-    fun getWeightedCharacters(level: Int): Array<Pair<Char, Double>> {
-        val characters = MorseCode.getCharactersForLevel(level)
+    fun getWeightedCharacters(level: Int, lettersOnly: Boolean = false): Array<Pair<Char, Double>> {
+        val characters = MorseCode.getCharactersForLevel(level, lettersOnly)
         return characters.map { char ->
             val stats = getCharacterStats(char)
             char to stats.weight

@@ -14,6 +14,7 @@ import com.so5km.qrstrainer.data.MorseCode
 import com.so5km.qrstrainer.data.ProgressTracker
 import com.so5km.qrstrainer.data.TrainingSettings
 import com.so5km.qrstrainer.databinding.FragmentSettingsBinding
+import com.so5km.qrstrainer.ui.views.SettingLabelHelp
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -200,17 +201,40 @@ class SettingsFragment : Fragment() {
         binding.seekBarLevel.max = MorseCode.getMaxLevel() - 1  // 0-based
         binding.seekBarLevel.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val level = progress + 1  // 1-based display
-                binding.textLevelDisplay.text = "Level $level"
+                val level = progress + 1  // 1-based level
+                val levelChars = MorseCode.getCharactersForLevel(level, settings.lettersOnlyMode)
+                val levelString = "Level $level: ${levelChars.joinToString("")}"
+                binding.textLevelDisplay.text = levelString
                 if (fromUser) saveSettings()
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
-        binding.checkBoxLockLevel.setOnCheckedChangeListener { _, _ ->
+        // Level lock
+        binding.checkBoxLockLevel.setOnCheckedChangeListener { _, isChecked ->
             saveSettings()
         }
+        
+        // Letters-only mode
+        binding.checkBoxLettersOnly.setOnCheckedChangeListener { _, isChecked ->
+            // When the setting changes, update the level display to show the new character set
+            val level = settings.kochLevel
+            val levelChars = MorseCode.getCharactersForLevel(level, isChecked)
+            val levelString = "Level $level: ${levelChars.joinToString("")}"
+            binding.textLevelDisplay.text = levelString
+            saveSettings()
+        }
+        
+        // Add help to the letters-only mode setting
+        SettingLabelHelp.addHelpToSetting(
+            binding.checkBoxLettersOnly.parent as ViewGroup,
+            "Letters Only Mode",
+            "When enabled, only letter characters (A-Z) will be included in training sequences " +
+            "and on the keyboard. This provides a more focused training experience when learning " +
+            "the alphabet. When disabled, all characters for the current level (including numbers " +
+            "and punctuation) will be used."
+        )
 
         // Group size settings
         binding.seekBarGroupMin.max = 8  // 1-9 characters
@@ -916,9 +940,12 @@ class SettingsFragment : Fragment() {
         
         // Load level settings
         binding.seekBarLevel.progress = settings.kochLevel - 1  // Convert to 0-based
-        binding.textLevelDisplay.text = "Level ${settings.kochLevel}"
+        val levelChars = MorseCode.getCharactersForLevel(settings.kochLevel, settings.lettersOnlyMode)
+        val levelString = "Level ${settings.kochLevel}: ${levelChars.joinToString("")}"
+        binding.textLevelDisplay.text = levelString
         
         binding.checkBoxLockLevel.isChecked = settings.isLevelLocked
+        binding.checkBoxLettersOnly.isChecked = settings.lettersOnlyMode
         
         // Load group size settings
         binding.seekBarGroupMin.progress = settings.groupSizeMin - 1  // Convert to 0-based
@@ -1179,6 +1206,7 @@ class SettingsFragment : Fragment() {
             speedWpm = speed,
             kochLevel = level,
             isLevelLocked = binding.checkBoxLockLevel.isChecked,
+            lettersOnlyMode = binding.checkBoxLettersOnly.isChecked,
             groupSizeMin = groupMin,
             groupSizeMax = groupMax,
             answerTimeoutSeconds = timeout,
@@ -1262,6 +1290,7 @@ class SettingsFragment : Fragment() {
             speedWpm = speed,
             kochLevel = level,
             isLevelLocked = binding.checkBoxLockLevel.isChecked,
+            lettersOnlyMode = binding.checkBoxLettersOnly.isChecked,
             groupSizeMin = groupMin,
             groupSizeMax = groupMax,
             answerTimeoutSeconds = timeout,

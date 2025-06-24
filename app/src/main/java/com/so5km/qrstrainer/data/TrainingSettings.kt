@@ -24,6 +24,7 @@ data class TrainingSettings(
     val levelChangeDelayMs: Int = 1000,        // Delay when level changes (advancement/drop) (1 second)
     val mistakesToDropLevel: Int = 1,          // Number of mistakes to cause level drop (0 = disabled)
     val farnsworthWpm: Int = 0,                // Farnsworth timing WPM (0 = disabled) - affects character timing
+    val lettersOnlyMode: Boolean = true,      // When true, only include letter characters (A-Z) in training
     
     // === AUDIO GENERATION SETTINGS ===
     val toneFrequencyHz: Int = 600,            // Tone frequency in Hz (300-1000)
@@ -87,6 +88,7 @@ data class TrainingSettings(
         private const val KEY_LEVEL_CHANGE_DELAY = "level_change_delay"
         private const val KEY_MISTAKES_TO_DROP = "mistakes_to_drop"
         private const val KEY_FARNSWORTH_WPM = "farnsworth_wpm"
+        private const val KEY_LETTERS_ONLY_MODE = "letters_only_mode"
         
         // Audio generation settings keys
         private const val KEY_TONE_FREQUENCY = "tone_frequency"
@@ -192,6 +194,7 @@ data class TrainingSettings(
                 levelChangeDelayMs = prefs.getInt(KEY_LEVEL_CHANGE_DELAY, 1000),
                 mistakesToDropLevel = prefs.getInt(KEY_MISTAKES_TO_DROP, 1),
                 farnsworthWpm = prefs.getInt(KEY_FARNSWORTH_WPM, 0),
+                lettersOnlyMode = prefs.getBoolean(KEY_LETTERS_ONLY_MODE, true),
                 
                 // Audio generation settings
                 toneFrequencyHz = prefs.getInt(KEY_TONE_FREQUENCY, 600),
@@ -298,6 +301,7 @@ data class TrainingSettings(
             putInt(KEY_LEVEL_CHANGE_DELAY, levelChangeDelayMs)
             putInt(KEY_MISTAKES_TO_DROP, mistakesToDropLevel)
             putInt(KEY_FARNSWORTH_WPM, farnsworthWpm)
+            putBoolean(KEY_LETTERS_ONLY_MODE, lettersOnlyMode)
             
             // Audio generation settings
             putInt(KEY_TONE_FREQUENCY, toneFrequencyHz)

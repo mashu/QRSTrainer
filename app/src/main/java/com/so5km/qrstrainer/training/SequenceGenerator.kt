@@ -15,10 +15,11 @@ class SequenceGenerator(private val progressTracker: ProgressTracker) {
     fun generateSequence(
         level: Int,
         minGroupSize: Int,
-        maxGroupSize: Int
+        maxGroupSize: Int,
+        lettersOnly: Boolean = false
     ): String {
         val groupSize = Random.nextInt(minGroupSize, maxGroupSize + 1)
-        val weightedCharacters = progressTracker.getWeightedCharacters(level)
+        val weightedCharacters = progressTracker.getWeightedCharacters(level, lettersOnly)
         
         if (weightedCharacters.isEmpty()) {
             return "K" // Fallback to first Koch character
@@ -35,8 +36,8 @@ class SequenceGenerator(private val progressTracker: ProgressTracker) {
     /**
      * Generate a single character based on weights
      */
-    fun generateSingleCharacter(level: Int): Char {
-        val weightedCharacters = progressTracker.getWeightedCharacters(level)
+    fun generateSingleCharacter(level: Int, lettersOnly: Boolean = false): Char {
+        val weightedCharacters = progressTracker.getWeightedCharacters(level, lettersOnly)
         
         if (weightedCharacters.isEmpty()) {
             return 'K' // Fallback to first Koch character

@@ -129,9 +129,19 @@
                         android:id="@+id/checkBoxLockLevel"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp"
+                        android:layout_marginBottom="8dp"
                         android:buttonTint="@color/primary_blue"
                         android:text="Lock level (prevent auto-advance)"
+                        android:textColor="@color/grey_800"
+                        android:textSize="12sp" />
+
+                    <CheckBox
+                        android:id="@+id/checkBoxLettersOnly"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:buttonTint="@color/primary_blue"
+                        android:text="Letters only mode (A-Z characters only)"
                         android:textColor="@color/grey_800"
                         android:textSize="12sp" />
 

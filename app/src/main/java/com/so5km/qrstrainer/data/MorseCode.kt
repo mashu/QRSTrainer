@@ -36,6 +36,24 @@ object MorseCode {
     }
     
     /**
+     * Get only letter characters (A-Z) available at a given Koch level (1-based)
+     */
+    fun getLetterCharactersForLevel(level: Int): Array<Char> {
+        return getCharactersForLevel(level).filter { it.isLetter() }.toTypedArray()
+    }
+    
+    /**
+     * Get characters for level based on letters-only mode setting
+     */
+    fun getCharactersForLevel(level: Int, lettersOnly: Boolean): Array<Char> {
+        return if (lettersOnly) {
+            getLetterCharactersForLevel(level)
+        } else {
+            getCharactersForLevel(level)
+        }
+    }
+    
+    /**
      * Get the Morse pattern for a character
      */
     fun getPattern(char: Char): String? {

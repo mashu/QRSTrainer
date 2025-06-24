@@ -249,7 +249,7 @@ class TrainerFragment : Fragment() {
         binding.textScore.text = "Score: $sessionCorrect/$sessionTotal"
         
         // Update progress bar for level advancement
-        val characters = MorseCode.getCharactersForLevel(currentLevel)
+        val characters = MorseCode.getCharactersForLevel(currentLevel, settings.lettersOnlyMode)
         val minCorrectCount = characters.minOfOrNull { char ->
             progressTracker.getCharacterStats(char).correctCount
         } ?: 0
@@ -262,9 +262,9 @@ class TrainerFragment : Fragment() {
     }
 
     private fun createKeyboard() {
-        val allChars = MorseCode.getCharactersForLevel(settings.kochLevel)
-        // Filter to only include A-Z letters for beginner-friendly training
-        val availableChars = allChars.filter { it.isLetter() }.toTypedArray()
+        val allChars = MorseCode.getCharactersForLevel(settings.kochLevel, settings.lettersOnlyMode)
+        // Filter is no longer needed since we're using the lettersOnlyMode setting
+        val availableChars = allChars
         
         // Debug: Log what characters we're trying to create
         android.util.Log.d("TrainerFragment", "Creating keyboard for level ${settings.kochLevel}")
@@ -475,7 +475,8 @@ class TrainerFragment : Fragment() {
         currentSequence = sequenceGenerator.generateSequence(
             settings.kochLevel,
             settings.groupSizeMin,
-            settings.groupSizeMax
+            settings.groupSizeMax,
+            settings.lettersOnlyMode
         )
         
         // Reset input and UI state
