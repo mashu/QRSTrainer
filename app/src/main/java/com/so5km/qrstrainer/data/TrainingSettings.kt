@@ -12,19 +12,19 @@ import android.util.Log
 data class TrainingSettings(
     // === TRAINING BEHAVIOR SETTINGS ===
     val speedWpm: Int = 25,                    // Words per minute (affects training progression)
-    val kochLevel: Int = 2,                    // Current Koch level (1-based)
+    val kochLevel: Int = 1,                    // Current Koch level (1-based)
     val isLevelLocked: Boolean = false,        // Whether to lock at current level
     val groupSizeMin: Int = 1,                 // Minimum group size
     val groupSizeMax: Int = 5,                 // Maximum group size
-    val answerTimeoutSeconds: Int = 10,        // Timeout for answers (after playout finishes)
+    val answerTimeoutSeconds: Int = 5,         // Timeout for answers (after playout finishes)
     val repeatCount: Int = 1,                  // How many times to repeat each sequence
     val repeatSpacingMs: Int = 0,              // Milliseconds between repeats
     val requiredCorrectToAdvance: Int = 3,     // Required correct answers to advance level
-    val sequenceDelayMs: Int = 1000,           // Delay between sequences after answering (1 second)
-    val levelChangeDelayMs: Int = 1000,        // Delay when level changes (advancement/drop) (1 second)
+    val sequenceDelayMs: Int = 500,            // Delay between sequences after answering (0.5 seconds)
+    val levelChangeDelayMs: Int = 500,         // Delay when level changes (advancement/drop) (0.5 seconds)
     val mistakesToDropLevel: Int = 1,          // Number of mistakes to cause level drop (0 = disabled)
     val farnsworthWpm: Int = 0,                // Farnsworth timing WPM (0 = disabled) - affects character timing
-    val lettersOnlyMode: Boolean = true,      // When true, only include letter characters (A-Z) in training
+    val lettersOnlyMode: Boolean = true,       // When true, only include letter characters (A-Z) in training
     
     // === AUDIO GENERATION SETTINGS ===
     val toneFrequencyHz: Int = 600,            // Tone frequency in Hz (300-1000)
@@ -37,12 +37,12 @@ data class TrainingSettings(
     // === CW FILTER SETTINGS ===
     val filterBandwidthHz: Int = 250,          // Primary filter bandwidth in Hz (100-2000)
     val secondaryFilterBandwidthHz: Int = 300, // Secondary filter bandwidth in Hz (100-2000)
-    val filterQFactor: Float = 15.0f,           // Q factor for filter ringing (1.0-20.0) - Moderate Q for pleasant sound
-    val backgroundNoiseLevel: Float = 0.3f,    // Background noise level (0.0-1.0) - DEPRECATED, use noiseVolume instead  
-    val noiseVolume: Float = 0.3f,             // Independent noise volume (0.0-1.0) - Moderate level for pleasant background
-    val filterRingingEnabled: Boolean = false,  // Enable/disable filter ringing effect (OFF by default)
+    val filterQFactor: Float = 15.0f,          // Q factor for filter ringing (1.0-20.0) - Moderate Q for pleasant sound
+    val backgroundNoiseLevel: Float = 0.1f,    // Background noise level (0.0-1.0) - DEPRECATED, use noiseVolume instead  
+    val noiseVolume: Float = 0.1f,             // Independent noise volume (0.0-1.0) - Moderate level for pleasant background
+    val filterRingingEnabled: Boolean = false, // Enable/disable filter ringing effect (OFF by default)
     val primaryFilterOffset: Int = 0,          // Primary filter offset from tone freq (-200 to +200 Hz)
-    val secondaryFilterOffset: Int = 30,        // Secondary filter offset from tone freq (-200 to +200 Hz)
+    val secondaryFilterOffset: Int = 30,       // Secondary filter offset from tone freq (-200 to +200 Hz)
     
     // === CW LFO SETTINGS ===
     val lfo1FrequencyHz: Float = 0.1f,         // Primary LFO frequency in Hz (0.05-0.5)
@@ -53,7 +53,7 @@ data class TrainingSettings(
     val atmosphericIntensity: Float = 2.0f,    // Atmospheric noise intensity (0.5-5.0) - Moderate, pleasant default
     val crackleIntensity: Float = 0.05f,       // Random pops and crackles (0.01-0.2) - Light, subtle interference
     val resonanceJumpRate: Float = 0.3f,       // Resonance jump frequency (0.1-2.0) - Gentle CW pings
-    val driftSpeed: Float = 0.4f,              // Frequency drift speed (0.1-2.0) - Slow, natural drift
+    val driftSpeed: Float = 0.1f,              // Frequency drift speed (0.1-2.0) - Minimal drift
     
     // === UI STATE SETTINGS ===
     val lastExpandedSettingsTab: String = "audio",  // Remember which settings tab was last expanded
@@ -67,7 +67,7 @@ data class TrainingSettings(
         private const val TAG = "TrainingSettings"
         
         // Configuration version - increment this when defaults change significantly
-        private const val CURRENT_CONFIG_VERSION = 1
+        private const val CURRENT_CONFIG_VERSION = 2
         private const val KEY_CONFIG_VERSION = "config_version"
         
         // App version tracking
