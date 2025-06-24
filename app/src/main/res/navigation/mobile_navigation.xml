@@ -12,6 +12,12 @@
         tools:layout="@layout/fragment_trainer" />
 
     <fragment
+        android:id="@+id/nav_listen"
+        android:name="com.so5km.qrstrainer.ui.listen.ListenFragment"
+        android:label="@string/menu_listen"
+        tools:layout="@layout/fragment_listen" />
+
+    <fragment
         android:id="@+id/nav_progress"
         android:name="com.so5km.qrstrainer.ui.progress.ProgressFragment"
         android:label="@string/menu_progress"
