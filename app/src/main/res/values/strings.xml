@@ -16,6 +16,7 @@
     <string name="menu_settings">Settings</string>
     <string name="menu_gallery">Gallery</string>
     <string name="menu_slideshow">Slideshow</string>
+    <string name="menu_about">About</string>
 
     <!-- Trainer Fragment -->
     <string name="trainer_title">Morse Code Trainer</string>
@@ -84,4 +85,13 @@
     <string name="farnsworth_timing_display">%d WPM (disabled if 0)</string>
     <string name="word_spacing_display">+%d ms</string>
     <string name="group_spacing_display">+%d ms</string>
+    
+    <!-- About section -->
+    <string name="about_title">About QRS Trainer</string>
+    <string name="about_description">This software was created during my personal journey learning Morse code. It\'s shared with no expectations, simply in case it might help someone else. It comes with no warranty of suitability and makes no claims of being anything more than a personal project made available to others.</string>
+    <string name="about_contributions">Bug reports, issues, and contributions are welcome on the project page:</string>
+    <string name="about_github_link">https://github.com/mashu/QRSTrainer</string>
+    <string name="about_license_title">License</string>
+    <string name="about_license_type">MIT License</string>
+    <string name="about_copyright">© 2023-2025 SO5KM</string>
 </resources>

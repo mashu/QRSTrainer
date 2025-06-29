@@ -84,4 +84,8 @@ This is a standard Android Studio project. Clone the repository and open in Andr
 
 ## License
 
-This project is open source. Feel free to contribute or adapt for your needs. 
+This project is released under the MIT License. See the LICENSE file for details.
+
+## About
+
+This software was created during my personal journey learning Morse code. It's shared with no expectations, simply in case it might help someone else. It comes with no warranty of suitability and makes no claims of being anything more than a personal project made available to others. Bug reports, issues, and contributions are welcome on the project page: https://github.com/mashu/QRSTrainer 
