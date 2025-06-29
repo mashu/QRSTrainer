@@ -1,5 +1,7 @@
 package com.so5km.qrstrainer.ui.listen
 
+import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -10,8 +12,11 @@ import android.speech.tts.TextToSpeech
 import android.widget.CompoundButton
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import com.so5km.qrstrainer.AppState
 import com.so5km.qrstrainer.R
+import com.so5km.qrstrainer.audio.AudioForegroundService
 import com.so5km.qrstrainer.audio.MorseCodeGenerator
+import com.so5km.qrstrainer.audio.ScreenStateReceiver
 import com.so5km.qrstrainer.data.MorseCode
 import com.so5km.qrstrainer.data.ProgressTracker
 import com.so5km.qrstrainer.data.TrainingSettings
@@ -19,7 +24,7 @@ import com.so5km.qrstrainer.databinding.FragmentListenBinding
 import com.so5km.qrstrainer.training.SequenceGenerator
 import java.util.Locale
 
-class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
+class ListenFragment : Fragment(), TextToSpeech.OnInitListener, ScreenStateReceiver.ScreenStateCallback {
 
     private var _binding: FragmentListenBinding? = null
     private val binding get() = _binding!!
@@ -49,6 +54,12 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
     private var delayRunnable: Runnable? = null
     private var delayStartTime: Long = 0
     private var totalDelayTime: Long = 0
+
+    // Screen state receiver
+    private lateinit var screenStateReceiver: ScreenStateReceiver
+    
+    // Flag to track if app is in foreground
+    private var isAppInForeground = true
     
     // Training states
     enum class ListeningState {
@@ -84,6 +95,10 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
         autoRevealDelayMs = settings.ttsDelayMs.toLong()
         updateDisplay()
         
+        // Register screen state receiver
+        screenStateReceiver = ScreenStateReceiver(this)
+        screenStateReceiver.register(requireContext())
+        
         // If audio was playing when we paused, update UI to show stopped state
         if (wasPlayingWhenPaused) {
             wasPlayingWhenPaused = false
@@ -102,13 +117,23 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
     
     override fun onPause() {
         super.onPause()
-        // Stop audio playback when app goes to background
+        
+        // Unregister screen state receiver
+        if (::screenStateReceiver.isInitialized) {
+            screenStateReceiver.unregister(requireContext())
+        }
+        
+        // Only stop audio if app is minimized, not if screen is just turned off
         if (isAudioPlaying || morseGenerator.isPlaying()) {
             wasPlayingWhenPaused = true
-            morseGenerator.stop()
-            isAudioPlaying = false
-            isPaused = false
-            currentState = ListeningState.READY
+            
+            // If using foreground service and app is not in foreground, let it handle playback
+            if (!AudioForegroundService.isRunning() || AppState.isAppInForeground) {
+                morseGenerator.stop()
+                isAudioPlaying = false
+                isPaused = false
+                currentState = ListeningState.READY
+            }
         }
         
         // Pause audio when app goes to background
@@ -123,6 +148,35 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
         
         // Stop the headphone keep-alive tone when in background to save resources
         morseGenerator.stopHeadphoneKeepAlive()
+    }
+    
+    override fun onDestroyView() {
+        super.onDestroyView()
+        
+        // Stop and clean up audio resources
+        morseGenerator.stop()
+        morseGenerator.stopHeadphoneKeepAlive() // Stop the headphone keep-alive tone
+        morseGenerator.release()  // Clean up ToneGenerator resources
+        hideSequenceDelayProgress() // Clean up delay handler
+        
+        // Shutdown TextToSpeech
+        if (::textToSpeech.isInitialized) {
+            textToSpeech.stop()
+            textToSpeech.shutdown()
+        }
+        
+        // Ensure session is stopped
+        isSessionActive = false
+        isNoiseRunning = false
+        
+        // Stop foreground service if it's running
+        if (AudioForegroundService.isRunning()) {
+            val intent = Intent(requireContext(), AudioForegroundService::class.java)
+            intent.action = AudioForegroundService.ACTION_STOP
+            requireContext().startService(intent)
+        }
+        
+        _binding = null
     }
 
     private fun initializeComponents() {
@@ -294,6 +348,9 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
             startContinuousNoise()
         }
         
+        // Start foreground service for background audio playback
+        startAudioForegroundService()
+        
         // Start first sequence
         startNewSequence()
     }
@@ -358,6 +415,11 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
         isPaused = false
         updateUIState()
         
+        // Make sure foreground service is running when screen is off
+        if (!AppState.isAppInForeground && !AudioForegroundService.isRunning()) {
+            startAudioForegroundService()
+        }
+        
         // Play the sequence without starting noise (noise is handled at session level)
         morseGenerator.playSequence(
             currentSequence,
@@ -409,6 +471,11 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
             wasPlayingWhenPaused = true
             currentState = ListeningState.PAUSED
             updateUIState()
+            
+            // Also pause the foreground service if it's running
+            if (AudioForegroundService.isRunning()) {
+                pauseAudioForegroundService()
+            }
         }
     }
 
@@ -420,6 +487,11 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
             wasPlayingWhenPaused = false
             currentState = ListeningState.PLAYING
             updateUIState()
+            
+            // Also resume the foreground service if it's running
+            if (AudioForegroundService.isRunning()) {
+                resumeAudioForegroundService()
+            }
         }
     }
 
@@ -484,6 +556,9 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
         
         // Stop continuous background noise
         stopContinuousNoise()
+        
+        // Stop foreground service
+        stopAudioForegroundService()
         
         // Reset session state
         isSessionActive = false
@@ -642,23 +717,56 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
         }
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        morseGenerator.stop()
-        morseGenerator.stopHeadphoneKeepAlive() // Stop the headphone keep-alive tone
-        morseGenerator.release()  // Clean up ToneGenerator resources
-        hideSequenceDelayProgress() // Clean up delay handler
-        
-        // Shutdown TextToSpeech
-        if (::textToSpeech.isInitialized) {
-            textToSpeech.stop()
-            textToSpeech.shutdown()
+    // ScreenStateCallback implementation
+    override fun onScreenOn() {
+        // Screen turned on, no need to do anything special
+    }
+    
+    override fun onScreenOff() {
+        // Screen turned off but we want to keep playing
+        // If we're playing audio, make sure the foreground service is running
+        if (isAudioPlaying && !AudioForegroundService.isRunning() && AppState.isAppInForeground) {
+            startAudioForegroundService()
         }
-        
-        // Ensure session is stopped
-        isSessionActive = false
-        isNoiseRunning = false
-        
-        _binding = null
+    }
+
+    /**
+     * Start the audio foreground service
+     */
+    private fun startAudioForegroundService() {
+        val intent = Intent(requireContext(), AudioForegroundService::class.java)
+        intent.action = AudioForegroundService.ACTION_START
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            requireContext().startForegroundService(intent)
+        } else {
+            requireContext().startService(intent)
+        }
+    }
+    
+    /**
+     * Stop the audio foreground service
+     */
+    private fun stopAudioForegroundService() {
+        val intent = Intent(requireContext(), AudioForegroundService::class.java)
+        intent.action = AudioForegroundService.ACTION_STOP
+        requireContext().startService(intent)
+    }
+    
+    /**
+     * Pause the audio foreground service
+     */
+    private fun pauseAudioForegroundService() {
+        val intent = Intent(requireContext(), AudioForegroundService::class.java)
+        intent.action = AudioForegroundService.ACTION_PAUSE
+        requireContext().startService(intent)
+    }
+    
+    /**
+     * Resume the audio foreground service
+     */
+    private fun resumeAudioForegroundService() {
+        val intent = Intent(requireContext(), AudioForegroundService::class.java)
+        intent.action = AudioForegroundService.ACTION_RESUME
+        requireContext().startService(intent)
     }
 } 

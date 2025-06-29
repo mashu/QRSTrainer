@@ -9,6 +9,11 @@
     <!-- Audio hardware feature (optional) -->
     <uses-feature android:name="android.hardware.audio.output" android:required="false" />
 
+    <!-- Add foreground service permission -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -19,6 +24,14 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.QRSTrainer"
         tools:targetApi="31">
+
+        <!-- Add audio foreground service -->
+        <service
+            android:name=".audio.AudioForegroundService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
