@@ -432,6 +432,55 @@
                         android:layout_marginBottom="16dp"
                         android:text="1.5 seconds"
                         android:textSize="12sp" />
+                        
+                    <!-- TTS Delay (for Listen panel) -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        
+                        <TextView
+                            style="@style/Text.Subtitle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="TTS Delay After Tone"
+                            android:textSize="14sp" />
+                            
+                        <TextView
+                            android:id="@+id/helpTtsDelay"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:text="?"
+                            android:textAlignment="center"
+                            android:textColor="@color/secondary_purple"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:gravity="center" />
+                    </LinearLayout>
+
+                    <SeekBar
+                        android:id="@+id/seekBarTtsDelay"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:max="20"
+                        android:progress="5"
+                        android:progressTint="@color/secondary_purple"
+                        android:thumbTint="@color/secondary_purple" />
+
+                    <TextView
+                        android:id="@+id/textTtsDelayDisplay"
+                        style="@style/Text.Caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="16dp"
+                        android:text="500 ms"
+                        android:textSize="12sp" />
 
                     <!-- Farnsworth Timing - MOVED TO TRAINING SECTION -->
                     <TextView
@@ -685,6 +734,104 @@
                         android:layout_gravity="center_horizontal"
                         android:layout_marginBottom="16dp"
                         android:text="70%"
+                        android:textSize="12sp" />
+
+                    <!-- TTS Volume -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        
+                        <TextView
+                            style="@style/Text.Subtitle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Text-to-Speech Volume"
+                            android:textSize="14sp" />
+                            
+                        <TextView
+                            android:id="@+id/helpTtsVolume"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:text="?"
+                            android:textAlignment="center"
+                            android:textColor="@color/primary_blue"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:gravity="center" />
+                    </LinearLayout>
+
+                    <SeekBar
+                        android:id="@+id/seekBarTtsVolume"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:max="200"
+                        android:progress="150"
+                        android:progressTint="@color/primary_blue"
+                        android:thumbTint="@color/primary_blue" />
+
+                    <TextView
+                        android:id="@+id/textTtsVolumeDisplay"
+                        style="@style/Text.Caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="16dp"
+                        android:text="150%"
+                        android:textSize="12sp" />
+
+                    <!-- TTS Speech Rate -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        
+                        <TextView
+                            style="@style/Text.Subtitle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Text-to-Speech Speed"
+                            android:textSize="14sp" />
+                            
+                        <TextView
+                            android:id="@+id/helpTtsSpeechRate"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:text="?"
+                            android:textAlignment="center"
+                            android:textColor="@color/accent_orange"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:gravity="center" />
+                    </LinearLayout>
+
+                    <SeekBar
+                        android:id="@+id/seekBarTtsSpeechRate"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:max="19"
+                        android:progress="7"
+                        android:progressTint="@color/accent_orange"
+                        android:thumbTint="@color/accent_orange" />
+
+                    <TextView
+                        android:id="@+id/textTtsSpeechRateDisplay"
+                        style="@style/Text.Caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="16dp"
+                        android:text="0.8x"
                         android:textSize="12sp" />
 
                     <!-- Audio Envelope -->

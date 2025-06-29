@@ -34,8 +34,8 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
     private var isPaused = false
     private var isSequenceRevealed = false
     private var sequenceCount = 0
-    private var isAutoRevealEnabled = false
-    private var autoRevealDelayMs = 500L // Default delay before auto-reveal
+    private var isAutoRevealEnabled = true
+    private var autoRevealDelayMs = 500L // Default delay before auto-reveal, will be overridden by settings
     
     // Lifecycle state tracking
     private var wasPlayingWhenPaused = false
@@ -80,6 +80,8 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
         super.onResume()
         // Reload settings when returning to fragment
         settings = TrainingSettings.load(requireContext())
+        // Update the TTS delay from settings
+        autoRevealDelayMs = settings.ttsDelayMs.toLong()
         updateDisplay()
         
         // If audio was playing when we paused, update UI to show stopped state
@@ -93,6 +95,9 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
         if (isPaused && wasPlayingWhenPaused) {
             resumePlayback()
         }
+        
+        // Restart the headphone keep-alive tone
+        morseGenerator.startHeadphoneKeepAlive()
     }
     
     override fun onPause() {
@@ -115,6 +120,9 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
         if (isNoiseRunning) {
             stopContinuousNoise()
         }
+        
+        // Stop the headphone keep-alive tone when in background to save resources
+        morseGenerator.stopHeadphoneKeepAlive()
     }
 
     private fun initializeComponents() {
@@ -123,7 +131,12 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
         sequenceGenerator = SequenceGenerator(progressTracker)
         morseGenerator = MorseCodeGenerator(requireContext())
         settings = TrainingSettings.load(requireContext())
+        // Set the TTS delay from settings
+        autoRevealDelayMs = settings.ttsDelayMs.toLong()
         textToSpeech = TextToSpeech(requireContext(), this)
+        
+        // Start the headphone keep-alive tone to prevent disconnections
+        morseGenerator.startHeadphoneKeepAlive()
     }
 
     private fun setupUI() {
@@ -169,6 +182,13 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
             else 
                 "Auto-reveal OFF"
             
+            // Update instruction text based on auto-reveal state
+            binding.textInstructions.text = if (isChecked) {
+                "Continuous listening mode. Random sequences will play automatically."
+            } else {
+                "Listen to sequences and memorize them. After each sequence, the characters will be revealed."
+            }
+            
             // If currently in waiting state and auto-reveal is turned on, reveal immediately
             if (isChecked && currentState == ListeningState.WAITING) {
                 Handler(Looper.getMainLooper()).postDelayed({
@@ -177,6 +197,15 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
                     }
                 }, autoRevealDelayMs)
             }
+        }
+        
+        // Set initial state of auto-reveal switch
+        binding.switchAutoReveal.isChecked = isAutoRevealEnabled
+        binding.textAutoRevealStatus.text = if (isAutoRevealEnabled) "Auto-reveal ON" else "Auto-reveal OFF"
+        binding.textInstructions.text = if (isAutoRevealEnabled) {
+            "Continuous listening mode. Random sequences will play automatically."
+        } else {
+            "Listen to sequences and memorize them. After each sequence, the characters will be revealed."
         }
     }
 
@@ -254,6 +283,24 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
         binding.textNextLevel.visibility = View.GONE
     }
 
+    private fun startSession() {
+        // Reset session state
+        isSessionActive = true
+        sequenceCount = 0
+        updateDisplay()
+        
+        // Start continuous background noise if enabled
+        if (settings.filterRingingEnabled && settings.backgroundNoiseLevel > 0) {
+            startContinuousNoise()
+        }
+        
+        // Start first sequence
+        startNewSequence()
+    }
+    
+    /**
+     * Generate a new random sequence from the current level
+     */
     private fun startNewSequence() {
         // Hide progress bar
         hideSequenceDelayProgress()
@@ -261,7 +308,7 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
         // Stop any current audio playback completely
         stopAudioCompletely()
         
-        // Generate new sequence
+        // Generate new sequence from current level characters
         currentSequence = sequenceGenerator.generateSequence(
             settings.kochLevel,
             settings.groupSizeMin,
@@ -279,7 +326,10 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
             }
         }, 100)
     }
-
+    
+    /**
+     * Reset the state for a new sequence
+     */
     private fun resetState() {
         isSequenceRevealed = false
         isAudioPlaying = false
@@ -288,7 +338,10 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
         binding.textCurrentSequence.text = "?"
         currentState = ListeningState.READY
     }
-
+    
+    /**
+     * Play the current sequence
+     */
     private fun playCurrentSequence() {
         // Prevent starting playback if already playing or in wrong state
         if (isAudioPlaying || currentState == ListeningState.PLAYING) {
@@ -327,7 +380,8 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
                                 
                                 // Auto-advance to next sequence after reveal and speech
                                 Handler(Looper.getMainLooper()).postDelayed({
-                                    if (currentState == ListeningState.REVEALED) {
+                                    if (currentState == ListeningState.REVEALED && isSessionActive && isAutoRevealEnabled) {
+                                        // Generate and play a new random sequence from the same level
                                         startNewSequence()
                                     }
                                 }, calculateSpeechDuration(currentSequence) + 1000) // Wait for speech to finish plus a bit more
@@ -383,13 +437,27 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
             // Increment sequence count
             sequenceCount++
             updateDisplay()
+            
+            // Update instruction text for continuous mode when auto-reveal is enabled
+            if (isAutoRevealEnabled) {
+                binding.textInstructions.text = "Continuous listening mode. Random sequences will play automatically."
+            }
         }
     }
     
     private fun speakSequence() {
         // Speak each character with a pause between them
         val spokenText = currentSequence.toCharArray().joinToString(" ")
-        textToSpeech.speak(spokenText, TextToSpeech.QUEUE_FLUSH, null, "seq_id")
+        
+        // Set the TTS speech rate and volume based on settings
+        textToSpeech.setSpeechRate(settings.ttsSpeechRate)
+        
+        // Create params bundle for volume control
+        val params = Bundle()
+        // Use the volume setting directly - it can now go up to 200%
+        params.putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, settings.ttsVolumeLevel)
+        
+        textToSpeech.speak(spokenText, TextToSpeech.QUEUE_FLUSH, params, "seq_id")
     }
 
     private fun stopAudioCompletely() {
@@ -405,24 +473,6 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
         }
-    }
-    
-    /**
-     * Start a new listening session
-     */
-    private fun startSession() {
-        // Reset session state
-        isSessionActive = true
-        sequenceCount = 0
-        updateDisplay()
-        
-        // Start continuous background noise if enabled
-        if (settings.filterRingingEnabled && settings.backgroundNoiseLevel > 0) {
-            startContinuousNoise()
-        }
-        
-        // Start first sequence
-        startNewSequence()
     }
     
     /**
@@ -584,9 +634,8 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
             if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
                 android.util.Log.e("ListenFragment", "Language not supported")
             } else {
-                // Set speech rate and pitch
-                textToSpeech.setSpeechRate(0.8f)  // Slightly slower for clarity
-                textToSpeech.setPitch(1.0f)       // Normal pitch
+                // Set speech pitch (keep normal)
+                textToSpeech.setPitch(1.0f)
             }
         } else {
             android.util.Log.e("ListenFragment", "TextToSpeech initialization failed")
@@ -596,6 +645,7 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
     override fun onDestroyView() {
         super.onDestroyView()
         morseGenerator.stop()
+        morseGenerator.stopHeadphoneKeepAlive() // Stop the headphone keep-alive tone
         morseGenerator.release()  // Clean up ToneGenerator resources
         hideSequenceDelayProgress() // Clean up delay handler
         

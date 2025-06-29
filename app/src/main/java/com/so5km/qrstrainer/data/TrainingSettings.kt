@@ -25,6 +25,7 @@ data class TrainingSettings(
     val mistakesToDropLevel: Int = 1,          // Number of mistakes to cause level drop (0 = disabled)
     val farnsworthWpm: Int = 0,                // Farnsworth timing WPM (0 = disabled) - affects character timing
     val lettersOnlyMode: Boolean = true,       // When true, only include letter characters (A-Z) in training
+    val ttsDelayMs: Int = 500,                 // Delay before speaking after tone playback (for Listen panel)
     
     // === AUDIO GENERATION SETTINGS ===
     val toneFrequencyHz: Int = 600,            // Tone frequency in Hz (300-1000)
@@ -33,6 +34,9 @@ data class TrainingSettings(
     val appVolumeLevel: Float = 0.7f,          // App-specific volume (0.0-1.0)
     val audioEnvelopeMs: Int = 5,              // Audio envelope rise/fall time (1-20ms)
     val keyingStyle: Int = 0,                  // Keying style: 0=Hard, 1=Soft, 2=Smooth
+    val ttsVolumeLevel: Float = 1.5f,          // Text-to-speech volume level (0.0-2.0, where 1.0 is 100%)
+    val ttsSpeechRate: Float = 0.8f,           // Text-to-speech speech rate (0.1-2.0)
+    val ttsVolumeBoost: Boolean = true,        // Boost TTS volume to match Morse audio
     
     // === CW FILTER SETTINGS ===
     val filterBandwidthHz: Int = 250,          // Primary filter bandwidth in Hz (100-2000)
@@ -89,6 +93,7 @@ data class TrainingSettings(
         private const val KEY_MISTAKES_TO_DROP = "mistakes_to_drop"
         private const val KEY_FARNSWORTH_WPM = "farnsworth_wpm"
         private const val KEY_LETTERS_ONLY_MODE = "letters_only_mode"
+        private const val KEY_TTS_DELAY = "tts_delay"
         
         // Audio generation settings keys
         private const val KEY_TONE_FREQUENCY = "tone_frequency"
@@ -97,6 +102,9 @@ data class TrainingSettings(
         private const val KEY_APP_VOLUME = "app_volume"
         private const val KEY_AUDIO_ENVELOPE = "audio_envelope"
         private const val KEY_KEYING_STYLE = "keying_style"
+        private const val KEY_TTS_VOLUME = "tts_volume"
+        private const val KEY_TTS_SPEECH_RATE = "tts_speech_rate"
+        private const val KEY_TTS_VOLUME_BOOST = "tts_volume_boost"
         
         // CW Filter settings keys
         private const val KEY_FILTER_BANDWIDTH = "filter_bandwidth"
@@ -195,6 +203,7 @@ data class TrainingSettings(
                 mistakesToDropLevel = prefs.getInt(KEY_MISTAKES_TO_DROP, 1),
                 farnsworthWpm = prefs.getInt(KEY_FARNSWORTH_WPM, 0),
                 lettersOnlyMode = prefs.getBoolean(KEY_LETTERS_ONLY_MODE, true),
+                ttsDelayMs = prefs.getInt(KEY_TTS_DELAY, 500),
                 
                 // Audio generation settings
                 toneFrequencyHz = prefs.getInt(KEY_TONE_FREQUENCY, 600),
@@ -203,6 +212,8 @@ data class TrainingSettings(
                 appVolumeLevel = prefs.getFloat(KEY_APP_VOLUME, 0.7f),
                 audioEnvelopeMs = prefs.getInt(KEY_AUDIO_ENVELOPE, 5),
                 keyingStyle = prefs.getInt(KEY_KEYING_STYLE, 0),
+                ttsVolumeLevel = prefs.getFloat(KEY_TTS_VOLUME, 1.5f),
+                ttsSpeechRate = prefs.getFloat(KEY_TTS_SPEECH_RATE, 0.8f),
                 
                 // CW Filter settings
                 filterBandwidthHz = prefs.getInt(KEY_FILTER_BANDWIDTH, 250),
@@ -302,6 +313,7 @@ data class TrainingSettings(
             putInt(KEY_MISTAKES_TO_DROP, mistakesToDropLevel)
             putInt(KEY_FARNSWORTH_WPM, farnsworthWpm)
             putBoolean(KEY_LETTERS_ONLY_MODE, lettersOnlyMode)
+            putInt(KEY_TTS_DELAY, ttsDelayMs)
             
             // Audio generation settings
             putInt(KEY_TONE_FREQUENCY, toneFrequencyHz)
@@ -310,6 +322,8 @@ data class TrainingSettings(
             putFloat(KEY_APP_VOLUME, appVolumeLevel)
             putInt(KEY_AUDIO_ENVELOPE, audioEnvelopeMs)
             putInt(KEY_KEYING_STYLE, keyingStyle)
+            putFloat(KEY_TTS_VOLUME, ttsVolumeLevel)
+            putFloat(KEY_TTS_SPEECH_RATE, ttsSpeechRate)
             
             // CW Filter settings
             putInt(KEY_FILTER_BANDWIDTH, filterBandwidthHz)
@@ -352,6 +366,8 @@ data class TrainingSettings(
             appVolumeLevel = defaults.appVolumeLevel,
             audioEnvelopeMs = defaults.audioEnvelopeMs,
             keyingStyle = defaults.keyingStyle,
+            ttsVolumeLevel = defaults.ttsVolumeLevel,
+            ttsSpeechRate = defaults.ttsSpeechRate,
             
             // Reset all CW filter settings to defaults
             filterBandwidthHz = defaults.filterBandwidthHz,

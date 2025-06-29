@@ -666,6 +666,7 @@ class MorseCodeGenerator(private val context: Context) {
      */
     fun release() {
         stop()
+        stopHeadphoneKeepAlive()
         try {
             audioTrack?.release()
             audioTrack = null
@@ -814,6 +815,33 @@ class MorseCodeGenerator(private val context: Context) {
             try {
                 android.util.Log.d("MorseCodeGenerator", "Playing single character: '$char' at ${settings.speedWpm}wpm")
                 
+                // Create a completely isolated AudioTrack instance for this single character
+                // to avoid any interference with other audio processing
+                val singleCharTrack = try {
+                    val bufferSize = AudioTrack.getMinBufferSize(
+                        SAMPLE_RATE,
+                        AudioFormat.CHANNEL_OUT_MONO,
+                        AudioFormat.ENCODING_PCM_16BIT
+                    ) * 4 // Larger buffer for reliability
+                    
+                    AudioTrack(
+                        AudioManager.STREAM_MUSIC,
+                        SAMPLE_RATE,
+                        AudioFormat.CHANNEL_OUT_MONO,
+                        AudioFormat.ENCODING_PCM_16BIT,
+                        bufferSize,
+                        AudioTrack.MODE_STREAM
+                    )
+                } catch (e: Exception) {
+                    android.util.Log.e("MorseCodeGenerator", "Failed to create single char AudioTrack: ${e.message}")
+                    null
+                }
+                
+                if (singleCharTrack == null) {
+                    android.util.Log.e("MorseCodeGenerator", "Cannot play single character - AudioTrack creation failed")
+                    return@Thread
+                }
+                
                 // Generate audio for the single character
                 val dotDuration = calculateDotDuration(settings.speedWpm)
                 val dashDuration = dotDuration * 3
@@ -837,7 +865,7 @@ class MorseCodeGenerator(private val context: Context) {
                     }
                     
                     // Add small buffer at end
-                    totalDuration += 50
+                    totalDuration += 100
                     
                     val totalSamples = (SAMPLE_RATE * totalDuration / 1000.0).toInt()
                     val audioBuffer = ShortArray(totalSamples)
@@ -857,22 +885,34 @@ class MorseCodeGenerator(private val context: Context) {
                     applyOverallEnvelope(audioBuffer)
                     
                     if (audioBuffer.isNotEmpty() && !shouldStop) {
-                        // Pre-fill the AudioTrack buffer with initial data
-                        val initialChunkSize = minOf(4096, audioBuffer.size)
-                        val bytesWritten = audioTrack!!.write(audioBuffer, 0, initialChunkSize)
-                        
-                        if (bytesWritten > 0) {
+                        try {
                             // Start playback
-                            audioTrack?.play()
+                            singleCharTrack.play()
                             
-                            // Write remaining data if any
-                            if (initialChunkSize < audioBuffer.size) {
-                                playAudioBuffer(audioBuffer, initialChunkSize)
+                            // Write all data at once
+                            val bytesWritten = singleCharTrack.write(audioBuffer, 0, audioBuffer.size)
+                            
+                            if (bytesWritten <= 0) {
+                                android.util.Log.e("MorseCodeGenerator", "Failed to write audio data for single character")
+                            }
+                            
+                            // Wait for playback to complete
+                            Thread.sleep(totalDuration.toLong())
+                            
+                            // Stop and release the track
+                            singleCharTrack.stop()
+                        } catch (e: Exception) {
+                            android.util.Log.e("MorseCodeGenerator", "Error playing single character: ${e.message}")
+                        } finally {
+                            try {
+                                singleCharTrack.release()
+                            } catch (e: Exception) {
+                                android.util.Log.e("MorseCodeGenerator", "Error releasing single char AudioTrack: ${e.message}")
                             }
                         }
-                        
-                        audioTrack?.stop()
                     }
+                } else {
+                    android.util.Log.e("MorseCodeGenerator", "No Morse pattern found for character: $char")
                 }
                 
             } catch (e: InterruptedException) {
@@ -888,6 +928,113 @@ class MorseCodeGenerator(private val context: Context) {
         }
         
         playbackThread?.start()
+    }
+
+    /**
+     * Generate and play a continuous low-level "keep-alive" tone to prevent headphones from shutting off
+     * This tone is designed to be barely audible but sufficient to keep headphones active
+     */
+    private var keepAliveAudioTrack: AudioTrack? = null
+    private var keepAliveThread: Thread? = null
+    private var isKeepAliveActive = false
+    @Volatile
+    private var shouldStopKeepAlive = false
+
+    fun startHeadphoneKeepAlive() {
+        if (isKeepAliveActive) return
+        
+        android.util.Log.d("MorseCodeGenerator", "Starting headphone keep-alive tone")
+        
+        try {
+            val bufferSize = AudioTrack.getMinBufferSize(
+                SAMPLE_RATE,
+                AudioFormat.CHANNEL_OUT_MONO,
+                AudioFormat.ENCODING_PCM_16BIT
+            )
+            
+            keepAliveAudioTrack = AudioTrack(
+                AudioManager.STREAM_MUSIC,
+                SAMPLE_RATE,
+                AudioFormat.CHANNEL_OUT_MONO,
+                AudioFormat.ENCODING_PCM_16BIT,
+                bufferSize,
+                AudioTrack.MODE_STREAM
+            )
+            
+            isKeepAliveActive = true
+            shouldStopKeepAlive = false
+            
+            keepAliveThread = Thread {
+                try {
+                    keepAliveAudioTrack?.play()
+                    
+                    val chunkSize = 1024
+                    val buffer = ShortArray(chunkSize)
+                    var phase = 0.0
+                    
+                    while (!shouldStopKeepAlive && isKeepAliveActive) {
+                        // Generate a very quiet sine wave at 20Hz (below audible range for most people)
+                        // but still keeps headphones active
+                        for (i in buffer.indices) {
+                            // Ultra-low volume (0.005 = 0.5% of max volume)
+                            val amplitude = sin(phase) * 0.005
+                            buffer[i] = (amplitude * Short.MAX_VALUE).toInt().toShort()
+                            
+                            // 20Hz frequency - below audible range but keeps connection active
+                            phase += 2.0 * PI * 20 / SAMPLE_RATE
+                            if (phase > 2.0 * PI) phase -= 2.0 * PI
+                        }
+                        
+                        try {
+                            keepAliveAudioTrack!!.write(buffer, 0, chunkSize)
+                        } catch (e: Exception) {
+                            android.util.Log.e("MorseCodeGenerator", "Error writing keep-alive audio: ${e.message}")
+                            break
+                        }
+                    }
+                    
+                    keepAliveAudioTrack?.stop()
+                    
+                } catch (e: Exception) {
+                    android.util.Log.e("MorseCodeGenerator", "Error in keep-alive playback: ${e.message}")
+                } finally {
+                    isKeepAliveActive = false
+                    android.util.Log.d("MorseCodeGenerator", "Headphone keep-alive stopped")
+                }
+            }
+            
+            keepAliveThread?.start()
+            
+        } catch (e: Exception) {
+            android.util.Log.e("MorseCodeGenerator", "Failed to initialize keep-alive AudioTrack: ${e.message}")
+        }
+    }
+    
+    fun stopHeadphoneKeepAlive() {
+        shouldStopKeepAlive = true
+        
+        try {
+            keepAliveAudioTrack?.stop()
+        } catch (e: Exception) {
+            android.util.Log.e("MorseCodeGenerator", "Error stopping keep-alive AudioTrack: ${e.message}")
+        }
+        
+        keepAliveThread?.interrupt()
+        try {
+            keepAliveThread?.join(500)
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+        }
+        
+        try {
+            keepAliveAudioTrack?.release()
+            keepAliveAudioTrack = null
+        } catch (e: Exception) {
+            android.util.Log.e("MorseCodeGenerator", "Error releasing keep-alive AudioTrack: ${e.message}")
+        }
+        
+        keepAliveThread = null
+        isKeepAliveActive = false
     }
 
 } 

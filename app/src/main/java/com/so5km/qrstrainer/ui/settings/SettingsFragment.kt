@@ -161,9 +161,13 @@ class SettingsFragment : Fragment() {
             settings = settings.copy(lastExpandedSettingsTab = sectionType)
             settings.save(requireContext())
         } else {
-            // Collapse - don't save collapsed state, keep the last expanded preference
+            // Collapse - still save the state so it persists across app restarts
             contentView.visibility = View.GONE
             iconView.rotation = 0f
+            
+            // Save the collapsed state
+            settings = settings.copy(lastExpandedSettingsTab = sectionType)
+            settings.save(requireContext())
         }
     }
     
@@ -405,19 +409,53 @@ class SettingsFragment : Fragment() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
-        // App volume settings (0-100%)
+        // App Volume
         binding.seekBarAppVolume.max = 100  // 0-100%
         binding.seekBarAppVolume.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val volume = progress  // 0-100%
-                binding.textAppVolumeDisplay.text = "$volume%"
+                binding.textAppVolumeDisplay.text = "${progress}%"
+                if (fromUser) saveSettings()
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+        
+        // TTS Volume
+        binding.seekBarTtsVolume.max = 200  // 0-200%
+        binding.seekBarTtsVolume.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                binding.textTtsVolumeDisplay.text = "${progress}%"
+                if (fromUser) saveSettings()
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+        
+        // TTS Speech Rate
+        binding.seekBarTtsSpeechRate.max = 19  // 0.1-2.0 in 0.1 increments
+        binding.seekBarTtsSpeechRate.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val rate = (progress + 1) / 10.0f  // Convert to 0.1-2.0 range
+                binding.textTtsSpeechRateDisplay.text = "${String.format("%.1f", rate)}x"
+                if (fromUser) saveSettings()
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+        
+        // TTS Delay
+        binding.seekBarTtsDelay.max = 20  // 0-2000 ms in 100ms steps
+        binding.seekBarTtsDelay.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val delay = progress * 100  // 0-2000 ms
+                binding.textTtsDelayDisplay.text = "$delay ms"
                 if (fromUser) saveSettings()
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
-        // Audio envelope settings (1-20ms)
+        // Audio Envelope
         binding.seekBarAudioEnvelope.max = 19  // 1-20ms
         binding.seekBarAudioEnvelope.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
@@ -931,6 +969,22 @@ class SettingsFragment : Fragment() {
                 morseCodeGenerator?.stopTestNoise()
             }
         }
+
+        // Setup help buttons
+        setupHelpButton(binding.helpAppVolume, "App Volume", 
+            "Controls the overall volume of Morse code audio playback. Adjust this if the app is too loud or too quiet.")
+            
+        setupHelpButton(binding.helpTtsVolume, "Text-to-Speech Volume", 
+            "Controls the volume of the text-to-speech voice that reads characters after they are revealed in the Listen panel. Can be set up to 200% to make TTS louder than normal audio if needed.")
+            
+        setupHelpButton(binding.helpTtsSpeechRate, "Text-to-Speech Speed", 
+            "Controls how fast the text-to-speech voice reads characters. Lower values make it easier to understand but slower, higher values are faster but may be harder to understand.")
+            
+        setupHelpButton(binding.helpTtsDelay, "TTS Delay After Tone",
+            "Controls how long to wait after the Morse code tone finishes playing before speaking the character. Increasing this value prevents the speech from overlapping with the tone. This setting only affects the Listen panel.")
+            
+        setupHelpButton(binding.helpAudioEnvelope, "Audio Envelope",
+            "Controls the envelope of the Morse code audio. This affects the naturalness and smoothness of the audio.")
     }
 
     private fun loadCurrentSettings() {
@@ -1001,11 +1055,23 @@ class SettingsFragment : Fragment() {
         }
         binding.textToneFrequencyDisplay.text = "${settings.toneFrequencyHz} Hz ($filterInfo)"
         
-        // App volume (0-100%)
+        // App Volume
         binding.seekBarAppVolume.progress = (settings.appVolumeLevel * 100).toInt()  // Convert to 0-based
         binding.textAppVolumeDisplay.text = "${(settings.appVolumeLevel * 100).toInt()}%"
         
-        // Audio envelope (1-20ms)
+        // TTS Volume
+        binding.seekBarTtsVolume.progress = (settings.ttsVolumeLevel * 100).toInt()  // Convert to 0-200%
+        binding.textTtsVolumeDisplay.text = "${(settings.ttsVolumeLevel * 100).toInt()}%"
+        
+        // TTS Speech Rate
+        binding.seekBarTtsSpeechRate.progress = ((settings.ttsSpeechRate - 0.1f) * 10).toInt()  // Convert to 0-based
+        binding.textTtsSpeechRateDisplay.text = "${String.format("%.1f", settings.ttsSpeechRate)}x"
+        
+        // TTS Delay
+        binding.seekBarTtsDelay.progress = settings.ttsDelayMs / 100  // Convert to 0-based
+        binding.textTtsDelayDisplay.text = "${settings.ttsDelayMs} ms"
+        
+        // Audio Envelope
         binding.seekBarAudioEnvelope.progress = settings.audioEnvelopeMs - 1  // Convert to 0-based
         binding.textAudioEnvelopeDisplay.text = "${settings.audioEnvelopeMs} ms"
         
@@ -1223,6 +1289,9 @@ class SettingsFragment : Fragment() {
             wordSpacingMs = binding.seekBarWordSpacing.progress * 10,
             groupSpacingMs = binding.seekBarGroupSpacing.progress * 10,
             appVolumeLevel = binding.seekBarAppVolume.progress / 100.0f,
+            ttsVolumeLevel = binding.seekBarTtsVolume.progress / 100.0f,
+            ttsSpeechRate = (binding.seekBarTtsSpeechRate.progress + 1) / 10.0f,
+            ttsDelayMs = binding.seekBarTtsDelay.progress * 100,
             audioEnvelopeMs = binding.seekBarAudioEnvelope.progress + 1,
             keyingStyle = binding.seekBarKeyingStyle.progress,
             
@@ -1307,6 +1376,8 @@ class SettingsFragment : Fragment() {
             wordSpacingMs = binding.seekBarWordSpacing.progress * 10,
             groupSpacingMs = binding.seekBarGroupSpacing.progress * 10,
             appVolumeLevel = binding.seekBarAppVolume.progress / 100.0f,
+            ttsVolumeLevel = binding.seekBarTtsVolume.progress / 100.0f,
+            ttsSpeechRate = (binding.seekBarTtsSpeechRate.progress + 1) / 10.0f,
             audioEnvelopeMs = binding.seekBarAudioEnvelope.progress + 1,
             keyingStyle = binding.seekBarKeyingStyle.progress,
             
@@ -1666,6 +1737,19 @@ class SettingsFragment : Fragment() {
     private fun forceFilterReset() {
         if (::morseCodeGenerator.isInitialized) {
             morseCodeGenerator.resetNoiseGenerator()
+        }
+    }
+
+    /**
+     * Set up a help button with a click listener to show a help dialog
+     */
+    private fun setupHelpButton(helpButton: View, title: String, message: String) {
+        helpButton.setOnClickListener {
+            AlertDialog.Builder(requireContext())
+                .setTitle(title)
+                .setMessage(message)
+                .setPositiveButton("Got it") { dialog, _ -> dialog.dismiss() }
+                .show()
         }
     }
 } 

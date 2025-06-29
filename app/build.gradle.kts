@@ -11,8 +11,8 @@ android {
         applicationId = "com.so5km.qrstrainer"
         minSdk = 31
         targetSdk = 35
-        versionCode = 7
-        versionName = "1.0.7"
+        versionCode = 10
+        versionName = "1.0.10"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -20,9 +20,9 @@ android {
     signingConfigs {
         create("release") {
             keyAlias = "qrstrainer"
-            keyPassword = System.getenv("KEYSTORE_PASSWORD")
+            keyPassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
             storeFile = file("${rootProject.projectDir}/qrstrainer-release-key.jks")
-            storePassword = System.getenv("KEYSTORE_PASSWORD")
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
         }
     }
 
