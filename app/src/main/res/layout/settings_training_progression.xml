@@ -1,0 +1,311 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Training Progression Settings Module -->
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    style="@style/Card.Modern"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="12dp"
+    app:cardElevation="4dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Section Header -->
+        <LinearLayout
+            android:id="@+id/headerTrainingProgression"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?android:attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:orientation="horizontal"
+            android:padding="20dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="28dp"
+                    android:background="@color/primary_blue"
+                    android:layout_marginEnd="12dp" />
+
+                <TextView
+                    style="@style/Text.Title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🎓 Training Progression"
+                    android:textSize="18sp"
+                    android:textColor="@color/grey_800" />
+
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/iconTrainingProgressionExpand"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center_vertical"
+                android:src="@drawable/ic_expand_more"
+                android:rotation="180"
+                android:alpha="0.7" />
+
+        </LinearLayout>
+
+        <!-- Section Content -->
+        <LinearLayout
+            android:id="@+id/contentTrainingProgression"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp"
+            android:visibility="visible">
+
+            <!-- Speed Settings -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Speed (WPM)"
+                    android:textSize="16sp"
+                    android:textColor="@color/grey_800" />
+
+                <TextView
+                    android:id="@+id/textSpeedDisplay"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="15 WPM"
+                    android:textSize="14sp"
+                    android:textColor="@color/primary_blue"
+                    android:textStyle="bold"
+                    android:minWidth="80dp"
+                    android:gravity="end" />
+
+            </LinearLayout>
+
+            <SeekBar
+                android:id="@+id/seekBarSpeed"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:max="35"
+                android:progress="10"
+                android:progressTint="@color/primary_blue"
+                android:thumbTint="@color/primary_blue" />
+
+            <!-- Koch Level Settings -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Koch Training Level"
+                    android:textSize="16sp"
+                    android:textColor="@color/grey_800" />
+
+                <TextView
+                    android:id="@+id/textLevelDisplay"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Level 1"
+                    android:textSize="14sp"
+                    android:textColor="@color/secondary_purple"
+                    android:textStyle="bold"
+                    android:minWidth="80dp"
+                    android:gravity="end" />
+
+            </LinearLayout>
+
+            <SeekBar
+                android:id="@+id/seekBarLevel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:max="39"
+                android:progress="0"
+                android:progressTint="@color/secondary_purple"
+                android:thumbTint="@color/secondary_purple" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/card_background_modern"
+                android:padding="16dp"
+                android:layout_marginBottom="24dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <CheckBox
+                        android:id="@+id/checkBoxLockLevel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:buttonTint="@color/primary_blue"
+                        android:text="🔒 Lock level (prevent auto-advance)"
+                        android:textColor="@color/grey_800"
+                        android:textSize="14sp" />
+
+                    <CheckBox
+                        android:id="@+id/checkBoxLettersOnly"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:buttonTint="@color/primary_blue"
+                        android:text="🔤 Letters only mode (A-Z characters only)"
+                        android:textColor="@color/grey_800"
+                        android:textSize="14sp" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- Group Size Settings -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Sequence Length"
+                android:textSize="16sp"
+                android:textColor="@color/grey_800"
+                android:layout_marginBottom="16dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Min: "
+                    android:textSize="14sp"
+                    android:textColor="@color/grey_700" />
+
+                <SeekBar
+                    android:id="@+id/seekBarGroupMin"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:max="8"
+                    android:progress="2"
+                    android:progressTint="@color/accent_orange"
+                    android:thumbTint="@color/accent_orange" />
+
+                <TextView
+                    android:id="@+id/textGroupMinDisplay"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:minWidth="32dp"
+                    android:text="3"
+                    android:textAlignment="center"
+                    android:textSize="14sp"
+                    android:textColor="@color/accent_orange"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Max: "
+                    android:textSize="14sp"
+                    android:textColor="@color/grey_700" />
+
+                <SeekBar
+                    android:id="@+id/seekBarGroupMax"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:max="8"
+                    android:progress="4"
+                    android:progressTint="@color/accent_orange"
+                    android:thumbTint="@color/accent_orange" />
+
+                <TextView
+                    android:id="@+id/textGroupMaxDisplay"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:minWidth="32dp"
+                    android:text="5"
+                    android:textAlignment="center"
+                    android:textSize="14sp"
+                    android:textColor="@color/accent_orange"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
+
+            <!-- Repeat Count -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Repeat Count"
+                    android:textSize="16sp"
+                    android:textColor="@color/grey_800" />
+
+                <TextView
+                    android:id="@+id/textRepeatCountDisplay"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="3 times"
+                    android:textSize="14sp"
+                    android:textColor="@color/accent_cyan"
+                    android:textStyle="bold"
+                    android:minWidth="80dp"
+                    android:gravity="end" />
+
+            </LinearLayout>
+
+            <SeekBar
+                android:id="@+id/seekBarRepeatCount"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:max="9"
+                android:progress="2"
+                android:progressTint="@color/accent_cyan"
+                android:thumbTint="@color/accent_cyan" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView> 

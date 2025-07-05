@@ -4,6 +4,7 @@ import android.content.Context
 import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioTrack
+import com.so5km.qrstrainer.AppState
 import com.so5km.qrstrainer.data.MorseCode
 import com.so5km.qrstrainer.data.TrainingSettings
 import kotlin.math.*
@@ -18,13 +19,11 @@ class MorseCodeGenerator(private val context: Context) {
     
     companion object {
         private const val SAMPLE_RATE = 44100
-        // ENVELOPE_MS now configurable via settings
+        private const val TAG = "MorseCodeGenerator"
     }
     
     private var audioTrack: AudioTrack? = null
     private var playbackThread: Thread? = null
-    private var isPlaying = false
-    private var isPaused = false
     @Volatile
     private var shouldStop = false
     @Volatile
@@ -33,7 +32,6 @@ class MorseCodeGenerator(private val context: Context) {
     // Background noise management
     private var noiseAudioTrack: AudioTrack? = null
     private var noiseThread: Thread? = null
-    private var isNoisePlayingContinuously = false
     @Volatile
     private var shouldStopNoise = false
     
@@ -43,9 +41,16 @@ class MorseCodeGenerator(private val context: Context) {
     // Current settings
     private var currentSettings: TrainingSettings = TrainingSettings()
     
+    // Headphone keep-alive tone management
+    private var keepAliveAudioTrack: AudioTrack? = null
+    private var keepAliveThread: Thread? = null
+    @Volatile
+    private var shouldStopKeepAlive = false
+    
     init {
         initializeAudioTrack()
         initializeNoiseAudioTrack()
+        initializeKeepAliveAudioTrack()
     }
     
     private fun initializeAudioTrack() {
@@ -65,9 +70,9 @@ class MorseCodeGenerator(private val context: Context) {
                 AudioTrack.MODE_STREAM
             )
             
-            android.util.Log.d("MorseCodeGenerator", "AudioTrack initialized in streaming mode, buffer size: $bufferSize")
+            android.util.Log.d(TAG, "AudioTrack initialized in streaming mode, buffer size: $bufferSize")
         } catch (e: Exception) {
-            android.util.Log.e("MorseCodeGenerator", "Failed to initialize AudioTrack: ${e.message}")
+            android.util.Log.e(TAG, "Failed to initialize AudioTrack: ${e.message}")
         }
     }
     
@@ -88,9 +93,32 @@ class MorseCodeGenerator(private val context: Context) {
                 AudioTrack.MODE_STREAM
             )
             
-            android.util.Log.d("MorseCodeGenerator", "Noise AudioTrack initialized, buffer size: $bufferSize")
+            android.util.Log.d(TAG, "Noise AudioTrack initialized, buffer size: $bufferSize")
         } catch (e: Exception) {
-            android.util.Log.e("MorseCodeGenerator", "Failed to initialize noise AudioTrack: ${e.message}")
+            android.util.Log.e(TAG, "Failed to initialize noise AudioTrack: ${e.message}")
+        }
+    }
+    
+    private fun initializeKeepAliveAudioTrack() {
+        try {
+            val bufferSize = AudioTrack.getMinBufferSize(
+                SAMPLE_RATE,
+                AudioFormat.CHANNEL_OUT_MONO,
+                AudioFormat.ENCODING_PCM_16BIT
+            )
+            
+            keepAliveAudioTrack = AudioTrack(
+                AudioManager.STREAM_MUSIC,
+                SAMPLE_RATE,
+                AudioFormat.CHANNEL_OUT_MONO,
+                AudioFormat.ENCODING_PCM_16BIT,
+                bufferSize,
+                AudioTrack.MODE_STREAM
+            )
+            
+            android.util.Log.d(TAG, "Keep-alive AudioTrack initialized, buffer size: $bufferSize")
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "Failed to initialize keep-alive AudioTrack: ${e.message}")
         }
     }
     
@@ -101,27 +129,32 @@ class MorseCodeGenerator(private val context: Context) {
     fun playSequence(
         sequence: String, 
         settings: TrainingSettings,
+        source: String = "default",
         startNoise: Boolean = true,
         onComplete: (() -> Unit)? = null
     ) {
         // Stop any current playback before starting new one
         stopSequence()
         
+        // Always update current settings and audio parameters
         currentSettings = settings
-        isPlaying = true
-        isPaused = false
+        updateAudioParameters()
+        
         shouldStop = false
         shouldPause = false
         
+        // Register the sequence with SharedAudioState
+        SharedAudioState.startPlayback(source, sequence)
+        
         // Start continuous background noise ONLY if checkbox is enabled AND noise level > 0
         // AND startNoise parameter is true (for session-based noise control)
-        if (startNoise && settings.filterRingingEnabled && settings.backgroundNoiseLevel > 0 && !isNoisePlayingContinuously) {
+        if (startNoise && settings.filterRingingEnabled && settings.backgroundNoiseLevel > 0 && !AppState.isNoiseRunning.value!!) {
             startContinuousNoise()
         }
         
         playbackThread = Thread {
             try {
-                android.util.Log.d("MorseCodeGenerator", "Starting playback of sequence: '$sequence' at ${settings.speedWpm}wpm, tone: ${settings.toneFrequencyHz}Hz")
+                android.util.Log.d(TAG, "Starting playback of sequence: '$sequence' at ${settings.speedWpm}wpm, tone: ${settings.toneFrequencyHz}Hz")
                 
                 // Generate the entire sequence as one continuous audio buffer
                 val audioData = generateSequenceAudio(sequence, settings)
@@ -146,13 +179,13 @@ class MorseCodeGenerator(private val context: Context) {
                 }
                 
             } catch (e: InterruptedException) {
-                android.util.Log.d("MorseCodeGenerator", "Playback interrupted")
+                android.util.Log.d(TAG, "Playback interrupted")
             } catch (e: Exception) {
-                android.util.Log.e("MorseCodeGenerator", "Error during playback: ${e.message}")
+                android.util.Log.e(TAG, "Error during playback: ${e.message}")
                 e.printStackTrace()
             } finally {
-                isPlaying = false
-                isPaused = false
+                // Update shared state
+                SharedAudioState.stopPlayback()
                 onComplete?.invoke()
             }
         }
@@ -170,6 +203,8 @@ class MorseCodeGenerator(private val context: Context) {
         val symbolSpacing = dotDuration
         val charSpacing = calculateCharacterSpacing(settings)
         val wordSpacing = calculateWordSpacing(settings)
+        
+        android.util.Log.d(TAG, "Generating audio for sequence: '$sequence' with settings: speedWpm=${settings.speedWpm}, tone=${settings.toneFrequencyHz}Hz")
         
         // Calculate total duration for the entire sequence including repeats
         val singleSequenceDuration = calculateSequenceDuration(sequence, settings)
@@ -208,6 +243,7 @@ class MorseCodeGenerator(private val context: Context) {
         // Apply overall envelope to prevent any clicks at sequence start/end
         applyOverallEnvelope(audioBuffer)
         
+        android.util.Log.d(TAG, "Generated audio buffer of ${audioBuffer.size} samples for sequence '$sequence'")
         return audioBuffer
     }
     
@@ -234,7 +270,7 @@ class MorseCodeGenerator(private val context: Context) {
             val pattern = MorseCode.getPattern(char)
             
             if (pattern != null) {
-                android.util.Log.d("MorseCodeGenerator", "Generating character '$char' with pattern '$pattern'")
+                android.util.Log.d(TAG, "Generating character '$char' with pattern '$pattern'")
                 
                 // Generate pattern audio
                 bufferIndex = generatePatternIntoBuffer(
@@ -462,7 +498,7 @@ class MorseCodeGenerator(private val context: Context) {
                     Thread.sleep(1)
                 }
             } catch (e: Exception) {
-                android.util.Log.e("MorseCodeGenerator", "Error writing to AudioTrack: ${e.message}")
+                android.util.Log.e(TAG, "Error writing to AudioTrack: ${e.message}")
                 break
             }
         }
@@ -509,129 +545,103 @@ class MorseCodeGenerator(private val context: Context) {
     }
     
     /**
-     * Pause current playback
-     */
-    fun pause() {
-        if (isPlaying && !isPaused) {
-            shouldPause = true
-            isPaused = true
-            try {
-                audioTrack?.pause()
-                android.util.Log.d("MorseCodeGenerator", "Audio paused")
-            } catch (e: Exception) {
-                android.util.Log.e("MorseCodeGenerator", "Error pausing AudioTrack: ${e.message}")
-            }
-        }
-    }
-    
-    /**
-     * Resume paused playback
-     */
-    fun resume() {
-        if (isPlaying && isPaused) {
-            shouldPause = false
-            isPaused = false
-            try {
-                audioTrack?.play()
-                android.util.Log.d("MorseCodeGenerator", "Audio resumed")
-            } catch (e: Exception) {
-                android.util.Log.e("MorseCodeGenerator", "Error resuming AudioTrack: ${e.message}")
-            }
-        }
-    }
-    
-    /**
-     * Stop only the current sequence playback (not the background noise)
-     * Used for session-based training where noise continues between sequences
-     */
-    fun stopSequence() {
-        shouldStop = true
-        shouldPause = false
-        
-        try {
-            audioTrack?.stop()
-        } catch (e: Exception) {
-            android.util.Log.e("MorseCodeGenerator", "Error stopping AudioTrack: ${e.message}")
-        }
-        
-        // Interrupt and wait for playback thread to finish
-        playbackThread?.interrupt()
-        try {
-            playbackThread?.join(1000) // Wait up to 1 second
-        } catch (e: InterruptedException) {
-            Thread.currentThread().interrupt()
-        }
-        playbackThread = null
-        
-        isPlaying = false
-        isPaused = false
-    }
-    
-    /**
-     * Stop all audio playback including background noise
-     * Used when completely stopping training
-     */
-    fun stop() {
-        stopSequence()
-        stopContinuousNoise()
-    }
-    
-    /**
      * Check if audio is currently playing
      */
-    fun isPlaying(): Boolean = isPlaying
+    fun isPlaying(): Boolean {
+        return SharedAudioState.isPlaying.value == true
+    }
     
     /**
-     * Check if audio is currently paused
+     * Stop current playback
      */
-    fun isPaused(): Boolean = isPaused
+    fun stop() {
+        shouldStop = true
+        playbackThread?.let {
+            if (it.isAlive) {
+                try {
+                    audioTrack?.pause()
+                    audioTrack?.flush()
+                    audioTrack?.stop()
+                    it.interrupt()
+                } catch (e: Exception) {
+                    android.util.Log.e(TAG, "Error stopping playback: ${e.message}")
+                }
+            }
+        }
+        SharedAudioState.stopPlayback()
+    }
     
     /**
-     * Check if background noise is currently playing
+     * Pause playback
      */
-    fun isNoiseActive(): Boolean = isNoisePlayingContinuously
+    fun pause() {
+        shouldPause = true
+        audioTrack?.pause()
+    }
     
     /**
-     * Start continuous background noise for session-based training
-     * This keeps noise playing continuously throughout the session
+     * Resume playback
+     */
+    fun resume() {
+        shouldPause = false
+        audioTrack?.play()
+    }
+    
+    /**
+     * Release resources
+     */
+    fun release() {
+        stop()
+        stopContinuousNoise()
+        stopHeadphoneKeepAlive()
+        
+        try {
+            audioTrack?.release()
+            noiseAudioTrack?.release()
+            keepAliveAudioTrack?.release()
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "Error releasing resources: ${e.message}")
+        }
+        
+        audioTrack = null
+        noiseAudioTrack = null
+        keepAliveAudioTrack = null
+    }
+    
+    /**
+     * Start continuous background noise
      */
     fun startContinuousNoise() {
-        if (isNoisePlayingContinuously) return
+        if (AppState.isNoiseRunning.value == true) {
+            return
+        }
         
-        android.util.Log.d("MorseCodeGenerator", "Starting continuous session noise - Noise level: ${(currentSettings.backgroundNoiseLevel * 100).toInt()}%")
-        
-        isNoisePlayingContinuously = true
         shouldStopNoise = false
+        AppState.setNoiseRunning(true)
         
         noiseThread = Thread {
             try {
+                val bufferSize = 4096
+                val noiseBuffer = ShortArray(bufferSize)
+                
                 noiseAudioTrack?.play()
                 
-                val chunkSize = 1024
-                val noiseBuffer = ShortArray(chunkSize)
-                
-                while (!shouldStopNoise && isNoisePlayingContinuously) {
-                    // Generate CW-filtered noise chunk using professional CW noise generator
+                while (!shouldStopNoise) {
+                    // Generate noise using the CW noise generator
                     cwNoiseGenerator.generateRealisticCWNoise(noiseBuffer, currentSettings)
                     
-                    try {
-                        val bytesWritten = noiseAudioTrack!!.write(noiseBuffer, 0, chunkSize)
-                        if (bytesWritten <= 0) {
-                            Thread.sleep(1) // Brief pause if write fails
-                        }
-                    } catch (e: Exception) {
-                        android.util.Log.e("MorseCodeGenerator", "Error writing noise: ${e.message}")
-                        break
+                    // Write to audio track
+                    if (!shouldStopNoise) {
+                        noiseAudioTrack?.write(noiseBuffer, 0, bufferSize)
                     }
                 }
                 
+                noiseAudioTrack?.pause()
+                noiseAudioTrack?.flush()
                 noiseAudioTrack?.stop()
                 
             } catch (e: Exception) {
-                android.util.Log.e("MorseCodeGenerator", "Error in continuous noise playback: ${e.message}")
-            } finally {
-                isNoisePlayingContinuously = false
-                android.util.Log.d("MorseCodeGenerator", "Continuous session noise stopped")
+                android.util.Log.e(TAG, "Error in noise thread: ${e.message}")
             }
         }
         
@@ -643,43 +653,102 @@ class MorseCodeGenerator(private val context: Context) {
      */
     fun stopContinuousNoise() {
         shouldStopNoise = true
+        noiseThread?.let {
+            if (it.isAlive) {
+                try {
+                    it.interrupt()
+                } catch (e: Exception) {
+                    android.util.Log.e(TAG, "Error stopping noise thread: ${e.message}")
+                }
+            }
+        }
         
         try {
+            noiseAudioTrack?.pause()
+            noiseAudioTrack?.flush()
             noiseAudioTrack?.stop()
         } catch (e: Exception) {
-            android.util.Log.e("MorseCodeGenerator", "Error stopping noise AudioTrack: ${e.message}")
+            android.util.Log.e(TAG, "Error stopping noise audio track: ${e.message}")
         }
         
-        noiseThread?.interrupt()
-        try {
-            noiseThread?.join(500) // Wait up to 500ms
-        } catch (e: InterruptedException) {
-            Thread.currentThread().interrupt()
-        }
-        noiseThread = null
-        
-        isNoisePlayingContinuously = false
+        AppState.setNoiseRunning(false)
     }
     
     /**
-     * Clean up resources
+     * Start headphone keep-alive tone
+     * This plays an extremely quiet tone to prevent Bluetooth headphones
+     * from disconnecting due to inactivity
      */
-    fun release() {
-        stop()
-        stopHeadphoneKeepAlive()
-        try {
-            audioTrack?.release()
-            audioTrack = null
-        } catch (e: Exception) {
-            android.util.Log.e("MorseCodeGenerator", "Error releasing AudioTrack: ${e.message}")
+    fun startHeadphoneKeepAlive() {
+        if (keepAliveThread != null && keepAliveThread!!.isAlive) {
+            return
+        }
+        
+        shouldStopKeepAlive = false
+        
+        keepAliveThread = Thread {
+            try {
+                val bufferSize = 8192
+                val keepAliveBuffer = ShortArray(bufferSize)
+                val frequency = 19000.0 // Very high frequency, barely audible
+                val amplitude = 0.001 // Extremely quiet
+                
+                keepAliveAudioTrack?.play()
+                
+                while (!shouldStopKeepAlive) {
+                    // Generate a very quiet high-frequency tone
+                    for (i in 0 until bufferSize) {
+                        val angle = 2.0 * PI * i * frequency / SAMPLE_RATE
+                        keepAliveBuffer[i] = (sin(angle) * amplitude * Short.MAX_VALUE).toInt().toShort()
+                    }
+                    
+                    // Write to audio track
+                    if (!shouldStopKeepAlive) {
+                        keepAliveAudioTrack?.write(keepAliveBuffer, 0, bufferSize)
+                    }
+                }
+                
+                keepAliveAudioTrack?.pause()
+                keepAliveAudioTrack?.flush()
+                keepAliveAudioTrack?.stop()
+                
+            } catch (e: Exception) {
+                android.util.Log.e(TAG, "Error in keep-alive thread: ${e.message}")
+            }
+        }
+        
+        keepAliveThread?.start()
+    }
+    
+    /**
+     * Stop headphone keep-alive tone
+     */
+    fun stopHeadphoneKeepAlive() {
+        shouldStopKeepAlive = true
+        keepAliveThread?.let {
+            if (it.isAlive) {
+                try {
+                    it.interrupt()
+                } catch (e: Exception) {
+                    android.util.Log.e(TAG, "Error stopping keep-alive thread: ${e.message}")
+                }
+            }
         }
         
         try {
-            noiseAudioTrack?.release()
-            noiseAudioTrack = null
+            keepAliveAudioTrack?.pause()
+            keepAliveAudioTrack?.flush()
+            keepAliveAudioTrack?.stop()
         } catch (e: Exception) {
-            android.util.Log.e("MorseCodeGenerator", "Error releasing noise AudioTrack: ${e.message}")
+            android.util.Log.e(TAG, "Error stopping keep-alive audio track: ${e.message}")
         }
+    }
+    
+    /**
+     * Stop current sequence playback
+     */
+    fun stopSequence() {
+        stop()
     }
     
     /**
@@ -744,12 +813,12 @@ class MorseCodeGenerator(private val context: Context) {
      * This is independent of training mode and can be used for real-time parameter adjustment
      */
     fun startTestNoise(settings: TrainingSettings) {
-        if (isNoisePlayingContinuously) {
+        if (AppState.isNoiseRunning.value == true) {
             stopTestNoise()
         }
         
         currentSettings = settings
-        android.util.Log.d("MorseCodeGenerator", "Starting CW test noise - Level: ${(settings.backgroundNoiseLevel * 100).toInt()}%, LFO1: ${settings.lfo1FrequencyHz}Hz, LFO2: ${settings.lfo2FrequencyHz}Hz")
+        android.util.Log.d(TAG, "Starting CW test noise - Level: ${(settings.backgroundNoiseLevel * 100).toInt()}%, LFO1: ${settings.lfo1FrequencyHz}Hz, LFO2: ${settings.lfo2FrequencyHz}Hz")
         startContinuousNoise()
     }
     
@@ -757,7 +826,7 @@ class MorseCodeGenerator(private val context: Context) {
      * Stop continuous test noise
      */
     fun stopTestNoise() {
-        android.util.Log.d("MorseCodeGenerator", "Stopping CW test noise")
+        android.util.Log.d(TAG, "Stopping CW test noise")
         stopContinuousNoise()
     }
     
@@ -765,9 +834,9 @@ class MorseCodeGenerator(private val context: Context) {
      * Update settings for continuous noise testing in real-time
      */
     fun updateNoiseSettings(settings: TrainingSettings) {
-        if (isNoisePlayingContinuously) {
+        if (AppState.isNoiseRunning.value == true) {
             currentSettings = settings
-            android.util.Log.d("MorseCodeGenerator", "Updated CW test noise settings - Level: ${(settings.backgroundNoiseLevel * 100).toInt()}%, Q: ${settings.filterQFactor}, LFO1: ${settings.lfo1FrequencyHz}Hz, LFO2: ${settings.lfo2FrequencyHz}Hz")
+            android.util.Log.d(TAG, "Updated CW test noise settings - Level: ${(settings.backgroundNoiseLevel * 100).toInt()}%, Q: ${settings.filterQFactor}, LFO1: ${settings.lfo1FrequencyHz}Hz, LFO2: ${settings.lfo2FrequencyHz}Hz")
         }
     }
     
@@ -777,10 +846,10 @@ class MorseCodeGenerator(private val context: Context) {
      */
     fun resetNoiseGenerator() {
         cwNoiseGenerator.reset()
-        android.util.Log.d("MorseCodeGenerator", "Reset noise generator to ensure parameter changes take effect")
+        android.util.Log.d(TAG, "Reset noise generator to ensure parameter changes take effect")
         
         // If noise is currently playing, briefly stop and restart it to apply changes
-        if (isNoisePlayingContinuously) {
+        if (AppState.isNoiseRunning.value == true) {
             val currentSettings = this.currentSettings
             stopTestNoise()
             Thread.sleep(50) // Brief pause
@@ -791,250 +860,203 @@ class MorseCodeGenerator(private val context: Context) {
     /**
      * Check if test noise is currently playing
      */
-    fun isTestNoiseActive(): Boolean = isNoisePlayingContinuously
+    fun isTestNoiseActive(): Boolean = AppState.isNoiseRunning.value == true
     
     /**
-     * Play a single character as Morse code
-     * Used for keyboard feedback outside of training sessions
+     * Play a single character (useful for testing tone settings)
      */
-    fun playSingleCharacter(
-        char: Char,
-        settings: TrainingSettings,
-        onComplete: (() -> Unit)? = null
-    ) {
-        // Stop any current playback before starting new one
-        stopSequence()
+    fun playSingleCharacter(character: Char, settings: TrainingSettings? = null) {
+        // Use provided settings or get from AppState
+        val actualSettings = settings ?: AppState.getSettings(context)
         
-        currentSettings = settings
-        isPlaying = true
-        isPaused = false
-        shouldStop = false
-        shouldPause = false
+        // Always stop any existing playback first
+        stop()
         
+        // Generate the sequence for a single character
+        val morsePattern = MorseCode.getPattern(character.uppercaseChar()) ?: ""
+        
+        // Play the sequence
+        playMorseSequence(morsePattern, actualSettings)
+    }
+
+    /**
+     * Play a Morse code sequence (dots and dashes)
+     */
+    fun playMorseSequence(sequence: String, settings: TrainingSettings? = null) {
+        // Use provided settings or get from AppState
+        currentSettings = settings ?: AppState.getSettings(context)
+        
+        // Always update audio parameters from current settings
+        updateAudioParameters()
+        
+        // Stop any existing playback
+        stop()
+        
+        // Register the sequence with SharedAudioState
+        SharedAudioState.registerSequence("morse_generator", sequence)
+        
+        // Start the playback thread
         playbackThread = Thread {
             try {
-                android.util.Log.d("MorseCodeGenerator", "Playing single character: '$char' at ${settings.speedWpm}wpm")
-                
-                // Create a completely isolated AudioTrack instance for this single character
-                // to avoid any interference with other audio processing
-                val singleCharTrack = try {
-                    val bufferSize = AudioTrack.getMinBufferSize(
-                        SAMPLE_RATE,
-                        AudioFormat.CHANNEL_OUT_MONO,
-                        AudioFormat.ENCODING_PCM_16BIT
-                    ) * 4 // Larger buffer for reliability
-                    
-                    AudioTrack(
-                        AudioManager.STREAM_MUSIC,
-                        SAMPLE_RATE,
-                        AudioFormat.CHANNEL_OUT_MONO,
-                        AudioFormat.ENCODING_PCM_16BIT,
-                        bufferSize,
-                        AudioTrack.MODE_STREAM
-                    )
-                } catch (e: Exception) {
-                    android.util.Log.e("MorseCodeGenerator", "Failed to create single char AudioTrack: ${e.message}")
-                    null
-                }
-                
-                if (singleCharTrack == null) {
-                    android.util.Log.e("MorseCodeGenerator", "Cannot play single character - AudioTrack creation failed")
-                    return@Thread
-                }
-                
-                // Generate audio for the single character
-                val dotDuration = calculateDotDuration(settings.speedWpm)
+                val dotDuration = calculateDotDuration(currentSettings.speedWpm)
                 val dashDuration = dotDuration * 3
                 val symbolSpacing = dotDuration
+                val charSpacing = calculateCharacterSpacing(currentSettings)
                 
-                val pattern = MorseCode.getPattern(char)
+                // Start audio track
+                audioTrack?.play()
                 
-                if (pattern != null) {
-                    // Calculate total samples needed
-                    var totalDuration = 0
-                    for (symbol in pattern) {
-                        when (symbol) {
-                            '.' -> totalDuration += dotDuration
-                            '-' -> totalDuration += dashDuration
+                // Signal that playback has started
+                AppState.setAudioPlaying(true)
+                SharedAudioState.startPlayback("morse_generator", sequence)
+                
+                // Generate audio for each symbol in the sequence
+                for (i in sequence.indices) {
+                    if (shouldStop) {
+                        break
+                    }
+                    
+                    val symbol = sequence[i]
+                    
+                    when (symbol) {
+                        '.' -> {
+                            generateDotTone(dotDuration)
+                            Thread.sleep(symbolSpacing.toLong())
+                        }
+                        '-' -> {
+                            generateDashTone(dashDuration)
+                            Thread.sleep(symbolSpacing.toLong())
+                        }
+                        ' ' -> {
+                            Thread.sleep(charSpacing.toLong())
+                        }
+                        '/' -> {
+                            Thread.sleep(calculateWordSpacing(currentSettings).toLong())
                         }
                     }
-                    
-                    // Add symbol spacing within pattern
-                    if (pattern.length > 1) {
-                        totalDuration += symbolSpacing * (pattern.length - 1)
-                    }
-                    
-                    // Add small buffer at end
-                    totalDuration += 100
-                    
-                    val totalSamples = (SAMPLE_RATE * totalDuration / 1000.0).toInt()
-                    val audioBuffer = ShortArray(totalSamples)
-                    
-                    // Generate the pattern into the buffer
-                    generatePatternIntoBuffer(
-                        audioBuffer,
-                        0,
-                        pattern,
-                        dotDuration,
-                        dashDuration,
-                        symbolSpacing,
-                        settings.toneFrequencyHz
-                    )
-                    
-                    // Apply overall envelope to prevent clicks
-                    applyOverallEnvelope(audioBuffer)
-                    
-                    if (audioBuffer.isNotEmpty() && !shouldStop) {
-                        try {
-                            // Start playback
-                            singleCharTrack.play()
-                            
-                            // Write all data at once
-                            val bytesWritten = singleCharTrack.write(audioBuffer, 0, audioBuffer.size)
-                            
-                            if (bytesWritten <= 0) {
-                                android.util.Log.e("MorseCodeGenerator", "Failed to write audio data for single character")
-                            }
-                            
-                            // Wait for playback to complete
-                            Thread.sleep(totalDuration.toLong())
-                            
-                            // Stop and release the track
-                            singleCharTrack.stop()
-                        } catch (e: Exception) {
-                            android.util.Log.e("MorseCodeGenerator", "Error playing single character: ${e.message}")
-                        } finally {
-                            try {
-                                singleCharTrack.release()
-                            } catch (e: Exception) {
-                                android.util.Log.e("MorseCodeGenerator", "Error releasing single char AudioTrack: ${e.message}")
-                            }
-                        }
-                    }
-                } else {
-                    android.util.Log.e("MorseCodeGenerator", "No Morse pattern found for character: $char")
                 }
                 
-            } catch (e: InterruptedException) {
-                android.util.Log.d("MorseCodeGenerator", "Single character playback interrupted")
+                // Signal that playback has finished
+                AppState.setAudioPlaying(false)
+                SharedAudioState.stopPlayback()
+                
+                // Stop audio track
+                audioTrack?.stop()
+                audioTrack?.flush()
+                
             } catch (e: Exception) {
-                android.util.Log.e("MorseCodeGenerator", "Error during single character playback: ${e.message}")
-                e.printStackTrace()
-            } finally {
-                isPlaying = false
-                isPaused = false
-                onComplete?.invoke()
+                android.util.Log.e(TAG, "Error in playback thread: ${e.message}")
             }
         }
         
         playbackThread?.start()
     }
-
+    
     /**
-     * Generate and play a continuous low-level "keep-alive" tone to prevent headphones from shutting off
-     * This tone is designed to be barely audible but sufficient to keep headphones active
+     * Generate a dot tone with the current settings
      */
-    private var keepAliveAudioTrack: AudioTrack? = null
-    private var keepAliveThread: Thread? = null
-    private var isKeepAliveActive = false
-    @Volatile
-    private var shouldStopKeepAlive = false
-
-    fun startHeadphoneKeepAlive() {
-        if (isKeepAliveActive) return
+    private fun generateDotTone(durationMs: Int) {
+        val bufferSize = (SAMPLE_RATE * durationMs / 1000.0).toInt()
+        val buffer = ShortArray(bufferSize)
         
-        android.util.Log.d("MorseCodeGenerator", "Starting headphone keep-alive tone")
+        // Generate sine wave with envelope
+        for (i in 0 until bufferSize) {
+            val time = i.toDouble() / SAMPLE_RATE
+            val angle = 2.0 * PI * toneFrequency * time
+            
+            // Apply envelope
+            val envelopeFactor = calculateEnvelope(i, bufferSize)
+            
+            // Generate sample
+            buffer[i] = (sin(angle) * envelopeFactor * volume * Short.MAX_VALUE).toInt().toShort()
+        }
         
-        try {
-            val bufferSize = AudioTrack.getMinBufferSize(
-                SAMPLE_RATE,
-                AudioFormat.CHANNEL_OUT_MONO,
-                AudioFormat.ENCODING_PCM_16BIT
-            )
+        // Write to audio track
+        audioTrack?.write(buffer, 0, bufferSize)
+    }
+    
+    /**
+     * Generate a dash tone with the current settings
+     */
+    private fun generateDashTone(durationMs: Int) {
+        val bufferSize = (SAMPLE_RATE * durationMs / 1000.0).toInt()
+        val buffer = ShortArray(bufferSize)
+        
+        // Generate sine wave with envelope
+        for (i in 0 until bufferSize) {
+            val time = i.toDouble() / SAMPLE_RATE
+            val angle = 2.0 * PI * toneFrequency * time
             
-            keepAliveAudioTrack = AudioTrack(
-                AudioManager.STREAM_MUSIC,
-                SAMPLE_RATE,
-                AudioFormat.CHANNEL_OUT_MONO,
-                AudioFormat.ENCODING_PCM_16BIT,
-                bufferSize,
-                AudioTrack.MODE_STREAM
-            )
+            // Apply envelope
+            val envelopeFactor = calculateEnvelope(i, bufferSize)
             
-            isKeepAliveActive = true
-            shouldStopKeepAlive = false
-            
-            keepAliveThread = Thread {
-                try {
-                    keepAliveAudioTrack?.play()
-                    
-                    val chunkSize = 1024
-                    val buffer = ShortArray(chunkSize)
-                    var phase = 0.0
-                    
-                    while (!shouldStopKeepAlive && isKeepAliveActive) {
-                        // Generate a very quiet sine wave at 20Hz (below audible range for most people)
-                        // but still keeps headphones active
-                        for (i in buffer.indices) {
-                            // Ultra-low volume (0.005 = 0.5% of max volume)
-                            val amplitude = sin(phase) * 0.005
-                            buffer[i] = (amplitude * Short.MAX_VALUE).toInt().toShort()
-                            
-                            // 20Hz frequency - below audible range but keeps connection active
-                            phase += 2.0 * PI * 20 / SAMPLE_RATE
-                            if (phase > 2.0 * PI) phase -= 2.0 * PI
-                        }
-                        
-                        try {
-                            keepAliveAudioTrack!!.write(buffer, 0, chunkSize)
-                        } catch (e: Exception) {
-                            android.util.Log.e("MorseCodeGenerator", "Error writing keep-alive audio: ${e.message}")
-                            break
-                        }
-                    }
-                    
-                    keepAliveAudioTrack?.stop()
-                    
-                } catch (e: Exception) {
-                    android.util.Log.e("MorseCodeGenerator", "Error in keep-alive playback: ${e.message}")
-                } finally {
-                    isKeepAliveActive = false
-                    android.util.Log.d("MorseCodeGenerator", "Headphone keep-alive stopped")
+            // Generate sample
+            buffer[i] = (sin(angle) * envelopeFactor * volume * Short.MAX_VALUE).toInt().toShort()
+        }
+        
+        // Write to audio track
+        audioTrack?.write(buffer, 0, bufferSize)
+    }
+    
+    /**
+     * Calculate envelope factor based on position in buffer
+     */
+    private fun calculateEnvelope(position: Int, bufferSize: Int): Double {
+        val envelopeSamples = (envelopeMs * SAMPLE_RATE / 1000.0).toInt().coerceAtLeast(1)
+        
+        return when {
+            position < envelopeSamples -> {
+                // Attack phase
+                when (keyingStyle) {
+                    0 -> position.toDouble() / envelopeSamples // Hard keying - linear
+                    1 -> 0.5 * (1.0 - cos(PI * position / envelopeSamples)) // Soft keying - cosine
+                    2 -> sin(PI * position / (2 * envelopeSamples)) // Smooth keying - sine
+                    else -> position.toDouble() / envelopeSamples
                 }
             }
-            
-            keepAliveThread?.start()
-            
-        } catch (e: Exception) {
-            android.util.Log.e("MorseCodeGenerator", "Failed to initialize keep-alive AudioTrack: ${e.message}")
+            position > bufferSize - envelopeSamples -> {
+                // Release phase
+                val releasePosition = bufferSize - position
+                when (keyingStyle) {
+                    0 -> releasePosition.toDouble() / envelopeSamples // Hard keying - linear
+                    1 -> 0.5 * (1.0 - cos(PI * releasePosition / envelopeSamples)) // Soft keying - cosine
+                    2 -> sin(PI * releasePosition / (2 * envelopeSamples)) // Smooth keying - sine
+                    else -> releasePosition.toDouble() / envelopeSamples
+                }
+            }
+            else -> 1.0 // Sustain phase
         }
     }
     
-    fun stopHeadphoneKeepAlive() {
-        shouldStopKeepAlive = true
+    // Audio parameters
+    private var toneFrequency = 600.0
+    private var volume = 0.7f
+    private var envelopeMs = 5
+    private var keyingStyle = 1 // 0=Hard, 1=Soft, 2=Smooth
+    
+    /**
+     * Update audio parameters from current settings
+     * This ensures that any changes to settings are applied immediately
+     */
+    private fun updateAudioParameters() {
+        // Update tone frequency and volume
+        toneFrequency = currentSettings.toneFrequencyHz.toDouble()
+        volume = currentSettings.appVolumeLevel
         
-        try {
-            keepAliveAudioTrack?.stop()
-        } catch (e: Exception) {
-            android.util.Log.e("MorseCodeGenerator", "Error stopping keep-alive AudioTrack: ${e.message}")
-        }
+        // Update envelope parameters
+        envelopeMs = currentSettings.audioEnvelopeMs
+        keyingStyle = currentSettings.keyingStyle
         
-        keepAliveThread?.interrupt()
-        try {
-            keepAliveThread?.join(500)
-        } catch (e: InterruptedException) {
-            Thread.currentThread().interrupt()
-        }
+        // Update filter parameters for noise generator
+        cwNoiseGenerator.updateFilterParameters(
+            centerFreq = currentSettings.toneFrequencyHz.toDouble(),
+            qFactor = currentSettings.filterQFactor.toDouble(),
+            bandwidth = currentSettings.filterBandwidthHz.toDouble(),
+            warmth = currentSettings.warmth.toDouble(),
+            atmosphericIntensity = currentSettings.atmosphericIntensity.toDouble()
+        )
         
-        try {
-            keepAliveAudioTrack?.release()
-            keepAliveAudioTrack = null
-        } catch (e: Exception) {
-            android.util.Log.e("MorseCodeGenerator", "Error releasing keep-alive AudioTrack: ${e.message}")
-        }
-        
-        keepAliveThread = null
-        isKeepAliveActive = false
+        // Log parameter updates
+        android.util.Log.d(TAG, "Updated audio parameters: freq=$toneFrequency, vol=$volume, env=$envelopeMs, keying=$keyingStyle")
     }
-
 } 

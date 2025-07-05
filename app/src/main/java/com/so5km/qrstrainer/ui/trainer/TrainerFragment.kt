@@ -15,24 +15,28 @@ import android.widget.GridLayout
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import com.so5km.qrstrainer.AppState
 import com.so5km.qrstrainer.R
 import com.so5km.qrstrainer.audio.MorseCodeGenerator
+import com.so5km.qrstrainer.audio.SharedAudioState
 import com.so5km.qrstrainer.data.MorseCode
 import com.so5km.qrstrainer.data.ProgressTracker
 import com.so5km.qrstrainer.data.TrainingSettings
 import com.so5km.qrstrainer.databinding.FragmentTrainerBinding
 import com.so5km.qrstrainer.training.CharacterTimingCalculator
 import com.so5km.qrstrainer.training.SequenceGenerator
+import com.so5km.qrstrainer.ui.BaseAudioFragment
+import com.so5km.qrstrainer.ui.settings.SettingsViewModel
 
-class TrainerFragment : Fragment() {
+class TrainerFragment : BaseAudioFragment() {
 
     private var _binding: FragmentTrainerBinding? = null
     private val binding get() = _binding!!
 
     private lateinit var progressTracker: ProgressTracker
     private lateinit var sequenceGenerator: SequenceGenerator
-    private lateinit var morseGenerator: MorseCodeGenerator
-    private lateinit var settings: TrainingSettings
+    override lateinit var morseGenerator: MorseCodeGenerator
+    private var settings: TrainingSettings? = null
     private val characterTimingCalculator = CharacterTimingCalculator()
     
     private var currentSequence: String = ""
@@ -55,10 +59,10 @@ class TrainerFragment : Fragment() {
     private var totalDelayTime: Long = 0
     
     // Lifecycle state tracking
-    private var wasPlayingWhenPaused = false
+    override var wasPlayingWhenPaused = false
     
     // Session state tracking
-    private var isSessionActive = false
+    override var isSessionActive = false
     private var isNoiseRunning = false
     
     // Response time tracking
@@ -95,10 +99,16 @@ class TrainerFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         // Reload settings when returning to trainer (e.g., from settings screen)
-        settings = TrainingSettings.load(requireContext())
-        android.util.Log.d("TrainerFragment", "Settings loaded - sequence delay: ${settings.sequenceDelayMs}ms")
+        settings = AppState.getSettings(requireContext())
+        android.util.Log.d("TrainerFragment", "Settings loaded - sequence delay: ${settings?.sequenceDelayMs}ms")
         updateProgressDisplay()
         createKeyboard()  // Update keyboard in case level changed
+        
+        // Observe SharedAudioState
+        observeSharedAudioState()
+        
+        // Observe AppState
+        observeAppState()
         
         // If audio was playing when we paused, update UI to show stopped state
         if (wasPlayingWhenPaused) {
@@ -106,32 +116,38 @@ class TrainerFragment : Fragment() {
             currentState = TrainingState.READY
             updateUIState()
         }
-        
-        // Resume audio when app comes back to foreground
-        if (isPaused && wasPlayingWhenPaused) {
-            resumePlayback()
+    }
+    
+    private fun observeSharedAudioState() {
+        SharedAudioState.isPlaying.observe(viewLifecycleOwner) { isPlaying ->
+            if (!isPlaying && currentState == TrainingState.PLAYING) {
+                // Audio finished playing
+                currentState = TrainingState.WAITING
+                updateUIState()
+                
+                // Start answer timeout
+                startAnswerTimeout()
+            }
         }
     }
     
-    override fun onPause() {
-        super.onPause()
-        // Stop audio playback when app goes to background
-        if (isAudioPlaying || morseGenerator.isPlaying()) {
-            wasPlayingWhenPaused = true
-            morseGenerator.stop()
-            isAudioPlaying = false
-            isPaused = false
-            currentState = TrainingState.READY
+    private fun observeAppState() {
+        AppState.isAudioPlaying.observe(viewLifecycleOwner) { isPlaying ->
+            isAudioPlaying = isPlaying
+            if (!isPlaying && currentState == TrainingState.PLAYING) {
+                currentState = TrainingState.READY
+                updateUIState()
+            }
         }
         
-        // Pause audio when app goes to background
-        if (isAudioPlaying && !isPaused) {
-            pausePlayback()
+        AppState.isNoiseRunning.observe(viewLifecycleOwner) { isRunning ->
+            isNoiseRunning = isRunning
         }
         
-        // Stop noise if session is active
-        if (isNoiseRunning) {
-            stopContinuousNoise()
+        // Observe settings changes
+        settingsViewModel.settings.observe(viewLifecycleOwner) { updatedSettings ->
+            settings = updatedSettings
+            updateProgressDisplay()
         }
     }
 
@@ -139,7 +155,11 @@ class TrainerFragment : Fragment() {
         progressTracker = ProgressTracker(requireContext())
         sequenceGenerator = SequenceGenerator(progressTracker)
         morseGenerator = MorseCodeGenerator(requireContext())
-        settings = TrainingSettings.load(requireContext())
+        settings = AppState.getSettings(requireContext())
+        
+        // Initialize handlers
+        timeoutHandler = Handler(Looper.getMainLooper())
+        delayHandler = Handler(Looper.getMainLooper())
     }
 
     private fun setupUI() {
@@ -159,6 +179,8 @@ class TrainerFragment : Fragment() {
         
         binding.buttonPause.setOnClickListener {
             pausePlayback()
+            currentState = TrainingState.PAUSED
+            updateUIState()
         }
         
         binding.buttonStop.setOnClickListener {
@@ -243,12 +265,12 @@ class TrainerFragment : Fragment() {
     }
 
     private fun updateProgressDisplay() {
-        val currentLevel = settings.kochLevel
-        val requiredCorrect = settings.requiredCorrectToAdvance
+        val currentLevel = settings?.kochLevel ?: 1
+        val requiredCorrect = settings?.requiredCorrectToAdvance ?: 3
         
         // Update level and WPM display
         binding.textLevel.text = "Level $currentLevel"
-        binding.textWpm.text = "${settings.speedWpm} WPM"
+        binding.textWpm.text = "${settings?.speedWpm ?: 20} WPM"
         
         // Update score display
         val sessionCorrect = progressTracker.sessionCorrect
@@ -256,7 +278,7 @@ class TrainerFragment : Fragment() {
         binding.textScore.text = "Score: $sessionCorrect/$sessionTotal"
         
         // Update progress bar for level advancement
-        val characters = MorseCode.getCharactersForLevel(currentLevel, settings.lettersOnlyMode)
+        val characters = MorseCode.getCharactersForLevel(currentLevel, settings?.lettersOnlyMode ?: false)
         val minCorrectCount = characters.minOfOrNull { char ->
             progressTracker.getCharacterStats(char).correctCount
         } ?: 0
@@ -269,12 +291,12 @@ class TrainerFragment : Fragment() {
     }
 
     private fun createKeyboard() {
-        val allChars = MorseCode.getCharactersForLevel(settings.kochLevel, settings.lettersOnlyMode)
+        val allChars = MorseCode.getCharactersForLevel(settings?.kochLevel ?: 1, settings?.lettersOnlyMode ?: false)
         // Filter is no longer needed since we're using the lettersOnlyMode setting
         val availableChars = allChars
         
         // Debug: Log what characters we're trying to create
-        android.util.Log.d("TrainerFragment", "Creating keyboard for level ${settings.kochLevel}")
+        android.util.Log.d("TrainerFragment", "Creating keyboard for level ${settings?.kochLevel}")
         android.util.Log.d("TrainerFragment", "Available chars: ${availableChars.joinToString()}")
         
         binding.keyboardGrid.removeAllViews()
@@ -431,7 +453,7 @@ class TrainerFragment : Fragment() {
             }
         } else {
             // Outside of active session - just play the character sound
-            morseGenerator.playSingleCharacter(char, settings)
+            morseGenerator.playSingleCharacter(char, settings ?: TrainingSettings())
         }
     }
 
@@ -486,6 +508,7 @@ class TrainerFragment : Fragment() {
         // Cancel any existing timeouts and scheduled sequences
         cancelTimeout()
         timeoutHandler?.removeCallbacksAndMessages(null)
+        delayHandler?.removeCallbacksAndMessages(null)
         
         // Hide progress bar
         hideSequenceDelayProgress()
@@ -495,11 +518,13 @@ class TrainerFragment : Fragment() {
         
         // Generate new sequence
         currentSequence = sequenceGenerator.generateSequence(
-            settings.kochLevel,
-            settings.groupSizeMin,
-            settings.groupSizeMax,
-            settings.lettersOnlyMode
+            settings?.kochLevel ?: 1,
+            settings?.groupSizeMin ?: 1,
+            settings?.groupSizeMax ?: 1,
+            settings?.lettersOnlyMode ?: false
         )
+        
+        android.util.Log.d("TrainerFragment", "Starting new sequence: '$currentSequence'")
         
         // Reset input and UI state
         resetInputState()
@@ -507,9 +532,13 @@ class TrainerFragment : Fragment() {
         // Show previous answer briefly during new sequence
         updatePreviousAnswerDisplay()
         
+        // Update the current sequence display with a question mark
+        binding.textCurrentSequence.text = "?"
+        
         // Small delay to ensure audio system is ready
         Handler(Looper.getMainLooper()).postDelayed({
-            if (!isDetached && _binding != null && currentState == TrainingState.READY) {
+            if (!isDetached && _binding != null) {
+                android.util.Log.d("TrainerFragment", "Playing sequence after delay: '$currentSequence'")
                 playCurrentSequence()
             }
         }, 100)
@@ -521,14 +550,23 @@ class TrainerFragment : Fragment() {
         isAudioPlaying = false
         isPaused = false
         wasPlayingWhenPaused = false
+        characterResponseTimes.clear()
+        
         binding.textAnswerInput.text = ""
-        binding.textCurrentSequence.text = "?"
+        binding.textStatus.text = if (isSessionActive) "Ready for next sequence" else "Ready to start training"
+        
+        // Ensure we're in the READY state before playing a new sequence
         currentState = TrainingState.READY
+        
+        // Update UI to reflect the current state
+        updateUIState()
+        
+        android.util.Log.d("TrainerFragment", "Input state reset, ready for new sequence")
     }
 
     private fun playCurrentSequence() {
-        // Prevent starting playback if already playing or in wrong state
-        if (isAudioPlaying || currentState == TrainingState.PLAYING) {
+        // Prevent starting playback if already playing
+        if (isAudioPlaying) {
             android.util.Log.w("TrainerFragment", "Cannot start playback: isAudioPlaying=$isAudioPlaying, currentState=$currentState")
             return
         }
@@ -544,16 +582,18 @@ class TrainerFragment : Fragment() {
         updateUIState()
         
         // Calculate character timings for response time tracking
-        characterTimings = characterTimingCalculator.calculateCharacterTimings(currentSequence, settings)
+        characterTimings = characterTimingCalculator.calculateCharacterTimings(currentSequence, settings ?: TrainingSettings())
         characterResponseTimes.clear()
         
         // Record the start time for response time tracking
         sequenceStartTime = System.currentTimeMillis()
         
+        android.util.Log.d("TrainerFragment", "Playing sequence: '$currentSequence'")
+        
         // Play the sequence without starting noise (noise is handled at session level)
         morseGenerator.playSequence(
             currentSequence,
-            settings,
+            settings ?: TrainingSettings(),
             startNoise = false  // Don't start noise for each sequence
         ) {
             // On playback complete
@@ -566,31 +606,23 @@ class TrainerFragment : Fragment() {
                     
                     // Start answer timeout ONLY after playback completes
                     startAnswerTimeout()
+                    
+                    android.util.Log.d("TrainerFragment", "Sequence playback complete, waiting for answer")
                 }
             }
         }
     }
 
-    private fun pausePlayback() {
-        if (isAudioPlaying) {
-            morseGenerator.pause()
-            isAudioPlaying = false
-            isPaused = true
-            wasPlayingWhenPaused = true
-            currentState = TrainingState.PAUSED
-            updateUIState()
-        }
+    override fun pausePlayback() {
+        super.pausePlayback()
+        currentState = TrainingState.PAUSED
+        updateUIState()
     }
-
-    private fun resumePlayback() {
-        if (isPaused && wasPlayingWhenPaused) {
-            morseGenerator.resume()
-            isAudioPlaying = true
-            isPaused = false
-            wasPlayingWhenPaused = false
-            currentState = TrainingState.PLAYING
-            updateUIState()
-        }
+    
+    override fun resumePlayback() {
+        super.resumePlayback()
+        currentState = TrainingState.PLAYING
+        updateUIState()
     }
 
     private fun stopTraining() {
@@ -628,16 +660,20 @@ class TrainerFragment : Fragment() {
     }
 
     private fun startAnswerTimeout() {
-        cancelTimeout()
+        // Cancel any existing timeout
+        timeoutRunnable?.let { timeoutHandler?.removeCallbacks(it) }
         
-        timeoutHandler = Handler(Looper.getMainLooper())
+        // Create new timeout
         timeoutRunnable = Runnable {
             if (isWaitingForAnswer) {
+                // Time's up - mark as incorrect
                 handleTimeout()
             }
         }
         
-        timeoutHandler?.postDelayed(timeoutRunnable!!, (settings.answerTimeoutSeconds * 1000).toLong())
+        // Start timeout timer
+        val timeoutSeconds = settings?.answerTimeoutSeconds ?: 5
+        timeoutHandler?.postDelayed(timeoutRunnable!!, (timeoutSeconds * 1000).toLong())
     }
 
     private fun cancelTimeout() {
@@ -678,9 +714,6 @@ class TrainerFragment : Fragment() {
                 }
             }
             
-            binding.textStatus.text = getString(R.string.correct_answer)
-            binding.textCurrentSequence.text = currentSequence
-            
             // Check for level advancement
             val levelAdvanced = checkLevelAdvancement()
             
@@ -689,24 +722,32 @@ class TrainerFragment : Fragment() {
             updateUIState()
             
             // Calculate delay: use separate settings for level changes vs normal sequences
-            val baseDelay = settings.sequenceDelayMs.toLong()
+            val baseDelay = settings?.sequenceDelayMs?.toLong() ?: 0L
             val delay = if (levelAdvanced) {
                 // Use level change delay setting
-                settings.levelChangeDelayMs.toLong()
+                settings?.levelChangeDelayMs?.toLong() ?: 0L
             } else {
                 // Use user's configured sequence delay (including 0 for instant)
                 baseDelay
             }
             
             // Show delay info in status
-            if (delay == 0L) {
-                binding.textStatus.text = getString(R.string.correct_answer) + " (instant next)"
+            if (levelAdvanced) {
+                binding.textStatus.text = "Level Up! Now at level ${settings?.kochLevel}"
+                if (delay > 0) {
+                    binding.textStatus.text = "${binding.textStatus.text} (${delay/1000.0}s delay)"
+                }
             } else {
-                binding.textStatus.text = getString(R.string.correct_answer) + " (${delay/1000.0}s delay)"
+                binding.textStatus.text = getString(R.string.correct_answer)
+                if (delay == 0L) {
+                    binding.textStatus.text = "${binding.textStatus.text} (instant next)"
+                } else {
+                    binding.textStatus.text = "${binding.textStatus.text} (${delay/1000.0}s delay)"
+                }
             }
             
             android.util.Log.d("TrainerFragment", "Correct answer - baseDelay: ${baseDelay}ms, levelAdvanced: $levelAdvanced, finalDelay: ${delay}ms")
-            scheduleNextSequence(delay, levelAdvanced)
+            scheduleNextSequence(levelAdvanced)
             
         } else {
             // Record incorrect answers for each character
@@ -717,31 +758,37 @@ class TrainerFragment : Fragment() {
             // Check for level drop
             val levelDropped = checkLevelDrop()
             
-            binding.textStatus.text = getString(R.string.incorrect_answer, currentSequence)
-            binding.textCurrentSequence.text = currentSequence
-            
+            // Update progress display
             updateProgressDisplay()
             updateUIState()
             
             // Calculate delay: use separate settings for level changes vs normal sequences
-            val baseDelay = settings.sequenceDelayMs.toLong()
+            val baseDelay = settings?.sequenceDelayMs?.toLong() ?: 0L
             val delay = if (levelDropped) {
                 // Use level change delay setting
-                settings.levelChangeDelayMs.toLong()
+                settings?.levelChangeDelayMs?.toLong() ?: 0L
             } else {
                 // Use user's configured sequence delay (including 0 for instant)
                 baseDelay
             }
             
             // Show delay info in status
-            if (delay == 0L) {
-                binding.textStatus.text = getString(R.string.incorrect_answer, currentSequence) + " (instant next)"
+            if (levelDropped) {
+                binding.textStatus.text = "Level Down! Now at level ${settings?.kochLevel}"
+                if (delay > 0) {
+                    binding.textStatus.text = "${binding.textStatus.text} (${delay/1000.0}s delay)"
+                }
             } else {
-                binding.textStatus.text = getString(R.string.incorrect_answer, currentSequence) + " (${delay/1000.0}s delay)"
+                binding.textStatus.text = getString(R.string.incorrect_answer, currentSequence)
+                if (delay == 0L) {
+                    binding.textStatus.text = "${binding.textStatus.text} (instant next)"
+                } else {
+                    binding.textStatus.text = "${binding.textStatus.text} (${delay/1000.0}s delay)"
+                }
             }
             
             android.util.Log.d("TrainerFragment", "Incorrect answer - baseDelay: ${baseDelay}ms, levelDropped: $levelDropped, finalDelay: ${delay}ms")
-            scheduleNextSequence(delay, levelDropped)
+            scheduleNextSequence(levelDropped)
         }
     }
 
@@ -775,26 +822,32 @@ class TrainerFragment : Fragment() {
         updateUIState()
         
         // Calculate delay: use separate settings for level changes vs normal sequences
-        val baseDelay = settings.sequenceDelayMs.toLong()
+        val baseDelay = settings?.sequenceDelayMs?.toLong() ?: 0L
         val delay = if (levelDropped) {
             // Use level change delay setting
-            settings.levelChangeDelayMs.toLong()
+            settings?.levelChangeDelayMs?.toLong() ?: 0L
         } else {
             // For timeout without level change, use max of base delay or 2s
             maxOf(baseDelay, 2000L)
         }
-        scheduleNextSequence(delay, levelDropped)
+        
+        android.util.Log.d("TrainerFragment", "Timeout - baseDelay: ${baseDelay}ms, levelDropped: $levelDropped, finalDelay: ${delay}ms")
+        scheduleNextSequence(levelDropped)
     }
 
     private fun checkLevelAdvancement(): Boolean {
-        if (!settings.isLevelLocked && 
-            progressTracker.canAdvanceLevel(settings.kochLevel, settings.requiredCorrectToAdvance)) {
+        if (!(settings?.isLevelLocked ?: false) && 
+            progressTracker.canAdvanceLevel(settings?.kochLevel ?: 1, settings?.requiredCorrectToAdvance ?: 3)) {
             
-            val newLevel = minOf(settings.kochLevel + 1, MorseCode.getMaxLevel())
-            if (newLevel > settings.kochLevel) {
+            val currentLevel = settings?.kochLevel ?: 1
+            val newLevel = minOf(currentLevel + 1, MorseCode.getMaxLevel())
+            if (newLevel > currentLevel) {
                 // Advance to next level
-                settings = settings.copy(kochLevel = newLevel)
-                settings.save(requireContext())
+                settings = settings?.copy(kochLevel = newLevel)
+                settings?.let { 
+                    AppState.updateSettings(requireContext(), it)
+                    android.util.Log.d("TrainerFragment", "Level advanced to $newLevel, updating settings")
+                }
                 
                 // Reset level mistakes counter when advancing
                 progressTracker.resetLevelMistakes()
@@ -803,6 +856,10 @@ class TrainerFragment : Fragment() {
                 createKeyboard()
                 
                 binding.textStatus.text = "Level Up! Now at level $newLevel"
+                
+                // Force update progress display
+                updateProgressDisplay()
+                
                 return true
             }
         }
@@ -810,14 +867,15 @@ class TrainerFragment : Fragment() {
     }
     
     private fun checkLevelDrop(): Boolean {
-        if (!settings.isLevelLocked && 
-            progressTracker.shouldDropLevel(settings.mistakesToDropLevel)) {
+        if (!(settings?.isLevelLocked ?: false) && 
+            progressTracker.shouldDropLevel(settings?.mistakesToDropLevel ?: 0)) {
             
-            val newLevel = maxOf(settings.kochLevel - 1, 1) // Don't drop below level 1
-            if (newLevel < settings.kochLevel) {
+            val currentLevel = settings?.kochLevel ?: 1
+            val newLevel = maxOf(currentLevel - 1, 1) // Don't drop below level 1
+            if (newLevel < currentLevel) {
                 // Drop to previous level
-                settings = settings.copy(kochLevel = newLevel)
-                settings.save(requireContext())
+                settings = settings?.copy(kochLevel = newLevel)
+                settings?.let { AppState.updateSettings(requireContext(), it) }
                 
                 // Reset level mistakes counter when dropping
                 progressTracker.resetLevelMistakes()
@@ -852,29 +910,55 @@ class TrainerFragment : Fragment() {
      * If delay is 0, starts immediately (no progress bar).
      * If delay > 0, shows a progress bar during the delay period.
      */
-    private fun scheduleNextSequence(delayMs: Long, isLevelChange: Boolean = false) {
-        android.util.Log.d("TrainerFragment", "scheduleNextSequence called with delay: ${delayMs}ms")
+    private fun scheduleNextSequence(levelChanged: Boolean = false) {
+        // Cancel any existing delay
+        delayRunnable?.let { delayHandler?.removeCallbacks(it) }
         
-        // Cancel any existing scheduled sequence
-        timeoutHandler?.removeCallbacksAndMessages(null)
+        // Create new delay handler if null
+        if (delayHandler == null) {
+            delayHandler = Handler(Looper.getMainLooper())
+        }
         
-        if (delayMs == 0L) {
-            android.util.Log.d("TrainerFragment", "Zero delay - starting immediately")
-            // No delay - start immediately
-            if (!isDetached && _binding != null && currentState == TrainingState.FINISHED) {
-                startNewSequence()
+        // Create new delay
+        delayRunnable = Runnable {
+            // Generate and play new sequence
+            startNewSequence()
+            
+            // Reset delay tracking
+            delayStartTime = 0
+            totalDelayTime = 0
+        }
+        
+        // Calculate delay: use separate settings for level changes vs normal sequences
+        val baseDelay = settings?.sequenceDelayMs?.toLong() ?: 0L
+        val delay = if (levelChanged) {
+            // Use level change delay setting
+            settings?.levelChangeDelayMs?.toLong() ?: 0L
+        } else {
+            // Use user's configured sequence delay (including 0 for instant)
+            baseDelay
+        }
+        
+        android.util.Log.d("TrainerFragment", "Scheduling next sequence with delay: ${delay}ms, levelChanged: $levelChanged")
+        
+        // Start delay timer
+        if (delay > 0) {
+            delayStartTime = System.currentTimeMillis()
+            totalDelayTime = delay
+            
+            // Ensure we have a valid handler before posting
+            if (delayHandler != null && delayRunnable != null) {
+                android.util.Log.d("TrainerFragment", "Posting delay runnable with ${delay}ms delay")
+                delayHandler?.postDelayed(delayRunnable!!, delay)
+            } else {
+                android.util.Log.e("TrainerFragment", "Cannot schedule next sequence: delayHandler or delayRunnable is null")
+                // Fall back to immediate execution
+                delayRunnable?.run()
             }
         } else {
-            android.util.Log.d("TrainerFragment", "Showing progress bar for ${delayMs}ms delay")
-            // Show progress bar and schedule next sequence with delay
-            showSequenceDelayProgress(delayMs, isLevelChange)
-            
-            Handler(Looper.getMainLooper()).postDelayed({
-                if (!isDetached && _binding != null && currentState == TrainingState.FINISHED) {
-                    hideSequenceDelayProgress()
-                    startNewSequence()
-                }
-            }, delayMs)
+            // No delay - start immediately
+            android.util.Log.d("TrainerFragment", "No delay, starting next sequence immediately")
+            delayRunnable?.run()
         }
     }
     
@@ -970,15 +1054,14 @@ class TrainerFragment : Fragment() {
      * Start a new training session
      */
     private fun startSession() {
-        // Reset session state
         isSessionActive = true
         
         // Start continuous background noise if enabled
-        if (settings.filterRingingEnabled && settings.backgroundNoiseLevel > 0) {
+        if (settings?.filterRingingEnabled == true && (settings?.backgroundNoiseLevel ?: 0f) > 0f) {
             startContinuousNoise()
         }
         
-        // Start first sequence
+        // Start a new sequence
         startNewSequence()
     }
     
@@ -1002,23 +1085,19 @@ class TrainerFragment : Fragment() {
     /**
      * Start continuous background noise for the session
      */
-    private fun startContinuousNoise() {
-        if (!isNoiseRunning && settings.filterRingingEnabled && settings.backgroundNoiseLevel > 0) {
-            morseGenerator.startContinuousNoise()
-            isNoiseRunning = true
-            android.util.Log.d("TrainerFragment", "Started continuous background noise for session")
-        }
+    override fun startContinuousNoise() {
+        super.startContinuousNoise()
+        isNoiseRunning = true
+        android.util.Log.d("TrainerFragment", "Started continuous background noise for session")
     }
     
     /**
      * Stop continuous background noise
      */
-    private fun stopContinuousNoise() {
-        if (isNoiseRunning) {
-            morseGenerator.stopContinuousNoise()
-            isNoiseRunning = false
-            android.util.Log.d("TrainerFragment", "Stopped continuous background noise")
-        }
+    override fun stopContinuousNoise() {
+        super.stopContinuousNoise()
+        isNoiseRunning = false
+        android.util.Log.d("TrainerFragment", "Stopped continuous background noise")
     }
 
     override fun onDestroyView() {

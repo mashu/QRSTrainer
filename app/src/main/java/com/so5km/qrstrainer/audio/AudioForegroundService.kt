@@ -14,6 +14,7 @@ import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.so5km.qrstrainer.AppState
 import com.so5km.qrstrainer.MainActivity
 import com.so5km.qrstrainer.R
 import com.so5km.qrstrainer.data.TrainingSettings
@@ -35,18 +36,12 @@ class AudioForegroundService : Service() {
         const val ACTION_PAUSE = "com.so5km.qrstrainer.action.PAUSE"
         const val ACTION_RESUME = "com.so5km.qrstrainer.action.RESUME"
         
-        // Track if the service is running
-        private var isServiceRunning = false
-        
         // Helper to check if service is running
-        fun isRunning(): Boolean = isServiceRunning
+        fun isRunning(): Boolean = AppState.isForegroundServiceRunning.value ?: false
     }
 
     private var morseGenerator: MorseCodeGenerator? = null
     private var wakeLock: PowerManager.WakeLock? = null
-    
-    // Track if we're playing audio
-    private var isPlaying = false
     
     // Track if the screen is on or off
     private var isScreenOn = true
@@ -96,13 +91,13 @@ class AudioForegroundService : Service() {
             ACTION_START -> {
                 startForeground(NOTIFICATION_ID, createNotification())
                 startPlayback()
-                isServiceRunning = true
+                AppState.setForegroundServiceRunning(true)
             }
             ACTION_STOP -> {
                 stopPlayback()
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
-                isServiceRunning = false
+                AppState.setForegroundServiceRunning(false)
             }
             ACTION_PAUSE -> {
                 pausePlayback()
@@ -128,7 +123,7 @@ class AudioForegroundService : Service() {
             Log.e(TAG, "Screen state receiver not registered", e)
         }
         
-        isServiceRunning = false
+        AppState.setForegroundServiceRunning(false)
         super.onDestroy()
     }
     
@@ -136,7 +131,7 @@ class AudioForegroundService : Service() {
      * Start audio playback and acquire wake lock
      */
     private fun startPlayback() {
-        if (!isPlaying) {
+        if (!AppState.isAudioPlaying.value!!) {
             Log.d(TAG, "Starting playback")
             wakeLock?.acquire(10*60*1000L) // 10 minutes
             
@@ -144,14 +139,15 @@ class AudioForegroundService : Service() {
             morseGenerator?.startHeadphoneKeepAlive()
             
             // Load settings
-            val settings = TrainingSettings.load(applicationContext)
+            val settings = AppState.getSettings(applicationContext)
             
             // Start continuous background noise if enabled
             if (settings.filterRingingEnabled && settings.backgroundNoiseLevel > 0) {
                 morseGenerator?.startContinuousNoise()
+                AppState.setNoiseRunning(true)
             }
             
-            isPlaying = true
+            AppState.setAudioPlaying(true)
         }
     }
     
@@ -159,7 +155,7 @@ class AudioForegroundService : Service() {
      * Stop audio playback and release wake lock
      */
     private fun stopPlayback() {
-        if (isPlaying) {
+        if (AppState.isAudioPlaying.value == true) {
             Log.d(TAG, "Stopping playback")
             if (wakeLock?.isHeld == true) {
                 wakeLock?.release()
@@ -173,7 +169,8 @@ class AudioForegroundService : Service() {
             // Release resources
             morseGenerator?.release()
             
-            isPlaying = false
+            AppState.setAudioPlaying(false)
+            AppState.setNoiseRunning(false)
         }
     }
     
@@ -181,7 +178,7 @@ class AudioForegroundService : Service() {
      * Pause audio playback
      */
     private fun pausePlayback() {
-        if (isPlaying) {
+        if (AppState.isAudioPlaying.value == true) {
             Log.d(TAG, "Pausing playback")
             morseGenerator?.pause()
         }
@@ -191,7 +188,7 @@ class AudioForegroundService : Service() {
      * Resume audio playback
      */
     private fun resumePlayback() {
-        if (isPlaying) {
+        if (AppState.isAudioPlaying.value == true) {
             Log.d(TAG, "Resuming playback")
             morseGenerator?.resume()
         }

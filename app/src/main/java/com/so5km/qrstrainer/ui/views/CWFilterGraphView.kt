@@ -307,6 +307,44 @@ class CWFilterGraphView @JvmOverloads constructor(
     }
     
     /**
+     * Update just the tone frequency
+     */
+    fun updateToneFrequency(frequency: Int) {
+        this.centerFrequency = frequency.toFloat()
+        invalidate()
+    }
+    
+    /**
+     * Update just the noise level
+     */
+    fun updateNoiseLevel(noiseLevel: Float) {
+        this.backgroundNoise = noiseLevel
+        invalidate()
+    }
+    
+    /**
+     * Update all parameters at once
+     */
+    fun updateParameters(
+        toneFrequency: Int,
+        primaryBandwidth: Int,
+        secondaryBandwidth: Int,
+        qFactor: Float,
+        noiseLevel: Float,
+        primaryOffset: Int = 0,
+        secondaryOffset: Int = 30
+    ) {
+        this.centerFrequency = toneFrequency.toFloat()
+        this.bandwidthHz = primaryBandwidth.toFloat()
+        this.secondaryBandwidthHz = secondaryBandwidth.toFloat()
+        this.qFactor = qFactor
+        this.backgroundNoise = noiseLevel
+        this.primaryFilterOffset = primaryOffset.toFloat()
+        this.secondaryFilterOffset = secondaryOffset.toFloat()
+        invalidate()
+    }
+    
+    /**
      * Calculate the effective combined bandwidth of the cascaded filters
      */
     private fun calculateCombinedBandwidth(): Float {

@@ -1668,9 +1668,7 @@ class SettingsFragment : Fragment() {
     
     private fun updateEnvelopeGraph() {
         val envelopeMs = binding.seekBarAudioEnvelope.progress + 1
-        val keyingStyle = binding.seekBarKeyingStyle.progress
-        val toneFrequency = binding.seekBarToneFrequency.progress * 10 + 300
-        binding.envelopeGraph.updateEnvelope(envelopeMs, keyingStyle, toneFrequency)
+        binding.envelopeGraph.updateEnvelope(envelopeMs)
     }
 
     override fun onPause() {

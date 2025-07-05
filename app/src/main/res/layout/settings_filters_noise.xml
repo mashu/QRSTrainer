@@ -1,0 +1,580 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Filter and Noise Settings Module (Affects Plots) -->
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    style="@style/Card.Modern"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="12dp"
+    app:cardElevation="6dp"
+    app:cardBackgroundColor="@color/background_light">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Section Header -->
+        <LinearLayout
+            android:id="@+id/headerFiltersNoise"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?android:attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:orientation="horizontal"
+            android:padding="20dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="28dp"
+                    android:background="@color/accent_cyan"
+                    android:layout_marginEnd="12dp" />
+
+                <TextView
+                    style="@style/Text.Title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📡 CW Filter &amp; Noise Effects"
+                    android:textSize="18sp"
+                    android:textColor="@color/grey_800" />
+
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📊 Affects plots"
+                android:textSize="12sp"
+                android:textColor="@color/white"
+                android:background="@color/accent_orange"
+                android:padding="8dp"
+                android:layout_marginEnd="12dp"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:id="@+id/iconFiltersNoiseExpand"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center_vertical"
+                android:src="@drawable/ic_expand_more"
+                android:rotation="90"
+                android:alpha="0.7" />
+
+        </LinearLayout>
+
+        <!-- Section Content -->
+        <LinearLayout
+            android:id="@+id/contentFiltersNoise"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp"
+            android:visibility="gone">
+
+            <!-- Filter Controls Section -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/card_background_modern"
+                android:padding="16dp"
+                android:layout_marginBottom="24dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <CheckBox
+                        android:id="@+id/checkBoxFilterRinging"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:buttonTint="@color/accent_cyan"
+                        android:checked="false"
+                        android:text="🔊 Enable Background Noise (Realistic CW Sound)"
+                        android:textColor="@color/grey_800"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <Switch
+                        android:id="@+id/switchContinuousNoise"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:thumbTint="@color/accent_orange"
+                        android:trackTint="@color/grey_400"
+                        android:checked="false"
+                        android:text="🧪 Test Noise Continuously (Real-time parameter testing)"
+                        android:textColor="@color/grey_800"
+                        android:textSize="12sp" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- Filter Graph Visualization -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="140dp"
+                android:background="@drawable/card_background_modern"
+                android:layout_marginBottom="24dp">
+
+                <com.so5km.qrstrainer.ui.views.CWFilterGraphView
+                    android:id="@+id/filterGraph"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_margin="8dp" />
+
+            </LinearLayout>
+
+            <!-- Filter Bandwidth -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Filter Bandwidth"
+                    android:textSize="16sp"
+                    android:textColor="@color/grey_800" />
+
+                <TextView
+                    android:id="@+id/textFilterBandwidthDisplay"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="250 Hz"
+                    android:textSize="14sp"
+                    android:textColor="@color/accent_cyan"
+                    android:textStyle="bold"
+                    android:minWidth="80dp"
+                    android:gravity="end" />
+
+            </LinearLayout>
+
+            <SeekBar
+                android:id="@+id/seekBarFilterBandwidth"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:max="190"
+                android:progress="15"
+                android:progressTint="@color/accent_cyan"
+                android:thumbTint="@color/accent_cyan" />
+
+            <!-- Secondary Filter Bandwidth -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Secondary Filter Bandwidth"
+                    android:textSize="16sp"
+                    android:textColor="@color/grey_800" />
+
+                <TextView
+                    android:id="@+id/textSecondaryFilterBandwidthDisplay"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="300 Hz"
+                    android:textSize="14sp"
+                    android:textColor="@color/accent_cyan"
+                    android:textStyle="bold"
+                    android:minWidth="80dp"
+                    android:gravity="end" />
+
+            </LinearLayout>
+
+            <SeekBar
+                android:id="@+id/seekBarSecondaryFilterBandwidth"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:max="190"
+                android:progress="20"
+                android:progressTint="@color/accent_cyan"
+                android:thumbTint="@color/accent_cyan" />
+
+            <!-- Filter Q Factor -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Filter Q Factor"
+                    android:textSize="16sp"
+                    android:textColor="@color/grey_800" />
+
+                <TextView
+                    android:id="@+id/textFilterQDisplay"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Q = 5.0"
+                    android:textSize="14sp"
+                    android:textColor="@color/secondary_purple"
+                    android:textStyle="bold"
+                    android:minWidth="80dp"
+                    android:gravity="end" />
+
+            </LinearLayout>
+
+            <SeekBar
+                android:id="@+id/seekBarFilterQ"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:max="190"
+                android:progress="40"
+                android:progressTint="@color/secondary_purple"
+                android:thumbTint="@color/secondary_purple" />
+
+            <!-- Primary Filter Offset -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Primary Filter Offset"
+                    android:textSize="16sp"
+                    android:textColor="@color/grey_800" />
+
+                <TextView
+                    android:id="@+id/textPrimaryFilterOffsetDisplay"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="+0 Hz"
+                    android:textSize="14sp"
+                    android:textColor="@color/accent_green"
+                    android:textStyle="bold"
+                    android:minWidth="80dp"
+                    android:gravity="end" />
+
+            </LinearLayout>
+
+            <SeekBar
+                android:id="@+id/seekBarPrimaryFilterOffset"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:max="400"
+                android:progress="200"
+                android:progressTint="@color/accent_green"
+                android:thumbTint="@color/accent_green" />
+
+            <!-- Secondary Filter Offset -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Secondary Filter Offset"
+                    android:textSize="16sp"
+                    android:textColor="@color/grey_800" />
+
+                <TextView
+                    android:id="@+id/textSecondaryFilterOffsetDisplay"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="+30 Hz"
+                    android:textSize="14sp"
+                    android:textColor="@color/accent_green"
+                    android:textStyle="bold"
+                    android:minWidth="80dp"
+                    android:gravity="end" />
+
+            </LinearLayout>
+
+            <SeekBar
+                android:id="@+id/seekBarSecondaryFilterOffset"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:max="400"
+                android:progress="230"
+                android:progressTint="@color/accent_green"
+                android:thumbTint="@color/accent_green" />
+
+            <!-- Background Noise -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Background Noise"
+                    android:textSize="16sp"
+                    android:textColor="@color/grey_800" />
+
+                <TextView
+                    android:id="@+id/textBackgroundNoiseDisplay"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="10%"
+                    android:textSize="14sp"
+                    android:textColor="@color/primary_blue"
+                    android:textStyle="bold"
+                    android:minWidth="80dp"
+                    android:gravity="end" />
+
+            </LinearLayout>
+
+            <SeekBar
+                android:id="@+id/seekBarBackgroundNoise"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:max="100"
+                android:progress="10"
+                android:progressTint="@color/primary_blue"
+                android:thumbTint="@color/primary_blue" />
+
+            <!-- Noise Volume -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Noise Volume"
+                    android:textSize="16sp"
+                    android:textColor="@color/grey_800" />
+
+                <TextView
+                    android:id="@+id/textNoiseVolumeDisplay"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="10%"
+                    android:textSize="14sp"
+                    android:textColor="@color/primary_blue"
+                    android:textStyle="bold"
+                    android:minWidth="80dp"
+                    android:gravity="end" />
+
+            </LinearLayout>
+
+            <SeekBar
+                android:id="@+id/seekBarNoiseVolume"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:max="100"
+                android:progress="10"
+                android:progressTint="@color/primary_blue"
+                android:thumbTint="@color/primary_blue" />
+
+            <!-- LFO Section -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🌊 LFO (Low Frequency Oscillation)"
+                android:textSize="16sp"
+                android:textColor="@color/grey_800"
+                android:textStyle="bold"
+                android:layout_marginBottom="16dp" />
+
+            <!-- Primary LFO Frequency -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Primary LFO Frequency"
+                    android:textSize="16sp"
+                    android:textColor="@color/grey_800" />
+
+                <TextView
+                    android:id="@+id/helpLfo1Frequency"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:text="?"
+                    android:textAlignment="center"
+                    android:textColor="@color/accent_cyan"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:layout_marginEnd="8dp" />
+
+                <TextView
+                    android:id="@+id/textLfo1FrequencyDisplay"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0.10 Hz"
+                    android:textSize="14sp"
+                    android:textColor="@color/accent_cyan"
+                    android:textStyle="bold"
+                    android:minWidth="80dp"
+                    android:gravity="end" />
+
+            </LinearLayout>
+
+            <SeekBar
+                android:id="@+id/seekBarLfo1Frequency"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:max="45"
+                android:progress="5"
+                android:progressTint="@color/accent_cyan"
+                android:thumbTint="@color/accent_cyan" />
+
+            <!-- Secondary LFO Frequency -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Secondary LFO Frequency"
+                    android:textSize="16sp"
+                    android:textColor="@color/grey_800" />
+
+                <TextView
+                    android:id="@+id/textLfo2FrequencyDisplay"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0.17 Hz"
+                    android:textSize="14sp"
+                    android:textColor="@color/accent_cyan"
+                    android:textStyle="bold"
+                    android:minWidth="80dp"
+                    android:gravity="end" />
+
+            </LinearLayout>
+
+            <SeekBar
+                android:id="@+id/seekBarLfo2Frequency"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:max="45"
+                android:progress="12"
+                android:progressTint="@color/accent_cyan"
+                android:thumbTint="@color/accent_cyan" />
+
+            <!-- Atmospheric Effects Section -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🌪️ Atmospheric Effects"
+                android:textSize="16sp"
+                android:textColor="@color/grey_800"
+                android:textStyle="bold"
+                android:layout_marginBottom="16dp" />
+
+            <!-- Atmospheric Intensity -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Atmospheric Intensity"
+                    android:textSize="16sp"
+                    android:textColor="@color/grey_800" />
+
+                <TextView
+                    android:id="@+id/atmosphericIntensityDisplay"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="5.0"
+                    android:textSize="14sp"
+                    android:textColor="@color/primary_blue"
+                    android:textStyle="bold"
+                    android:minWidth="80dp"
+                    android:gravity="end" />
+
+            </LinearLayout>
+
+            <SeekBar
+                android:id="@+id/atmosphericIntensitySeekBar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:max="90"
+                android:progress="50"
+                android:progressTint="@color/primary_blue"
+                android:thumbTint="@color/primary_blue" />
+
+            <!-- Reset Audio Settings Button -->
+            <Button
+                android:id="@+id/buttonResetAudioSettings"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/button_keyboard_selector"
+                android:text="🔄 Reset Audio Settings to Defaults"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:padding="12dp"
+                android:drawableStart="@drawable/ic_menu_camera"
+                android:drawablePadding="8dp"
+                android:gravity="center" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView> 

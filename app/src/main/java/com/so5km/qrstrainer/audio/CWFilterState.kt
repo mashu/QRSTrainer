@@ -19,6 +19,12 @@ data class CWFilterState(
     var lastBandwidth: Double = 250.0,
     var lastAtmosphericIntensity: Double = 2.0,
     
+    // LFO and filter offset tracking
+    var lastLfo1Freq: Double = 0.1,
+    var lastLfo2Freq: Double = 0.17,
+    var lastPrimaryFilterOffset: Double = 0.0,
+    var lastSecondaryFilterOffset: Double = 30.0,
+    
     // Resonance jumps
     var resonanceJumpState: Double = 0.0,
     var resonanceDecay: Double = 0.95,

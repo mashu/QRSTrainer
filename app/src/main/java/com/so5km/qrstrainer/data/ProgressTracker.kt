@@ -57,7 +57,8 @@ class ProgressTracker(private val context: Context) {
      */
     fun recordCorrect(char: Char) {
         val current = getCharacterStats(char)
-        _characterStats[char] = current.addCorrect()
+        val updated = current.addCorrect()
+        _characterStats[char] = updated
         
         _sessionCorrect++
         _sessionStreak++
@@ -70,6 +71,9 @@ class ProgressTracker(private val context: Context) {
         
         updateWeights()
         saveProgress()
+        
+        // Debug log
+        android.util.Log.d("ProgressTracker", "Recorded correct for '$char': now ${updated.correctCount} correct, ${updated.incorrectCount} incorrect")
     }
     
     /**
@@ -160,9 +164,20 @@ class ProgressTracker(private val context: Context) {
      */
     fun canAdvanceLevel(currentLevel: Int, requiredCorrect: Int): Boolean {
         val characters = MorseCode.getCharactersForLevel(currentLevel)
-        return characters.all { char ->
+        
+        // Debug log to check character stats
+        android.util.Log.d("ProgressTracker", "Checking level advancement for level $currentLevel, required: $requiredCorrect")
+        characters.forEach { char ->
+            val stats = getCharacterStats(char)
+            android.util.Log.d("ProgressTracker", "Character '$char': correct=${stats.correctCount}, incorrect=${stats.incorrectCount}")
+        }
+        
+        val canAdvance = characters.all { char ->
             getCharacterStats(char).correctCount >= requiredCorrect
         }
+        
+        android.util.Log.d("ProgressTracker", "Can advance level: $canAdvance")
+        return canAdvance
     }
     
     /**

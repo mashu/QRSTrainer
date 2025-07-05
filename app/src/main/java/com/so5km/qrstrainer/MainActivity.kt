@@ -22,9 +22,6 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
-    
-    // Track if app is in foreground
-    private var isAppInForeground = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,6 +46,14 @@ class MainActivity : AppCompatActivity() {
         )
         setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
+        
+        // Initialize app state by loading settings
+        AppState.getSettings(applicationContext)
+        
+        // Observe foreground service state
+        AppState.isForegroundServiceRunning.observe(this) { isRunning ->
+            Log.d(TAG, "Foreground service running state changed: $isRunning")
+        }
     }
 
     override fun onSupportNavigateUp(): Boolean {
@@ -59,7 +64,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         Log.d(TAG, "onResume: App in foreground")
-        AppState.isAppInForeground = true
+        AppState.setAppInForeground(true)
     }
     
     override fun onPause() {
@@ -72,7 +77,7 @@ class MainActivity : AppCompatActivity() {
     override fun onStop() {
         super.onStop()
         Log.d(TAG, "onStop: App minimized")
-        AppState.isAppInForeground = false
+        AppState.setAppInForeground(false)
         
         // Stop foreground service when app is minimized
         // This is important to distinguish between screen off (keep playing) 

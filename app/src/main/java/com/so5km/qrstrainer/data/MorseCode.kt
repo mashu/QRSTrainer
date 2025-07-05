@@ -73,4 +73,12 @@ object MorseCode {
             KOCH_SEQUENCE[position]
         } else null
     }
+    
+    /**
+     * Get the Morse sequence (dots and dashes) for a character
+     */
+    fun getSequenceForCharacter(char: Char): String {
+        val pattern = getPattern(char.uppercaseChar())
+        return pattern ?: ""
+    }
 } 

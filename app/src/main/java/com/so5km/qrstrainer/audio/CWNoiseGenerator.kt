@@ -36,16 +36,27 @@ class CWNoiseGenerator(private val sampleRate: Int = 44100) {
         val driftSpeed = safeSettings.driftSpeed.toDouble()
         val bandwidth = safeSettings.filterBandwidthHz.toDouble() // Use actual bandwidth setting
         
+        // Get LFO and filter offset settings
+        val lfo1FrequencyHz = safeSettings.lfo1FrequencyHz.toDouble()
+        val lfo2FrequencyHz = safeSettings.lfo2FrequencyHz.toDouble()
+        val primaryFilterOffset = safeSettings.primaryFilterOffset.toDouble()
+        val secondaryFilterOffset = safeSettings.secondaryFilterOffset.toDouble()
+        
         // Check if primary settings have changed
         val settingsChanged = !::cwFilterState.isInitialized || 
                               cwFilterState.lastCenterFreq != centerFreq ||
                               cwFilterState.lastQFactor != qFactor ||
                               cwFilterState.lastBandwidth != bandwidth ||
-                              cwFilterState.lastAtmosphericIntensity != atmosphericIntensity
+                              cwFilterState.lastAtmosphericIntensity != atmosphericIntensity ||
+                              cwFilterState.lastLfo1Freq != lfo1FrequencyHz ||
+                              cwFilterState.lastLfo2Freq != lfo2FrequencyHz ||
+                              cwFilterState.lastPrimaryFilterOffset != primaryFilterOffset ||
+                              cwFilterState.lastSecondaryFilterOffset != secondaryFilterOffset
         
         // Initialize state if needed
         if (!::cwFilterState.isInitialized) {
             cwFilterState = CWFilterState()
+            android.util.Log.d("CWNoiseGenerator", "Initializing CW filter state")
         }
         
         // Update tracking parameters
@@ -53,27 +64,42 @@ class CWNoiseGenerator(private val sampleRate: Int = 44100) {
         cwFilterState.lastQFactor = qFactor
         cwFilterState.lastBandwidth = bandwidth
         cwFilterState.lastAtmosphericIntensity = atmosphericIntensity
+        cwFilterState.lastLfo1Freq = lfo1FrequencyHz
+        cwFilterState.lastLfo2Freq = lfo2FrequencyHz
+        cwFilterState.lastPrimaryFilterOffset = primaryFilterOffset
+        cwFilterState.lastSecondaryFilterOffset = secondaryFilterOffset
         
         // Initialize filter chain if needed
         if (cwFilterState.filterChain == null) {
             cwFilterState.filterChain = CWFilterChain(sampleRate)
+            android.util.Log.d("CWNoiseGenerator", "Created new CW filter chain")
         }
         
         // Update filter parameters - log changes for debugging
         if (settingsChanged) {
-            android.util.Log.d("CWNoiseGenerator", "Settings changed: centerFreq=${centerFreq.toInt()}Hz, Q=${qFactor.toString().take(4)}, BW=${bandwidth.toInt()}Hz")
+            android.util.Log.d("CWNoiseGenerator", "Settings changed: centerFreq=${centerFreq.toInt()}Hz, Q=${qFactor.toString().take(4)}, " +
+                    "BW=${bandwidth.toInt()}Hz, LFO1=${lfo1FrequencyHz}Hz, LFO2=${lfo2FrequencyHz}Hz, " +
+                    "Atmospheric=${atmosphericIntensity}, Crackle=${crackleIntensity}, " +
+                    "Warmth=${warmth}, Resonance=${resonanceJumpRate}, Drift=${driftSpeed}")
+                    
             cwFilterState.filterChain!!.updateParameters(
                 centerFreq = centerFreq,
                 resonance = qFactor,
                 bandwidth = bandwidth,
                 warmth = warmth,
-                atmosphericIntensity = atmosphericIntensity
+                atmosphericIntensity = atmosphericIntensity,
+                lfo1FrequencyHz = lfo1FrequencyHz,
+                lfo2FrequencyHz = lfo2FrequencyHz,
+                primaryFilterOffset = primaryFilterOffset,
+                secondaryFilterOffset = secondaryFilterOffset
             )
         }
         
         // Debug logging (less frequent)
         if (cwFilterState.chunkCounter % 1000L == 0L) {
-            android.util.Log.d("CWNoiseGenerator", "Professional CW Filter: centerFreq=${centerFreq.toInt()}Hz, Q=${qFactor.toString().take(4)}, noiseVol=${(absoluteNoiseLevel*100).toInt()}%, atmospheric=$atmosphericIntensity")
+            android.util.Log.d("CWNoiseGenerator", "Professional CW Filter: centerFreq=${centerFreq.toInt()}Hz, Q=${qFactor.toString().take(4)}, " +
+                    "noiseVol=${(absoluteNoiseLevel*100).toInt()}%, atmospheric=$atmosphericIntensity, " +
+                    "warmth=${warmth}, crackle=${crackleIntensity}")
         }
         
         // Generate realistic CW atmospheric noise using professional DSP
@@ -176,6 +202,36 @@ class CWNoiseGenerator(private val sampleRate: Int = 44100) {
     }
     
     /**
+     * Alternative method for generating CW noise with individual parameter control
+     * This is an adapter method that creates a TrainingSettings object from individual parameters
+     */
+    fun generateCWNoise(
+        buffer: ShortArray,
+        atmosphericIntensity: Float,
+        crackleIntensity: Float,
+        resonanceJumpRate: Float,
+        driftSpeed: Float,
+        warmth: Float,
+        noiseVolume: Float
+    ) {
+        // Create a settings object with the provided parameters
+        val settings = TrainingSettings(
+            toneFrequencyHz = 600,
+            filterBandwidthHz = 250,
+            filterQFactor = 15.0f,
+            atmosphericIntensity = atmosphericIntensity,
+            crackleIntensity = crackleIntensity,
+            resonanceJumpRate = resonanceJumpRate,
+            driftSpeed = driftSpeed,
+            warmth = warmth,
+            noiseVolume = noiseVolume
+        )
+        
+        // Use the main noise generation method
+        generateRealisticCWNoise(buffer, settings)
+    }
+    
+    /**
      * Reset the noise generator state
      */
     fun reset() {
@@ -234,5 +290,57 @@ class CWNoiseGenerator(private val sampleRate: Int = 44100) {
             noiseVolume = settings.noiseVolume.coerceIn(0.0f, 1.0f),
             filterQFactor = settings.filterQFactor.coerceIn(1.0f, 25.0f)
         )
+    }
+    
+    /**
+     * Update filter parameters directly
+     * This allows for real-time parameter updates without recreating the filter chain
+     */
+    fun updateFilterParameters(
+        centerFreq: Double,
+        qFactor: Double,
+        bandwidth: Double,
+        warmth: Double,
+        atmosphericIntensity: Double,
+        lfo1FrequencyHz: Double = 0.1,
+        lfo2FrequencyHz: Double = 0.17,
+        primaryFilterOffset: Double = 0.0,
+        secondaryFilterOffset: Double = 30.0
+    ) {
+        // Initialize state if needed
+        if (!::cwFilterState.isInitialized) {
+            cwFilterState = CWFilterState()
+        }
+        
+        // Update tracking parameters
+        cwFilterState.lastCenterFreq = centerFreq
+        cwFilterState.lastQFactor = qFactor
+        cwFilterState.lastBandwidth = bandwidth
+        cwFilterState.lastAtmosphericIntensity = atmosphericIntensity
+        cwFilterState.lastLfo1Freq = lfo1FrequencyHz
+        cwFilterState.lastLfo2Freq = lfo2FrequencyHz
+        cwFilterState.lastPrimaryFilterOffset = primaryFilterOffset
+        cwFilterState.lastSecondaryFilterOffset = secondaryFilterOffset
+        
+        // Initialize filter chain if needed
+        if (cwFilterState.filterChain == null) {
+            cwFilterState.filterChain = CWFilterChain(sampleRate)
+        }
+        
+        // Update filter parameters
+        cwFilterState.filterChain!!.updateParameters(
+            centerFreq = centerFreq,
+            resonance = qFactor,
+            bandwidth = bandwidth,
+            warmth = warmth,
+            atmosphericIntensity = atmosphericIntensity,
+            lfo1FrequencyHz = lfo1FrequencyHz,
+            lfo2FrequencyHz = lfo2FrequencyHz,
+            primaryFilterOffset = primaryFilterOffset,
+            secondaryFilterOffset = secondaryFilterOffset
+        )
+        
+        // Log the update
+        android.util.Log.d("CWNoiseGenerator", "Updated filter parameters: centerFreq=${centerFreq.toInt()}Hz, Q=${qFactor.toString().take(4)}, BW=${bandwidth.toInt()}Hz, LFO1=${lfo1FrequencyHz}Hz, LFO2=${lfo2FrequencyHz}Hz")
     }
 } 

@@ -44,54 +44,46 @@ class CWFilterChain(private val sampleRate: Int = 44100) {
         resonance: Double, 
         bandwidth: Double, 
         warmth: Double,
-        atmosphericIntensity: Double
+        atmosphericIntensity: Double,
+        lfo1FrequencyHz: Double = 0.1,
+        lfo2FrequencyHz: Double = 0.17,
+        primaryFilterOffset: Double = 0.0,
+        secondaryFilterOffset: Double = 30.0
     ) {
-        // Store current parameters for state tracking
-        val paramsChanged = centerFreq != currentCenterFreq || 
-                           resonance != currentResonance || 
-                           bandwidth != currentBandwidth || 
-                           warmth != currentWarmth || 
-                           atmosphericIntensity != currentAtmosphericIntensity
-        
-        // Update stored parameters
+        // Store parameters for consistency
+        this.frequency = centerFreq
         currentCenterFreq = centerFreq
         currentResonance = resonance
         currentBandwidth = bandwidth
         currentWarmth = warmth
         currentAtmosphericIntensity = atmosphericIntensity
         
-        // Only update if parameters actually changed
-        if (!paramsChanged) {
-            return
+        // Use provided LFO frequencies instead of hardcoded values
+        this.lfo1Freq = lfo1FrequencyHz
+        this.lfo2Freq = lfo2FrequencyHz
+        
+        // Log parameter updates
+        if (Math.random() < 0.01) {  // Only log occasionally to avoid spamming
+            android.util.Log.d("CWFilterChain", "Updated parameters: freq=${centerFreq.toInt()}Hz, BW=${bandwidth.toInt()}Hz, Q=$resonance, LFO1=${lfo1FrequencyHz}Hz, LFO2=${lfo2FrequencyHz}Hz")
         }
         
-        // Log parameter changes for debugging
-        android.util.Log.d("CWFilterChain", "Updating filter params: centerFreq=$centerFreq, Q=$resonance, BW=$bandwidth, warmth=$warmth, atmos=$atmosphericIntensity")
+        // Calculate Q values based on bandwidth and resonance
+        // Use a more complex formula that gives better results
+        val bandwidthFactor = (bandwidth / 250.0).coerceIn(0.5, 4.0)  // Normalize bandwidth
+        val q1 = resonance * (1.0 / bandwidthFactor)  // Higher bandwidth = lower Q
+        val q2 = resonance * 0.8 * (1.0 / bandwidthFactor)  // Slightly lower Q for second filter
         
-        // Store center frequency for modulation
-        frequency = centerFreq
+        // Apply filter offsets
+        val primaryFreq = centerFreq + primaryFilterOffset
+        val secondaryFreq = centerFreq + secondaryFilterOffset
         
-        // Update primary bandpass filters - make bandwidth more noticeable
-        val effectiveQ1 = if (bandwidth > 0) {
-            (centerFreq / bandwidth).coerceIn(1.0, 50.0)  // Use bandwidth to set Q
-        } else {
-            resonance
-        }
-        val effectiveQ2 = effectiveQ1 * 0.8
+        // Update primary bandpass filter
+        bandpass1.setFrequency(primaryFreq)
+        bandpass1.setQ(q1)
         
-        // Apply Q factor directly to ensure consistent behavior
-        bandpass1.setFrequency(centerFreq)
-        bandpass1.setQ(effectiveQ1)
-        
-        bandpass2.setFrequency(centerFreq + 30.0)
-        bandpass2.setQ(effectiveQ2)
-        
-        // Make bandwidth affect the overall filter character more dramatically
-        val bandwidthFactor = when {
-            bandwidth < 200 -> 1.5  // Narrow = more focused, intense 
-            bandwidth > 800 -> 0.6  // Wide = more diffuse, gentler
-            else -> 1.0
-        }
+        // Update secondary bandpass filter
+        bandpass2.setFrequency(secondaryFreq)
+        bandpass2.setQ(q2)
         
         // Update warmth (peaking filter) - let bandwidth affect warmth too
         val effectiveWarmth = warmth * bandwidthFactor
@@ -120,11 +112,6 @@ class CWFilterChain(private val sampleRate: Int = 44100) {
             allpassFilter!!.setFrequency(frequency * allpassOffset)
             allpassFilter!!.setQ(5.0)  // Reset Q to ensure consistency
         }
-        
-        // Update LFO frequencies based on atmospheric intensity AND bandwidth
-        val bandwidthLfoFactor = (bandwidth / 500.0).coerceIn(0.5, 2.0)  // Bandwidth affects LFO speed
-        lfo1Freq = 0.1 * (1.0 + atmosphericIntensity * 0.3) * bandwidthLfoFactor
-        lfo2Freq = 0.17 * (1.0 + atmosphericIntensity * 0.2) * bandwidthLfoFactor
         
         // Reset compressor to ensure consistent behavior
         compressor.setFrequency(3000.0)

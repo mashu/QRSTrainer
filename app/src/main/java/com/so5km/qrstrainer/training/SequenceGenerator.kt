@@ -22,15 +22,32 @@ class SequenceGenerator(private val progressTracker: ProgressTracker) {
         val weightedCharacters = progressTracker.getWeightedCharacters(level, lettersOnly)
         
         if (weightedCharacters.isEmpty()) {
+            android.util.Log.e("SequenceGenerator", "No characters available for level $level, using fallback")
             return "K" // Fallback to first Koch character
         }
         
-        return buildString {
+        val sequence = buildString {
             repeat(groupSize) {
                 val selectedChar = selectWeightedCharacter(weightedCharacters)
                 append(selectedChar)
             }
         }
+        
+        android.util.Log.d("SequenceGenerator", "Generated sequence '$sequence' for level $level (group size: $groupSize)")
+        return sequence
+    }
+    
+    /**
+     * Generate a random sequence with specific parameters
+     * This is an alternative method that takes parameters in a different order
+     */
+    fun generateRandomSequence(
+        minGroupSize: Int,
+        maxGroupSize: Int,
+        lettersOnly: Boolean = false,
+        level: Int
+    ): String {
+        return generateSequence(level, minGroupSize, maxGroupSize, lettersOnly)
     }
     
     /**
