@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">QRS Trainer</string>
+    <string name="trainer_title">Morse Code Trainer</string>
+    <string name="trainer_tab">Trainer</string>
+    <string name="listen_tab">Listen</string>
+    <string name="progress_tab">Progress</string>
+    <string name="settings_tab">Settings</string>
+</resources> 
