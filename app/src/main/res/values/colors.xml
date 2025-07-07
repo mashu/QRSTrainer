@@ -1,63 +1,110 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Modern Primary Colors -->
-    <color name="primary">#2E7D97</color>
-    <color name="primary_dark">#1F5F75</color>
-    <color name="primary_light">#4A9BBB</color>
-    <color name="primary_variant">#005577</color>
+    <!-- Material You Primary Colors -->
+    <color name="md_theme_light_primary">#0061A4</color>
+    <color name="md_theme_light_onPrimary">#FFFFFF</color>
+    <color name="md_theme_light_primaryContainer">#D1E4FF</color>
+    <color name="md_theme_light_onPrimaryContainer">#001D36</color>
     
-    <!-- Accent Colors -->
-    <color name="accent">#FF6B35</color>
-    <color name="accent_dark">#E5522A</color>
-    <color name="accent_light">#FF8A60</color>
+    <color name="md_theme_dark_primary">#9ECAFF</color>
+    <color name="md_theme_dark_onPrimary">#003258</color>
+    <color name="md_theme_dark_primaryContainer">#00497D</color>
+    <color name="md_theme_dark_onPrimaryContainer">#D1E4FF</color>
     
-    <!-- Secondary Colors -->
-    <color name="secondary">#34A853</color>
-    <color name="secondary_dark">#2D8A47</color>
-    <color name="secondary_light">#5CB870</color>
+    <!-- Material You Secondary Colors -->
+    <color name="md_theme_light_secondary">#535F70</color>
+    <color name="md_theme_light_onSecondary">#FFFFFF</color>
+    <color name="md_theme_light_secondaryContainer">#D7E3F7</color>
+    <color name="md_theme_light_onSecondaryContainer">#101C2B</color>
     
-    <!-- Background Colors -->
-    <color name="background_light">#F8F9FA</color>
-    <color name="background_dark">#121212</color>
-    <color name="surface_light">#FFFFFF</color>
-    <color name="surface_dark">#1E1E1E</color>
+    <color name="md_theme_dark_secondary">#BBD0E1</color>
+    <color name="md_theme_dark_onSecondary">#253140</color>
+    <color name="md_theme_dark_secondaryContainer">#3B4858</color>
+    <color name="md_theme_dark_onSecondaryContainer">#D7E3F7</color>
     
-    <!-- Text Colors -->
-    <color name="text_primary">#212529</color>
-    <color name="text_secondary">#6C757D</color>
-    <color name="text_hint">#ADB5BD</color>
-    <color name="text_disabled">#DEE2E6</color>
-    <color name="text_on_primary">#FFFFFF</color>
-    <color name="text_on_accent">#FFFFFF</color>
+    <!-- Material You Tertiary Colors -->
+    <color name="md_theme_light_tertiary">#6B5778</color>
+    <color name="md_theme_light_onTertiary">#FFFFFF</color>
+    <color name="md_theme_light_tertiaryContainer">#F2DAFF</color>
+    <color name="md_theme_light_onTertiaryContainer">#251431</color>
     
-    <!-- Status Colors -->
-    <color name="success">#28A745</color>
-    <color name="warning">#FFC107</color>
-    <color name="error">#DC3545</color>
-    <color name="info">#17A2B8</color>
+    <color name="md_theme_dark_tertiary">#D6BEE4</color>
+    <color name="md_theme_dark_onTertiary">#3A2947</color>
+    <color name="md_theme_dark_tertiaryContainer">#523F5F</color>
+    <color name="md_theme_dark_onTertiaryContainer">#F2DAFF</color>
     
-    <!-- Morse Training Specific Colors -->
-    <color name="correct_green">#4CAF50</color>
-    <color name="incorrect_red">#F44336</color>
-    <color name="playing_blue">#2196F3</color>
-    <color name="waiting_orange">#FF9800</color>
-    <color name="neutral_grey">#9E9E9E</color>
+    <!-- Material You Error Colors -->
+    <color name="md_theme_light_error">#BA1A1A</color>
+    <color name="md_theme_light_errorContainer">#FFDAD6</color>
+    <color name="md_theme_light_onError">#FFFFFF</color>
+    <color name="md_theme_light_onErrorContainer">#410002</color>
+    
+    <color name="md_theme_dark_error">#FFB4AB</color>
+    <color name="md_theme_dark_errorContainer">#93000A</color>
+    <color name="md_theme_dark_onError">#690005</color>
+    <color name="md_theme_dark_onErrorContainer">#FFDAD6</color>
+    
+    <!-- Material You Background Colors -->
+    <color name="md_theme_light_background">#FCFCFF</color>
+    <color name="md_theme_light_onBackground">#1A1C1E</color>
+    <color name="md_theme_light_surface">#FCFCFF</color>
+    <color name="md_theme_light_onSurface">#1A1C1E</color>
+    
+    <color name="md_theme_dark_background">#101214</color>
+    <color name="md_theme_dark_onBackground">#E2E2E6</color>
+    <color name="md_theme_dark_surface">#101214</color>
+    <color name="md_theme_dark_onSurface">#E2E2E6</color>
+    
+    <!-- Material You Surface Variants -->
+    <color name="md_theme_light_surfaceVariant">#DFE2EB</color>
+    <color name="md_theme_light_onSurfaceVariant">#43474E</color>
+    <color name="md_theme_light_outline">#73777F</color>
+    <color name="md_theme_light_inverseOnSurface">#F1F0F4</color>
+    <color name="md_theme_light_inverseSurface">#2F3033</color>
+    <color name="md_theme_light_inversePrimary">#9ECAFF</color>
+    
+    <color name="md_theme_dark_surfaceVariant">#43474E</color>
+    <color name="md_theme_dark_onSurfaceVariant">#C3C7CF</color>
+    <color name="md_theme_dark_outline">#8D9199</color>
+    <color name="md_theme_dark_inverseOnSurface">#1A1C1E</color>
+    <color name="md_theme_dark_inverseSurface">#E2E2E6</color>
+    <color name="md_theme_dark_inversePrimary">#0061A4</color>
+    
+    <!-- Morse Training Specific Colors (Material You compliant) -->
+    <color name="success">#00C851</color>
+    <color name="success_container">#B8F5C6</color>
+    <color name="on_success_container">#002106</color>
+    
+    <color name="warning">#FFB300</color>
+    <color name="warning_container">#FFECB3</color>
+    <color name="on_warning_container">#2E1B00</color>
+    
+    <color name="morse_playing">#2196F3</color>
+    <color name="morse_playing_container">#BBE1FF</color>
+    <color name="on_morse_playing_container">#001D35</color>
+    
+    <color name="morse_waiting">#FF8F00</color>
+    <color name="morse_waiting_container">#FFD180</color>
+    <color name="on_morse_waiting_container">#2E1B00</color>
+    
+    <!-- Legacy aliases for backward compatibility -->
+    <color name="primary">@color/md_theme_light_primary</color>
+    <color name="primary_dark">@color/md_theme_light_onPrimaryContainer</color>
+    <color name="primary_light">@color/md_theme_light_primaryContainer</color>
+    <color name="accent">@color/md_theme_light_tertiary</color>
+    <color name="surface_light">@color/md_theme_light_surface</color>
+    <color name="background_light">@color/md_theme_light_background</color>
+    <color name="text_primary">@color/md_theme_light_onSurface</color>
+    <color name="text_secondary">@color/md_theme_light_onSurfaceVariant</color>
+    <color name="text_hint">@color/md_theme_light_outline</color>
+    <color name="card_background">@color/md_theme_light_surface</color>
+    <color name="border_light">@color/md_theme_light_outline</color>
     
     <!-- Navigation Colors -->
-    <color name="nav_item_selected">#E3F2FD</color>
-    <color name="nav_item_unselected">#FFFFFF</color>
-    <color name="nav_text_selected">@color/primary</color>
-    <color name="nav_text_unselected">@color/text_secondary</color>
-    
-    <!-- Card Colors -->
-    <color name="card_background">#FFFFFF</color>
-    <color name="card_background_dark">#2C2C2C</color>
-    
-    <!-- Border Colors -->
-    <color name="border_light">#E0E0E0</color>
-    <color name="border_medium">#BDBDBD</color>
-    <color name="border_dark">#757575</color>
-    <color name="divider">#F0F0F0</color>
+    <color name="nav_item_selected">@color/md_theme_light_primaryContainer</color>
+    <color name="nav_item_unselected">@color/md_theme_light_surface</color>
+    <color name="nav_text_selected">@color/md_theme_light_primary</color>
+    <color name="nav_text_unselected">@color/md_theme_light_onSurfaceVariant</color>
     
     <!-- Alpha Colors -->
     <color name="white_70">#B3FFFFFF</color>
@@ -65,20 +112,8 @@
     <color name="black_70">#B3000000</color>
     <color name="black_50">#80000000</color>
     
-    <!-- Switch Colors -->
-    <color name="switch_thumb_checked">@color/primary</color>
-    <color name="switch_thumb_unchecked">#FFFFFF</color>
-    <color name="switch_track_checked">@color/primary_light</color>
-    <color name="switch_track_unchecked">@color/border_medium</color>
-    
-    <!-- Legacy Colors -->
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
-    <color name="grey_300">#E0E0E0</color>
-    <color name="yellow">#FFC107</color>
+    <!-- Standard colors -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="transparent">#00000000</color>
 </resources>

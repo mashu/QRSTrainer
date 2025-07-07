@@ -217,7 +217,7 @@ class CharacterStatsAdapter : androidx.recyclerview.widget.RecyclerView.Adapter<
             val color = when {
                 item.accuracy >= 0.9f -> androidx.core.content.ContextCompat.getColor(context, com.so5km.qrstrainer.R.color.success)
                 item.accuracy >= 0.7f -> androidx.core.content.ContextCompat.getColor(context, com.so5km.qrstrainer.R.color.warning)
-                else -> androidx.core.content.ContextCompat.getColor(context, com.so5km.qrstrainer.R.color.error)
+                else -> androidx.core.content.ContextCompat.getColor(context, com.so5km.qrstrainer.R.color.md_theme_light_error)
             }
             accuracyIndicator.setBackgroundColor(color)
         }

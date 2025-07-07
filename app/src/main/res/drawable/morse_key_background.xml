@@ -1,38 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
-<selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:state_pressed="true">
-        <shape android:shape="rectangle">
-            <solid android:color="@color/primary" />
-            <corners android:radius="12dp" />
-            <stroke
-                android:width="2dp"
-                android:color="@color/primary_dark" />
-            <gradient
-                android:startColor="@color/primary_light"
-                android:endColor="@color/primary"
-                android:angle="90" />
-        </shape>
+<!-- Material 3 chip-style background for morse keys -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="?attr/colorPrimary">
+    <item android:id="@android:id/background">
+        <selector>
+            <item android:state_pressed="true">
+                <shape android:shape="rectangle">
+                    <solid android:color="?attr/colorPrimaryContainer" />
+                    <corners android:radius="20dp" />
+                    <stroke
+                        android:width="1dp"
+                        android:color="?attr/colorPrimary" />
+                </shape>
+            </item>
+            <item android:state_enabled="false">
+                <shape android:shape="rectangle">
+                    <solid android:color="?attr/colorSurfaceVariant" />
+                    <corners android:radius="20dp" />
+                    <stroke
+                        android:width="1dp"
+                        android:color="?attr/colorOutline" />
+                </shape>
+            </item>
+            <item>
+                <shape android:shape="rectangle">
+                    <solid android:color="?attr/colorSurface" />
+                    <corners android:radius="20dp" />
+                    <stroke
+                        android:width="1dp"
+                        android:color="?attr/colorOutline" />
+                </shape>
+            </item>
+        </selector>
     </item>
-    <item android:state_enabled="false">
-        <shape android:shape="rectangle">
-            <solid android:color="@color/border_light" />
-            <corners android:radius="12dp" />
-            <stroke
-                android:width="1dp"
-                android:color="@color/border_medium" />
-        </shape>
-    </item>
-    <item>
-        <shape android:shape="rectangle">
-            <solid android:color="@color/surface_light" />
-            <corners android:radius="12dp" />
-            <stroke
-                android:width="2dp"
-                android:color="@color/border_light" />
-            <gradient
-                android:startColor="@color/white"
-                android:endColor="@color/surface_light"
-                android:angle="90" />
-        </shape>
-    </item>
-</selector>
+</ripple>

@@ -4,151 +4,244 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/gradient_background"
+    android:background="?attr/colorSurface"
     android:padding="16dp"
     tools:context=".ui.trainer.TrainerFragment">
 
-    <!-- Progress indicator at the top -->
-    <TextView
-        android:id="@+id/progress_indicator"
-        android:layout_width="0dp"
-        android:layout_height="80dp"
-        android:layout_marginBottom="24dp"
-        android:background="@drawable/card_background"
-        android:elevation="4dp"
-        android:gravity="center"
-        android:text="Level 1 - Progress: 75%"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <!-- Audio visualization -->
-    <View
-        android:id="@+id/audio_visualization"
-        android:layout_width="60dp"
-        android:layout_height="60dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
-        android:background="@drawable/circle_background"
-        android:elevation="8dp"
-        android:visibility="gone"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/sequence_display" />
-
-    <!-- Main sequence display in the center -->
-    <TextView
-        android:id="@+id/sequence_display"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginTop="24dp"
-        android:layout_marginBottom="24dp"
-        android:background="@drawable/sequence_display_background"
-        android:elevation="6dp"
-        android:gravity="center"
-        android:padding="24dp"
-        android:text="Ready to train!\nPress START to begin."
-        android:textColor="@android:color/white"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        app:layout_constraintBottom_toTopOf="@+id/control_panel"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/progress_indicator" />
-
-    <!-- Control panel with modern buttons -->
-    <LinearLayout
-        android:id="@+id/control_panel"
+    <!-- Progress Card -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/progress_card"
+        style="@style/Widget.App.CardView"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
-        android:background="@drawable/card_background"
-        android:elevation="4dp"
-        android:gravity="center"
-        android:orientation="horizontal"
-        android:padding="16dp"
-        app:layout_constraintBottom_toTopOf="@+id/morse_keyboard"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/progress_indicator"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Level 1 - Progress: 75%"
+                android:textAppearance="@style/TextAppearance.App.TitleLarge"
+                android:textColor="?attr/colorOnSurface"
+                android:gravity="center" />
+
+            <com.google.android.material.progressindicator.LinearProgressIndicator
+                android:id="@+id/progress_bar"
+                style="@style/Widget.App.LinearProgressIndicator"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:progress="75" />
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Sequence Display Card -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/sequence_card"
+        style="@style/Widget.App.CardView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginBottom="16dp"
+        app:cardBackgroundColor="?attr/colorSurfaceVariant"
+        app:layout_constraintBottom_toTopOf="@+id/control_card"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/progress_card">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="24dp">
+
+            <TextView
+                android:id="@+id/sequence_display"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:gravity="center"
+                android:text="Ready to train!\nPress START to begin."
+                android:textAppearance="@style/TextAppearance.App.HeadlineMedium"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:fontFamily="monospace"
+                android:lineSpacingExtra="8dp" />
+
+            <!-- Audio visualization indicator -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/audio_visualization"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_alignParentEnd="true"
+                android:layout_alignParentTop="true"
+                android:visibility="gone"
+                app:cardCornerRadius="24dp"
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="?attr/colorPrimary">
+                
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_volume_up"
+                    android:tint="?attr/colorOnPrimary" />
+                    
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Hint FAB -->
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/fab_hint"
+                style="@style/Widget.App.FloatingActionButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_alignParentBottom="true"
+                android:contentDescription="Get Hint"
+                android:src="@drawable/ic_lightbulb"
+                android:visibility="gone"
+                app:fabSize="mini"
+                app:backgroundTint="?attr/colorTertiary"
+                app:tint="?attr/colorOnTertiary" />
+
+        </RelativeLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Control Panel Card -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/control_card"
+        style="@style/Widget.App.CardView"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        app:layout_constraintBottom_toTopOf="@+id/keyboard_card"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
 
-        <Button
-            android:id="@+id/button_start"
-            style="@style/ModernButton"
-            android:layout_width="0dp"
+        <LinearLayout
+            android:id="@+id/control_panel"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/button_start" />
+            android:orientation="horizontal"
+            android:padding="16dp"
+            android:gravity="center">
 
-        <Button
-            android:id="@+id/button_stop"
-            style="@style/ModernButton"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/button_stop" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_start"
+                style="@style/Widget.App.Button.Filled"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:text="@string/button_start"
+                app:icon="@drawable/ic_play_arrow"
+                app:iconGravity="start" />
 
-        <Button
-            android:id="@+id/button_replay"
-            style="@style/ModernButton"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/button_replay" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_stop"
+                style="@style/Widget.App.Button.Outlined"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
+                android:text="@string/button_stop"
+                app:icon="@drawable/ic_stop"
+                app:iconGravity="start" />
 
-    </LinearLayout>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_replay"
+                style="@style/Widget.App.Button.Outlined"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:text="@string/button_replay"
+                app:icon="@drawable/ic_replay"
+                app:iconGravity="start" />
 
-    <!-- Morse keyboard at the bottom -->
-    <GridLayout
-        android:id="@+id/morse_keyboard"
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Morse Keyboard Card -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/keyboard_card"
+        style="@style/Widget.App.CardView"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:background="@drawable/card_background"
-        android:columnCount="5"
-        android:elevation="4dp"
-        android:padding="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
 
-        <!-- Sample morse keys - you'll expand this with your existing MorseKeyboard component -->
-        <Button
-            style="@style/MorseKeyButton"
-            android:text="A" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
 
-        <Button
-            style="@style/MorseKeyButton"
-            android:text="B" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Select Character"
+                android:textAppearance="@style/TextAppearance.App.BodyMedium"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:gravity="center"
+                android:layout_marginBottom="12dp" />
 
-        <Button
-            style="@style/MorseKeyButton"
-            android:text="C" />
+            <!-- Morse keyboard using modern chip style -->
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/morse_keyboard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:chipSpacingHorizontal="8dp"
+                app:chipSpacingVertical="8dp"
+                app:singleSelection="false">
 
-        <Button
-            style="@style/MorseKeyButton"
-            android:text="D" />
+                <!-- Sample chips - these will be populated programmatically -->
+                <com.google.android.material.chip.Chip
+                    style="@style/Widget.App.Chip.Morse"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="A" />
 
-        <Button
-            style="@style/MorseKeyButton"
-            android:text="E" />
+                <com.google.android.material.chip.Chip
+                    style="@style/Widget.App.Chip.Morse"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="B" />
 
-    </GridLayout>
+                <com.google.android.material.chip.Chip
+                    style="@style/Widget.App.Chip.Morse"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="C" />
 
-    <!-- Floating hint button -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_hint"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        android:contentDescription="Get Hint"
-        android:src="@drawable/ic_lightbulb"
-        android:visibility="gone"
-        app:backgroundTint="@color/yellow"
-        app:elevation="6dp"
-        app:fabSize="mini"
-        app:layout_constraintBottom_toTopOf="@+id/morse_keyboard"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:tint="@android:color/white" />
+                <com.google.android.material.chip.Chip
+                    style="@style/Widget.App.Chip.Morse"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="D" />
+
+                <com.google.android.material.chip.Chip
+                    style="@style/Widget.App.Chip.Morse"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="E" />
+
+            </com.google.android.material.chip.ChipGroup>
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

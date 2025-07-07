@@ -442,39 +442,46 @@ class TrainerFragment : Fragment() {
         Log.d(TAG, "Level chars: $levelChars")
         
         binding.morseKeyboard.removeAllViews()
-        binding.morseKeyboard.columnCount = 5
         
         levelChars.forEach { char ->
-            val button = android.widget.Button(requireContext()).apply {
+            val chip = com.google.android.material.chip.Chip(requireContext()).apply {
                 text = char.toString()
-                layoutParams = android.widget.GridLayout.LayoutParams().apply {
-                    width = 0
-                    height = resources.getDimensionPixelSize(R.dimen.morse_key_size)
-                    columnSpec = android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED, 1f)
-                    setMargins(4, 4, 4, 4)
-                }
-                setBackgroundResource(R.drawable.morse_key_background)
+                textSize = 16f
+                isCheckable = false
+                isClickable = true
+                isFocusable = true
+                
+                // Apply Material 3 styling
+                setChipBackgroundColorResource(R.color.md_theme_light_surface)
+                setTextColor(androidx.core.content.ContextCompat.getColor(context, R.color.md_theme_light_onSurface))
+                chipStrokeWidth = resources.getDimensionPixelSize(R.dimen.chip_stroke_width).toFloat()
+                chipStrokeColor = androidx.core.content.ContextCompat.getColorStateList(context, R.color.md_theme_light_outline)
+                // chipCornerRadius removed - now handled by style
+                
                 setOnClickListener { onCharacterSelected(char) }
-                textSize = 18f
             }
-            binding.morseKeyboard.addView(button)
+            binding.morseKeyboard.addView(chip)
         }
         
         addControlButtons()
     }
     
     private fun addControlButtons() {
-        val clearButton = android.widget.Button(requireContext()).apply {
+        val clearButton = com.google.android.material.chip.Chip(requireContext()).apply {
             text = "CLEAR"
-            layoutParams = android.widget.GridLayout.LayoutParams().apply {
-                width = 0
-                height = resources.getDimensionPixelSize(R.dimen.morse_key_size)
-                columnSpec = android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED, 5f) // Full width now
-                setMargins(4, 4, 4, 4)
-            }
-            setBackgroundResource(R.drawable.morse_key_background)
+            textSize = 14f
+            isCheckable = false
+            isClickable = true
+            isFocusable = true
+            
+            // Apply different styling for control button
+            setChipBackgroundColorResource(R.color.md_theme_light_errorContainer)
+            setTextColor(androidx.core.content.ContextCompat.getColor(context, R.color.md_theme_light_onErrorContainer))
+            chipStrokeWidth = resources.getDimensionPixelSize(R.dimen.chip_stroke_width).toFloat()
+            chipStrokeColor = androidx.core.content.ContextCompat.getColorStateList(context, R.color.md_theme_light_error)
+            // chipCornerRadius removed - now handled by style
+            
             setOnClickListener { clearInput() }
-            textSize = 16f
         }
         binding.morseKeyboard.addView(clearButton)
         // DONE button removed - auto-submission is now handled when typing

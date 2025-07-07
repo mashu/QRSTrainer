@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Material 3 shared axis motion - slide out to right -->
 <set xmlns:android="http://schemas.android.com/apk/res/android">
     <translate
         android:duration="300"
-        android:fromXDelta="0%"
-        android:toXDelta="100%"
-        android:interpolator="@android:anim/accelerate_interpolator" />
+        android:fromXDelta="0%p"
+        android:toXDelta="30%p"
+        android:interpolator="@android:interpolator/fast_out_linear_in" />
     <alpha
-        android:duration="300"
+        android:duration="150"
         android:fromAlpha="1.0"
-        android:toAlpha="0.0" />
+        android:toAlpha="0.0"
+        android:interpolator="@android:interpolator/fast_out_linear_in" />
 </set>

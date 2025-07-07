@@ -15,16 +15,17 @@
         <com.google.android.material.appbar.AppBarLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:theme="@style/AppTheme.AppBarOverlay"
-            app:elevation="4dp">
+            android:theme="@style/ThemeOverlay.Material3.Dark.ActionBar"
+            app:elevation="0dp">
 
-            <androidx.appcompat.widget.Toolbar
+            <com.google.android.material.appbar.MaterialToolbar
                 android:id="@+id/toolbar"
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
-                android:background="@color/primary"
-                app:popupTheme="@style/AppTheme.PopupOverlay"
-                app:titleTextColor="@android:color/white" />
+                android:background="?attr/colorSurface"
+                android:theme="@style/ThemeOverlay.Material3.ActionBar"
+                app:titleTextColor="?attr/colorOnSurface"
+                app:navigationIconTint="?attr/colorOnSurface" />
 
         </com.google.android.material.appbar.AppBarLayout>
 
@@ -33,22 +34,18 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_marginTop="?attr/actionBarSize"
-            android:background="@color/background_light"
-            android:elevation="2dp" />
+            android:background="?attr/colorSurface" />
 
-        <!-- Remove or hide the FAB -->
+        <!-- Modern FAB -->
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/fab_quick_play"
+            style="@style/Widget.App.FloatingActionButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|end"
             android:layout_margin="16dp"
             android:src="@drawable/ic_play_arrow"
             android:contentDescription="Quick Play"
-            app:backgroundTint="@color/accent"
-            app:tint="@android:color/white"
-            app:elevation="6dp"
-            app:fabSize="normal"
             android:visibility="gone" />
 
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
@@ -61,10 +58,7 @@
         android:fitsSystemWindows="true"
         app:headerLayout="@layout/nav_header_main"
         app:menu="@menu/activity_main_drawer"
-        app:itemIconTint="@color/nav_item_color_state"
-        app:itemTextColor="@color/nav_item_color_state"
-        app:itemBackground="@drawable/nav_item_background"
-        android:background="@color/white"
-        app:elevation="16dp" />
+        style="@style/Widget.App.NavigationView"
+        android:background="?attr/colorSurface" />
 
 </androidx.drawerlayout.widget.DrawerLayout>

@@ -245,16 +245,16 @@
                     android:textSize="18sp"
                     android:textStyle="bold" />
 
-                <Button
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/button_rate_app"
-                    style="@style/ModernButton"
+                    style="@style/Widget.App.Button.Filled"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Rate on Play Store" />
 
-                <Button
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/button_share_app"
-                    style="@style/ModernOutlinedButton"
+                    style="@style/Widget.App.Button.Outlined"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Share App" />

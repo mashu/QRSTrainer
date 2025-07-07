@@ -989,16 +989,16 @@
                 android:orientation="vertical"
                 android:padding="16dp">
 
-                <Button
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/button_test_audio"
-                    style="@style/ModernButton"
+                    style="@style/Widget.App.Button.Filled"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Test Audio" />
 
-                <Button
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/button_reset_settings"
-                    style="@style/ModernOutlinedButton"
+                    style="@style/Widget.App.Button.Outlined"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Reset to Defaults" />
