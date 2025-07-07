@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background_light"
+    android:background="?attr/colorSurface"
     android:padding="16dp"
     tools:context=".ui.progress.ProgressFragment">
 
@@ -33,6 +33,7 @@
             <!-- Level Card -->
             <androidx.cardview.widget.CardView
                 android:id="@+id/card_level"
+                style="@style/Widget.App.CardView.Light"
                 android:layout_width="0dp"
                 android:layout_height="120dp"
                 android:layout_margin="4dp"
@@ -69,6 +70,7 @@
             <!-- Streak Card -->
             <androidx.cardview.widget.CardView
                 android:id="@+id/card_streak"
+                style="@style/Widget.App.CardView.Light"
                 android:layout_width="0dp"
                 android:layout_height="120dp"
                 android:layout_margin="4dp"
@@ -114,6 +116,7 @@
             <!-- Accuracy Card -->
             <androidx.cardview.widget.CardView
                 android:id="@+id/card_accuracy"
+                style="@style/Widget.App.CardView.Light"
                 android:layout_width="0dp"
                 android:layout_height="120dp"
                 android:layout_margin="4dp"
@@ -150,6 +153,7 @@
             <!-- Best Streak Card -->
             <androidx.cardview.widget.CardView
                 android:id="@+id/card_best_streak"
+                style="@style/Widget.App.CardView.Light"
                 android:layout_width="0dp"
                 android:layout_height="120dp"
                 android:layout_margin="4dp"
@@ -188,6 +192,7 @@
         <!-- Overview Card -->
         <androidx.cardview.widget.CardView
             android:id="@+id/card_overview"
+            style="@style/Widget.App.CardView.Light"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="24dp"
@@ -208,11 +213,11 @@
                     android:textSize="18sp"
                     android:textStyle="bold" />
 
-                <ProgressBar
+                <com.google.android.material.progressindicator.LinearProgressIndicator
                     android:id="@+id/progress_bar"
-                    style="@android:style/Widget.ProgressBar.Horizontal"
+                    style="@style/Widget.App.LinearProgressIndicator"
                     android:layout_width="match_parent"
-                    android:layout_height="8dp"
+                    android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
                     android:max="100"
                     android:progress="75" />

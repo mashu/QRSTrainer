@@ -226,6 +226,7 @@
         <!-- Actions Card -->
         <androidx.cardview.widget.CardView
             android:id="@+id/card_actions"
+            style="@style/Widget.App.CardView.Light"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:cardCornerRadius="16dp"

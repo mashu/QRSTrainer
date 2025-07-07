@@ -100,11 +100,7 @@
     <color name="card_background">@color/md_theme_light_surface</color>
     <color name="border_light">@color/md_theme_light_outline</color>
     
-    <!-- Navigation Colors -->
-    <color name="nav_item_selected">@color/md_theme_light_primaryContainer</color>
-    <color name="nav_item_unselected">@color/md_theme_light_surface</color>
-    <color name="nav_text_selected">@color/md_theme_light_primary</color>
-    <color name="nav_text_unselected">@color/md_theme_light_onSurfaceVariant</color>
+
     
     <!-- Alpha Colors -->
     <color name="white_70">#B3FFFFFF</color>
@@ -112,8 +108,14 @@
     <color name="black_70">#B3000000</color>
     <color name="black_50">#80000000</color>
     
-    <!-- Standard colors -->
+    <!-- System Colors -->
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
     <color name="transparent">#00000000</color>
+    
+    <!-- Visualization Background Colors -->
+    <color name="visualization_background_light">#FEFEFE</color>
+    <color name="visualization_background_dark">#F5F5F5</color>
+    <color name="visualization_text_light">#2E2E2E</color>
+    <color name="visualization_text_dark">#1A1A1A</color>
 </resources>

@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background_light"
+    android:background="?attr/colorSurface"
     android:padding="16dp"
     tools:context=".ui.settings.SettingsFragment">
 
@@ -26,6 +26,7 @@
         <!-- Audio Settings Card -->
         <androidx.cardview.widget.CardView
             android:id="@+id/card_audio_settings"
+            style="@style/Widget.App.CardView.Light"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
@@ -401,6 +402,7 @@
         <!-- Timing & Repeats Card -->
         <androidx.cardview.widget.CardView
             android:id="@+id/card_timing_settings"
+            style="@style/Widget.App.CardView.Light"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
@@ -573,6 +575,7 @@
         <!-- Level Management Card -->
         <androidx.cardview.widget.CardView
             android:id="@+id/card_level_settings"
+            style="@style/Widget.App.CardView.Light"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
@@ -838,6 +841,7 @@
         <!-- Noise Settings Card -->
         <androidx.cardview.widget.CardView
             android:id="@+id/card_noise_settings"
+            style="@style/Widget.App.CardView.Light"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
@@ -968,7 +972,7 @@
                             android:layout_height="200dp"
                             android:layout_marginTop="8dp"
                             android:layout_marginBottom="8dp"
-                            android:background="@color/white" />
+                            android:background="@color/visualization_background_light" />
 
                     </LinearLayout>
 
@@ -978,6 +982,7 @@
 
         <!-- Action Buttons -->
         <androidx.cardview.widget.CardView
+            style="@style/Widget.App.CardView.Light"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:cardCornerRadius="16dp"
@@ -994,6 +999,7 @@
                     style="@style/Widget.App.Button.Filled"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
                     android:text="Test Audio" />
 
                 <com.google.android.material.button.MaterialButton
