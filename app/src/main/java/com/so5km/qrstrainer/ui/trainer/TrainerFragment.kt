@@ -48,23 +48,23 @@ class TrainerFragment : Fragment() {
     
     private fun setupUI() {
         // Setup basic button listeners
-        binding.buttonStart?.setOnClickListener {
+        binding.buttonStart.setOnClickListener {
             // Start training logic
             showMessage("Training started!")
         }
         
-        binding.buttonStop?.setOnClickListener {
+        binding.buttonStop.setOnClickListener {
             // Stop training logic
             showMessage("Training stopped!")
         }
         
-        binding.buttonReplay?.setOnClickListener {
+        binding.buttonReplay.setOnClickListener {
             // Replay sequence logic
             showMessage("Replaying sequence...")
         }
         
         // Update sequence display
-        binding.sequenceDisplay?.text = "Ready to train!\nPress START to begin."
+        binding.sequenceDisplay.text = "Ready to train!\nPress START to begin."
     }
     
     private fun observeState() {
@@ -88,31 +88,31 @@ class TrainerFragment : Fragment() {
     private fun updateUIForTrainingState(state: TrainingStateData) {
         when (state.state) {
             TrainingState.READY -> {
-                binding.sequenceDisplay?.text = "Ready to train!\nPress START to begin."
-                binding.buttonStart?.isEnabled = true
-                binding.buttonStop?.isEnabled = false
+                binding.sequenceDisplay.text = "Ready to train!\nPress START to begin."
+                binding.buttonStart.isEnabled = true
+                binding.buttonStop.isEnabled = false
             }
             TrainingState.PLAYING -> {
-                binding.sequenceDisplay?.text = "🎵 Listen to the sequence..."
-                binding.buttonStart?.isEnabled = false
-                binding.buttonStop?.isEnabled = true
+                binding.sequenceDisplay.text = "🎵 Listen to the sequence..."
+                binding.buttonStart.isEnabled = false
+                binding.buttonStop.isEnabled = true
                 startSequenceAnimation()
             }
             TrainingState.WAITING -> {
-                binding.sequenceDisplay?.text = "Type what you heard:"
+                binding.sequenceDisplay.text = "Type what you heard:"
                 animateToInputMode()
             }
             TrainingState.FINISHED -> {
                 if (state.previousWasCorrect) {
-                    binding.sequenceDisplay?.text = "✅ Correct! Well done!"
+                    binding.sequenceDisplay.text = "✅ Correct! Well done!"
                     showCorrectAnswerAnimation()
                 } else {
-                    binding.sequenceDisplay?.text = "❌ Incorrect. Try again!"
+                    binding.sequenceDisplay.text = "❌ Incorrect. Try again!"
                     showIncorrectAnswerAnimation()
                 }
             }
             TrainingState.PAUSED -> {
-                binding.sequenceDisplay?.text = "Training paused"
+                binding.sequenceDisplay.text = "Training paused"
             }
         }
     }
@@ -127,18 +127,18 @@ class TrainerFragment : Fragment() {
         )
         
         views.forEachIndexed { index, view ->
-            view?.alpha = 0f
-            view?.animate()
-                ?.alpha(1f)
-                ?.setDuration(300)
-                ?.setStartDelay((index * 100).toLong())
-                ?.start()
+            view.alpha = 0f
+            view.animate()
+                .alpha(1f)
+                .setDuration(300)
+                .setStartDelay((index * 100).toLong())
+                .start()
         }
     }
     
     private fun startSequenceAnimation() {
         // Pulse animation during playback
-        binding.sequenceDisplay?.let { view ->
+        binding.sequenceDisplay.let { view ->
             val pulseAnimator = ObjectAnimator.ofFloat(
                 view, "alpha", 1f, 0.7f, 1f
             ).apply {
@@ -152,7 +152,7 @@ class TrainerFragment : Fragment() {
     
     private fun animateToInputMode() {
         // Slide keyboard up
-        binding.morseKeyboard?.let { keyboard ->
+        binding.morseKeyboard.let { keyboard ->
             keyboard.translationY = 300f
             keyboard.animate()
                 .translationY(0f)
@@ -164,7 +164,7 @@ class TrainerFragment : Fragment() {
     
     private fun showCorrectAnswerAnimation() {
         // Green flash and scale
-        binding.sequenceDisplay?.let { view ->
+        binding.sequenceDisplay.let { view ->
             val scaleX = ObjectAnimator.ofFloat(view, "scaleX", 1f, 1.1f, 1f)
             val scaleY = ObjectAnimator.ofFloat(view, "scaleY", 1f, 1.1f, 1f)
             
@@ -179,7 +179,7 @@ class TrainerFragment : Fragment() {
     
     private fun showIncorrectAnswerAnimation() {
         // Shake animation
-        binding.sequenceDisplay?.let { view ->
+        binding.sequenceDisplay.let { view ->
             val shake = ObjectAnimator.ofFloat(
                 view, "translationX", 0f, -20f, 20f, -20f, 20f, 0f
             ).apply {
@@ -193,12 +193,12 @@ class TrainerFragment : Fragment() {
     
     private fun startAudioVisualization() {
         // Show audio visualization
-        binding.audioVisualization?.visibility = View.VISIBLE
+        binding.audioVisualization.visibility = View.VISIBLE
     }
     
     private fun stopAudioVisualization() {
         // Hide audio visualization  
-        binding.audioVisualization?.visibility = View.GONE
+        binding.audioVisualization.visibility = View.GONE
     }
     
     private fun showMessage(message: String) {

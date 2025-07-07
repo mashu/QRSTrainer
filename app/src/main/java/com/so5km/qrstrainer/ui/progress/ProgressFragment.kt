@@ -36,20 +36,20 @@ class ProgressFragment : Fragment() {
         // Display current level, streak, accuracy etc.
         // This will be implemented with your existing ProgressTracker
         binding.apply {
-            textCurrentLevel?.text = "Level 1"
-            textCurrentStreak?.text = "5"
-            textAccuracy?.text = "85%"
-            textBestStreak?.text = "15"
-            textTotalAttempts?.text = "Total: 150"
-            textCorrectAnswers?.text = "Correct: 128"
-            progressBar?.progress = 75
+            textCurrentLevel.text = "Level 1"
+            textCurrentStreak.text = "5"
+            textAccuracy.text = "85%"
+            textBestStreak.text = "15"
+            textTotalAttempts.text = "Total: 150"
+            textCorrectAnswers.text = "Correct: 128"
+            progressBar.progress = 75
         }
     }
     
     private fun setupCharacterStatsList() {
         // Show individual character statistics
         // RecyclerView with character performance data
-        binding.recyclerCharacterStats?.apply {
+        binding.recyclerCharacterStats.apply {
             layoutManager = LinearLayoutManager(context)
             // adapter = CharacterStatsAdapter() // You'll implement this later
         }
@@ -66,14 +66,14 @@ class ProgressFragment : Fragment() {
         )
         
         cards.forEachIndexed { index, card ->
-            card?.alpha = 0f
-            card?.translationY = 100f
-            card?.animate()
-                ?.alpha(1f)
-                ?.translationY(0f)
-                ?.setDuration(300)
-                ?.setStartDelay((index * 100).toLong())
-                ?.start()
+            card.alpha = 0f
+            card.translationY = 100f
+            card.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(300)
+                .setStartDelay((index * 100).toLong())
+                .start()
         }
     }
     
@@ -81,13 +81,13 @@ class ProgressFragment : Fragment() {
         // Load sample progress data for demonstration
         // This will integrate with your existing ProgressTracker
         binding.apply {
-            textCurrentLevel?.text = "Level 2"
-            textCurrentStreak?.text = "8"
-            textAccuracy?.text = "87.5%"
-            textBestStreak?.text = "23"
-            textTotalAttempts?.text = "Total: 245"
-            textCorrectAnswers?.text = "Correct: 214"
-            progressBar?.progress = 68
+            textCurrentLevel.text = "Level 2"
+            textCurrentStreak.text = "8"
+            textAccuracy.text = "87.5%"
+            textBestStreak.text = "23"
+            textTotalAttempts.text = "Total: 245"
+            textCorrectAnswers.text = "Correct: 214"
+            progressBar.progress = 68
         }
     }
     
@@ -96,4 +96,3 @@ class ProgressFragment : Fragment() {
         _binding = null
     }
 }
-

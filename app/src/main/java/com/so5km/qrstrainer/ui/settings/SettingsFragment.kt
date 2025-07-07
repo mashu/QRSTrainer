@@ -42,17 +42,17 @@ class SettingsFragment : Fragment() {
     
     private fun setupCollapsibleSections() {
         // Audio Settings Section
-        binding.cardAudioSettings?.setOnClickListener {
+        binding.cardAudioSettings.setOnClickListener {
             toggleSection(binding.layoutAudioSettings)
         }
         
         // Training Settings Section
-        binding.cardTrainingSettings?.setOnClickListener {
+        binding.cardTrainingSettings.setOnClickListener {
             toggleSection(binding.layoutTrainingSettings)
         }
         
         // Noise Settings Section
-        binding.cardNoiseSettings?.setOnClickListener {
+        binding.cardNoiseSettings.setOnClickListener {
             toggleSection(binding.layoutNoiseSettings)
         }
     }
@@ -88,37 +88,37 @@ class SettingsFragment : Fragment() {
     private fun setupSliders() {
         // Setup WPM, frequency, volume sliders
         // This will integrate with your existing TrainingSettings
-        binding.sliderWpm?.addOnChangeListener { _, value, fromUser ->
+        binding.sliderWpm.addOnChangeListener { _, value, fromUser ->
             if (fromUser) {
                 // Update WPM setting
-                binding.textWpmValue?.text = "${value.toInt()} WPM"
+                binding.textWpmValue.text = "${value.toInt()} WPM"
             }
         }
         
-        binding.sliderFrequency?.addOnChangeListener { _, value, fromUser ->
+        binding.sliderFrequency.addOnChangeListener { _, value, fromUser ->
             if (fromUser) {
                 // Update frequency setting
-                binding.textFrequencyValue?.text = "${value.toInt()} Hz"
+                binding.textFrequencyValue.text = "${value.toInt()} Hz"
             }
         }
         
-        binding.sliderVolume?.addOnChangeListener { _, value, fromUser ->
+        binding.sliderVolume.addOnChangeListener { _, value, fromUser ->
             if (fromUser) {
                 // Update volume setting
-                binding.textVolumeValue?.text = "${value.toInt()}%"
+                binding.textVolumeValue.text = "${value.toInt()}%"
             }
         }
         
-        binding.switchNoise?.setOnCheckedChangeListener { _, isChecked ->
+        binding.switchNoise.setOnCheckedChangeListener { _, isChecked ->
             // Update noise setting
-            binding.layoutNoiseControls?.visibility = if (isChecked) View.VISIBLE else View.GONE
+            binding.layoutNoiseControls.visibility = if (isChecked) View.VISIBLE else View.GONE
         }
         
-        binding.buttonTestAudio?.setOnClickListener {
+        binding.buttonTestAudio.setOnClickListener {
             // Test audio with current settings
         }
         
-        binding.buttonResetSettings?.setOnClickListener {
+        binding.buttonResetSettings.setOnClickListener {
             showResetConfirmation()
         }
     }
@@ -134,16 +134,16 @@ class SettingsFragment : Fragment() {
     private fun updateUI(settings: TrainingSettings) {
         // Update sliders and labels with current settings
         binding.apply {
-            sliderWpm?.value = settings.wpm.toFloat()
-            sliderFrequency?.value = settings.frequency.toFloat()
-            sliderVolume?.value = (settings.volume * 100).toInt().toFloat()
+            sliderWpm.value = settings.wpm.toFloat()
+            sliderFrequency.value = settings.frequency.toFloat()
+            sliderVolume.value = (settings.volume * 100).toInt().toFloat()
             
-            textWpmValue?.text = "${settings.wpm} WPM"
-            textFrequencyValue?.text = "${settings.frequency} Hz"
-            textVolumeValue?.text = "${(settings.volume * 100).toInt()}%"
+            textWpmValue.text = "${settings.wpm} WPM"
+            textFrequencyValue.text = "${settings.frequency} Hz"
+            textVolumeValue.text = "${(settings.volume * 100).toInt()}%"
             
-            switchNoise?.isChecked = settings.noiseEnabled
-            layoutNoiseControls?.visibility = if (settings.noiseEnabled) View.VISIBLE else View.GONE
+            switchNoise.isChecked = settings.noiseEnabled
+            layoutNoiseControls.visibility = if (settings.noiseEnabled) View.VISIBLE else View.GONE
         }
     }
     
@@ -156,14 +156,14 @@ class SettingsFragment : Fragment() {
         )
         
         cards.forEachIndexed { index, card ->
-            card?.alpha = 0f
-            card?.translationY = 100f
-            card?.animate()
-                ?.alpha(1f)
-                ?.translationY(0f)
-                ?.setDuration(300)
-                ?.setStartDelay((index * 100).toLong())
-                ?.start()
+            card.alpha = 0f
+            card.translationY = 100f
+            card.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(300)
+                .setStartDelay((index * 100).toLong())
+                .start()
         }
     }
     
@@ -189,4 +189,3 @@ class SettingsFragment : Fragment() {
         _binding = null
     }
 }
-

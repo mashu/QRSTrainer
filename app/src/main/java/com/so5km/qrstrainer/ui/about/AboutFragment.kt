@@ -35,31 +35,31 @@ class AboutFragment : Fragment() {
     private fun setupVersionInfo() {
         binding.apply {
             // Use hardcoded version for now since BuildConfig might not be available
-            textVersion?.text = getString(R.string.about_version, "1.0.0")
-            textAppName?.text = getString(R.string.app_name)
-            textDescription?.text = getString(R.string.about_description)
+            textVersion.text = getString(R.string.about_version, "1.0.0")
+            textAppName.text = getString(R.string.app_name)
+            textDescription.text = getString(R.string.about_description)
         }
     }
     
     private fun setupClickListeners() {
         binding.apply {
-            cardGithub?.setOnClickListener {
+            cardGithub.setOnClickListener {
                 openUrl("https://github.com/so5km/qrstrainer")
             }
             
-            cardContact?.setOnClickListener {
+            cardContact.setOnClickListener {
                 sendEmail()
             }
             
-            cardLicense?.setOnClickListener {
+            cardLicense.setOnClickListener {
                 openUrl("https://opensource.org/licenses/MIT")
             }
             
-            buttonRateApp?.setOnClickListener {
+            buttonRateApp.setOnClickListener {
                 openPlayStore()
             }
             
-            buttonShareApp?.setOnClickListener {
+            buttonShareApp.setOnClickListener {
                 shareApp()
             }
         }
@@ -75,14 +75,14 @@ class AboutFragment : Fragment() {
         )
         
         cards.forEachIndexed { index, card ->
-            card?.alpha = 0f
-            card?.translationY = 100f
-            card?.animate()
-                ?.alpha(1f)
-                ?.translationY(0f)
-                ?.setDuration(300)
-                ?.setStartDelay((index * 100).toLong())
-                ?.start()
+            card.alpha = 0f
+            card.translationY = 100f
+            card.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(300)
+                .setStartDelay((index * 100).toLong())
+                .start()
         }
     }
     
