@@ -81,6 +81,25 @@
     <string name="settings_advanced_audio">Advanced Audio</string>
     <string name="settings_progress_tracking">Progress Tracking</string>
     
+    <!-- Settings Help Text -->
+    <string name="help_wpm">Speed at which individual characters are sent (e.g., 20 WPM means "PARIS" takes 3 seconds)</string>
+    <string name="help_effective_wpm">Overall text speed with extra spacing between characters (Farnsworth timing)</string>
+    <string name="help_frequency">Audio tone frequency in Hz (typical CW: 400-800 Hz)</string>
+    <string name="help_volume">Audio output volume level</string>
+    <string name="help_rise_time">Envelope shaping time to reduce key clicks (5-10ms typical)</string>
+    <string name="help_min_group_size">Minimum number of characters in a group</string>
+    <string name="help_max_group_size">Maximum number of characters in a group</string>
+    <string name="help_groups_per_sequence">Number of character groups in each training sequence</string>
+    <string name="help_sequence_delay">Pause after complete sequence before next one</string>
+    <string name="help_repeat_delay">Pause between repeats of the same sequence</string>
+    <string name="help_group_delay">Pause between character groups within a sequence</string>
+    <string name="help_number_of_repeats">How many times to repeat each sequence</string>
+    <string name="help_current_level">Your current training level (affects character set)</string>
+    <string name="help_correct_to_level_up">Consecutive correct answers needed to advance</string>
+    <string name="help_incorrect_to_drop">Consecutive errors before dropping a level</string>
+    <string name="help_noise_volume">Background noise level (simulates band conditions)</string>
+    <string name="help_noise_bandwidth">Width of noise spectrum around signal frequency</string>
+    
     <!-- Group Settings -->
     <string name="settings_min_group_size">Min Group Size</string>
     <string name="settings_max_group_size">Max Group Size</string>

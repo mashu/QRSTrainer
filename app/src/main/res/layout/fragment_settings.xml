@@ -63,6 +63,15 @@
                         android:text="@string/settings_wpm"
                         android:textSize="14sp"
                         android:textStyle="bold" />
+                    
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginBottom="4dp"
+                        android:text="Speed at which individual characters are sent"
+                        android:textSize="12sp"
+                        android:textColor="@android:color/darker_gray" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -96,6 +105,15 @@
                         android:text="@string/settings_effective_wpm"
                         android:textSize="14sp"
                         android:textStyle="bold" />
+                    
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginBottom="4dp"
+                        android:text="@string/help_effective_wpm"
+                        android:textSize="12sp"
+                        android:textColor="@android:color/darker_gray" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -195,6 +213,15 @@
                         android:text="@string/settings_rise_time"
                         android:textSize="14sp"
                         android:textStyle="bold" />
+                    
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginBottom="4dp"
+                        android:text="Envelope shaping to reduce key clicks"
+                        android:textSize="12sp"
+                        android:textColor="@android:color/darker_gray" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -219,6 +246,15 @@
                             android:text="5 ms"
                             android:textAlignment="center" />
                     </LinearLayout>
+                    
+                    <!-- Waveform Visualization -->
+                    <com.so5km.qrstrainer.ui.components.settings.WaveformVisualizationView
+                        android:id="@+id/waveform_visualization"
+                        android:layout_width="match_parent"
+                        android:layout_height="150dp"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="8dp"
+                        android:background="@color/white" />
 
                 </LinearLayout>
             </LinearLayout>
@@ -889,6 +925,15 @@
                             android:text="@string/settings_noise_bandwidth"
                             android:textSize="14sp"
                             android:textStyle="bold" />
+                        
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="4dp"
+                            android:layout_marginBottom="4dp"
+                            android:text="@string/help_noise_bandwidth"
+                            android:textSize="12sp"
+                            android:textColor="@android:color/darker_gray" />
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -915,6 +960,15 @@
                                 android:text="1000 Hz"
                                 android:textAlignment="center" />
                         </LinearLayout>
+                        
+                        <!-- Filter Response Visualization -->
+                        <com.so5km.qrstrainer.ui.components.settings.FilterResponseView
+                            android:id="@+id/filter_response_view"
+                            android:layout_width="match_parent"
+                            android:layout_height="200dp"
+                            android:layout_marginTop="8dp"
+                            android:layout_marginBottom="8dp"
+                            android:background="@color/white" />
 
                     </LinearLayout>
 

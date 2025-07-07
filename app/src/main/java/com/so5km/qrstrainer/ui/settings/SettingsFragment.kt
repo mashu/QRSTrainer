@@ -13,6 +13,8 @@ import com.so5km.qrstrainer.state.StoreViewModel
 import com.so5km.qrstrainer.state.AppAction
 import com.so5km.qrstrainer.data.TrainingSettings
 import com.so5km.qrstrainer.audio.AudioManager
+import com.so5km.qrstrainer.ui.components.settings.WaveformVisualizationView
+import com.so5km.qrstrainer.ui.components.settings.FilterResponseView
 import kotlinx.coroutines.launch
 import com.google.android.material.textfield.TextInputEditText
 
@@ -47,6 +49,7 @@ class SettingsFragment : Fragment() {
         setupButtons()
         observeSettings()
         setupAnimations()
+        preventSliderScrolling()
     }
     
     private fun initializeComponents() {
@@ -152,6 +155,10 @@ class SettingsFragment : Fragment() {
                 val frequency = value.toInt()
                 binding.textFrequencyValue.text = getString(R.string.value_hz, frequency)
                 updateSettings { it.copy(frequency = frequency) }
+                
+                // Update both visualizations
+                binding.filterResponseView.setCenterFrequency(value)
+                binding.waveformVisualization.setFrequency(value)
             }
         }
         
@@ -169,7 +176,16 @@ class SettingsFragment : Fragment() {
             if (fromUser) {
                 binding.textRiseTimeValue.text = getString(R.string.value_ms, value.toInt())
                 updateSettings { it.copy(riseTimeMs = value.toDouble()) }
+                
+                // Update waveform visualization
+                binding.waveformVisualization.setRiseTime(value)
             }
+        }
+        
+        // Initialize waveform visualization
+        binding.waveformVisualization.apply {
+            setFrequency(binding.sliderFrequency.value)
+            setRiseTime(binding.sliderRiseTime.value)
         }
     }
     
@@ -329,7 +345,17 @@ class SettingsFragment : Fragment() {
                 val bandwidth = value.toInt()
                 binding.textNoiseBandwidthValue.text = getString(R.string.value_hz, bandwidth)
                 updateSettings { it.copy(noiseBandwidthHz = bandwidth.toFloat()) }
+                
+                // Update filter visualization
+                binding.filterResponseView.setBandwidth(value)
             }
+        }
+        
+        // Initialize filter visualization
+        binding.filterResponseView.apply {
+            setCenterFrequency(binding.sliderFrequency.value)
+            setBandwidth(binding.sliderNoiseBandwidth.value)
+            setShowRinging(true)
         }
     }
     
@@ -413,6 +439,17 @@ class SettingsFragment : Fragment() {
                 textNoiseVolumeValue.text = getString(R.string.value_percent, (settings.noiseVolume * 100).toInt())
                 textNoiseBandwidthValue.text = getString(R.string.value_hz, settings.noiseBandwidthHz.toInt())
             }
+            
+            // Update visualizations with current settings
+            waveformVisualization.apply {
+                setFrequency(settings.frequency.toFloat())
+                setRiseTime(settings.riseTimeMs.toFloat())
+            }
+            
+            filterResponseView.apply {
+                setCenterFrequency(settings.frequency.toFloat())
+                setBandwidth(settings.noiseBandwidthHz)
+            }
         }
     }
     
@@ -484,6 +521,40 @@ class SettingsFragment : Fragment() {
                 .setDuration(300)
                 .setStartDelay((index * 100).toLong())
                 .start()
+        }
+    }
+    
+    private fun preventSliderScrolling() {
+        // Collect all sliders in the layout
+        val allSliders = listOf(
+            // Audio sliders
+            binding.sliderWpm,
+            binding.sliderEffectiveWpm,
+            binding.sliderFrequency,
+            binding.sliderVolume,
+            binding.sliderRiseTime,
+            // Group sliders
+            binding.sliderMinGroupSize,
+            binding.sliderMaxGroupSize,
+            binding.sliderSequenceLength,
+            // Timing sliders
+            binding.sliderNumberOfRepeats,
+            binding.sliderSequenceDelay,
+            binding.sliderRepeatDelay,
+            binding.sliderGroupDelay,
+            // Level sliders
+            binding.sliderCurrentLevel,
+            binding.sliderCorrectToLevelUp,
+            binding.sliderIncorrectToDrop,
+            // Noise sliders
+            binding.sliderNoiseVolume,
+            binding.sliderNoiseBandwidth
+        )
+        
+        // Apply focus prevention to all sliders
+        allSliders.forEach { slider ->
+            slider.isFocusable = false
+            slider.isFocusableInTouchMode = false
         }
     }
     
