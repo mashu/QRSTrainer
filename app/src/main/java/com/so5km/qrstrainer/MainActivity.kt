@@ -1,6 +1,9 @@
 package com.so5km.qrstrainer
 
+import android.content.Context
+import android.content.SharedPreferences
 import android.os.Bundle
+import android.util.Log
 import android.view.MenuItem
 import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
@@ -36,8 +39,15 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private lateinit var storeViewModel: StoreViewModel
     private lateinit var audioManager: AudioManager
     private lateinit var progressTracker: ProgressTracker
+    private lateinit var preferences: SharedPreferences
     
-    private var currentFragmentTag: String = "trainer"
+    private var currentFragmentTag: String = ""
+    
+    companion object {
+        private const val TAG = "MainActivity"
+        private const val PREFS_NAME = "app_preferences"
+        private const val PREF_LAST_FRAGMENT = "last_fragment"
+    }
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,7 +64,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         observeAppState()
         
         if (savedInstanceState == null) {
-            loadFragment(TrainerFragment(), R.id.nav_trainer, "trainer")
+            loadDefaultFragment()
         }
     }
     
@@ -62,6 +72,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         storeViewModel = ViewModelProvider(this)[StoreViewModel::class.java]
         audioManager = AudioManager(this)
         progressTracker = ProgressTracker(this)
+        preferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         
         // Initialize app state
         val defaultSettings = TrainingSettings.default()
@@ -177,7 +188,43 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         return true
     }
     
+    private fun loadDefaultFragment() {
+        // Get the last used fragment from preferences, default to trainer
+        val lastFragment = preferences.getString(PREF_LAST_FRAGMENT, "trainer") ?: "trainer"
+        Log.d(TAG, "Loading default fragment: $lastFragment")
+        
+        when (lastFragment) {
+            "trainer" -> {
+                loadFragment(TrainerFragment(), R.id.nav_trainer, "trainer")
+                supportActionBar?.title = "Morse Code Trainer"
+            }
+            "listen" -> {
+                loadFragment(ListenFragment(), R.id.nav_listen, "listen")
+                supportActionBar?.title = "Listen & Learn"
+            }
+            "progress" -> {
+                loadFragment(ProgressFragment(), R.id.nav_progress, "progress")
+                supportActionBar?.title = "Progress Tracking"
+            }
+            "settings" -> {
+                loadFragment(SettingsFragment(), R.id.nav_settings, "settings")
+                supportActionBar?.title = "Settings"
+            }
+            "about" -> {
+                loadFragment(AboutFragment(), R.id.nav_about, "about")
+                supportActionBar?.title = "About"
+            }
+            else -> {
+                // Fallback to trainer if unknown fragment
+                loadFragment(TrainerFragment(), R.id.nav_trainer, "trainer")
+                supportActionBar?.title = "Morse Code Trainer"
+            }
+        }
+    }
+    
     private fun loadFragment(fragment: Fragment, menuId: Int, tag: String) {
+        Log.d(TAG, "Loading fragment: $tag")
+        
         // Stop any current audio when switching fragments
         if (storeViewModel.audioState.value.isPlaying) {
             audioManager.stopPlayback()
@@ -194,6 +241,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 .commit()
             
             currentFragmentTag = tag
+            
+            // Save the current fragment as the last used
+            preferences.edit().putString(PREF_LAST_FRAGMENT, tag).apply()
+            Log.d(TAG, "Saved last fragment: $tag")
         }
         
         navigationView.setCheckedItem(menuId)
@@ -248,5 +299,17 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     override fun onRestoreInstanceState(savedInstanceState: Bundle) {
         super.onRestoreInstanceState(savedInstanceState)
         currentFragmentTag = savedInstanceState.getString("current_fragment_tag", "trainer")
+        Log.d(TAG, "Restored fragment tag: $currentFragmentTag")
+        
+        // Update navigation to reflect the current fragment
+        val menuId = when (currentFragmentTag) {
+            "trainer" -> R.id.nav_trainer
+            "listen" -> R.id.nav_listen
+            "progress" -> R.id.nav_progress
+            "settings" -> R.id.nav_settings
+            "about" -> R.id.nav_about
+            else -> R.id.nav_trainer
+        }
+        navigationView.setCheckedItem(menuId)
     }
 }

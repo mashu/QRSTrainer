@@ -4,6 +4,7 @@ import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -38,6 +39,10 @@ class TrainerFragment : Fragment() {
     private var userInput = ""
     private var startTime: Long = 0
     
+    companion object {
+        private const val TAG = "TrainerFragment"
+    }
+    
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -50,14 +55,39 @@ class TrainerFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         
+        Log.d(TAG, "TrainerFragment onViewCreated called")
+        
+        // Ensure all views are visible first (fix for blank display issue)
+        ensureViewsVisible()
+        
         initializeComponents()
         setupUI()
         observeState()
         updateProgressDisplay()
-        setupAnimations()
         
         // Set initial state properly
         updateUIForState(TrainingState.READY)
+        
+        // Apply animations after everything is set up and visible
+        setupAnimations()
+        
+        Log.d(TAG, "TrainerFragment initialization complete")
+    }
+    
+    private fun ensureViewsVisible() {
+        Log.d(TAG, "Ensuring all views are visible")
+        val views = listOf(
+            binding.progressIndicator,
+            binding.sequenceDisplay,
+            binding.controlPanel,
+            binding.morseKeyboard
+        )
+        
+        views.forEach { view ->
+            view.alpha = 1f
+            view.translationY = 0f
+            view.visibility = View.VISIBLE
+        }
     }
     
     private fun initializeComponents() {
@@ -220,6 +250,7 @@ class TrainerFragment : Fragment() {
     }
     
     private fun updateUIForState(state: TrainingState) {
+        Log.d(TAG, "Updating UI for state: $state")
         when (state) {
             TrainingState.READY -> {
                 binding.sequenceDisplay.text = "🎯 Ready to train!\n\nPress START to begin your Morse code practice session."
@@ -302,6 +333,7 @@ class TrainerFragment : Fragment() {
     }
     
     private fun setupAnimations() {
+        Log.d(TAG, "Setting up animations")
         val views = listOf(
             binding.progressIndicator,
             binding.sequenceDisplay,
@@ -309,15 +341,27 @@ class TrainerFragment : Fragment() {
             binding.morseKeyboard
         )
         
-        views.forEachIndexed { index, view ->
-            view.alpha = 0f
-            view.translationY = 100f
-            view.animate()
-                .alpha(1f)
-                .translationY(0f)
-                .setDuration(300)
-                .setStartDelay((index * 100).toLong())
-                .start()
+        // Only animate if views are actually visible and ready
+        if (isAdded && view != null) {
+            views.forEachIndexed { index, view ->
+                // Start from current position (already visible) and add subtle animation
+                val originalY = view.translationY
+                
+                view.translationY = originalY + 50f // Slight movement
+                view.animate()
+                    .translationY(originalY)
+                    .setDuration(200)
+                    .setStartDelay((index * 50).toLong())
+                    .withEndAction {
+                        // Ensure view is fully visible after animation
+                        view.alpha = 1f
+                        view.translationY = 0f
+                        Log.d(TAG, "Animation completed for view: ${view.javaClass.simpleName}")
+                    }
+                    .start()
+            }
+        } else {
+            Log.w(TAG, "Skipping animations - fragment not ready")
         }
     }
     
@@ -393,7 +437,9 @@ class TrainerFragment : Fragment() {
     }
     
     private fun updateMorseKeyboardForLevel(level: Int) {
+        Log.d(TAG, "Updating morse keyboard for level: $level")
         val levelChars = progressTracker.getCharactersForLevel(level)
+        Log.d(TAG, "Level chars: $levelChars")
         
         binding.morseKeyboard.removeAllViews()
         binding.morseKeyboard.columnCount = 5
