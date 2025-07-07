@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:showIn="navigation_view">
+
+    <group android:checkableBehavior="single">
+        
+        <item
+            android:id="@+id/nav_trainer"
+            android:icon="@drawable/ic_training"
+            android:title="@string/nav_trainer" />
+            
+        <item
+            android:id="@+id/nav_listen"
+            android:icon="@drawable/ic_headphones"
+            android:title="@string/nav_listen" />
+            
+    </group>
+    
+    <item android:title="@string/nav_section_progress">
+        <menu>
+            <item
+                android:id="@+id/nav_progress"
+                android:icon="@drawable/ic_progress"
+                android:title="@string/nav_progress" />
+        </menu>
+    </item>
+    
+    <item android:title="@string/nav_section_more">
+        <menu>
+            <item
+                android:id="@+id/nav_settings"
+                android:icon="@drawable/ic_settings"
+                android:title="@string/nav_settings" />
+                
+            <item
+                android:id="@+id/nav_about"
+                android:icon="@drawable/ic_info"
+                android:title="@string/nav_about" />
+        </menu>
+    </item>
+
+</menu>

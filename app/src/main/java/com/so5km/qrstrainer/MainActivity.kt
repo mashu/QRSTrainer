@@ -1,241 +1,124 @@
 package com.so5km.qrstrainer
 
 import android.os.Bundle
-import android.widget.Button
-import android.widget.TextView
-import android.widget.Toast
+import android.view.MenuItem
+import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
-import com.so5km.qrstrainer.audio.MorseCodeGenerator
-import com.so5km.qrstrainer.data.ProgressTracker
-import com.so5km.qrstrainer.data.TrainingSettings
-import com.so5km.qrstrainer.training.SequenceGenerator
-import kotlinx.coroutines.launch
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProvider
+import com.google.android.material.navigation.NavigationView
+import com.so5km.qrstrainer.databinding.ActivityMainBinding
+import com.so5km.qrstrainer.state.StoreViewModel
+import com.so5km.qrstrainer.ui.about.AboutFragment
+import com.so5km.qrstrainer.ui.listen.ListenFragment
+import com.so5km.qrstrainer.ui.progress.ProgressFragment
+import com.so5km.qrstrainer.ui.settings.SettingsFragment
+import com.so5km.qrstrainer.ui.trainer.TrainerFragment
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
     
-    private lateinit var morseGenerator: MorseCodeGenerator
-    private lateinit var progressTracker: ProgressTracker
-    private lateinit var sequenceGenerator: SequenceGenerator
-    private lateinit var settings: TrainingSettings
-    
-    private lateinit var sequenceDisplay: TextView
-    private lateinit var buttonStart: Button
-    private lateinit var buttonReveal: Button
-    private lateinit var buttonNext: Button
-    private lateinit var buttonReplay: Button
-    private lateinit var levelDisplay: TextView
-    private lateinit var streakDisplay: TextView
-    
-    private var currentSequence = ""
-    private var isRevealed = false
+    private lateinit var binding: ActivityMainBinding
+    private lateinit var drawerLayout: DrawerLayout
+    private lateinit var navigationView: NavigationView
+    private lateinit var drawerToggle: ActionBarDrawerToggle
+    private lateinit var storeViewModel: StoreViewModel
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        initializeComponents()
-        createUI()
-        setupListeners()
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        
+        storeViewModel = ViewModelProvider(this)[StoreViewModel::class.java]
+        
+        setupToolbar()
+        setupNavigationDrawer()
+        
+        if (savedInstanceState == null) {
+            loadFragment(TrainerFragment(), R.id.nav_trainer)
+        }
     }
     
-    private fun initializeComponents() {
-        morseGenerator = MorseCodeGenerator(this)
-        progressTracker = ProgressTracker(this)
-        sequenceGenerator = SequenceGenerator(progressTracker)
-        settings = TrainingSettings.default()
+    private fun setupToolbar() {
+        setSupportActionBar(binding.toolbar)
+        supportActionBar?.apply {
+            setDisplayHomeAsUpEnabled(true)
+            setDisplayShowHomeEnabled(true)
+            title = getString(R.string.app_name)
+        }
     }
     
-    private fun createUI() {
-        // Create layout programmatically for simplicity
-        val layout = androidx.constraintlayout.widget.ConstraintLayout(this).apply {
-            layoutParams = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams(
-                androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.MATCH_PARENT,
-                androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.MATCH_PARENT
-            )
-            setPadding(64, 64, 64, 64)
-        }
+    private fun setupNavigationDrawer() {
+        drawerLayout = binding.drawerLayout
+        navigationView = binding.navigationView
         
-        // Title
-        val title = TextView(this).apply {
-            id = androidx.core.view.ViewCompat.generateViewId()
-            text = "🎧 QRS Trainer - Morse Code Training"
-            textSize = 20f
-            textAlignment = TextView.TEXT_ALIGNMENT_CENTER
-        }
-        
-        // Sequence display
-        sequenceDisplay = TextView(this).apply {
-            id = androidx.core.view.ViewCompat.generateViewId()
-            text = "Ready to train! Press Start to begin."
-            textSize = 18f
-            textAlignment = TextView.TEXT_ALIGNMENT_CENTER
-            setBackgroundColor(0xFF000000.toInt())
-            setTextColor(0xFFFFFFFF.toInt())
-            setPadding(32, 32, 32, 32)
-            minHeight = 200
-        }
-        
-        // Control buttons
-        buttonStart = Button(this).apply {
-            id = androidx.core.view.ViewCompat.generateViewId()
-            text = "START"
-            textSize = 16f
-        }
-        
-        buttonReveal = Button(this).apply {
-            id = androidx.core.view.ViewCompat.generateViewId()
-            text = "REVEAL"
-            textSize = 16f
-            visibility = android.view.View.GONE
-        }
-        
-        buttonNext = Button(this).apply {
-            id = androidx.core.view.ViewCompat.generateViewId()
-            text = "NEXT"
-            textSize = 16f
-            visibility = android.view.View.GONE
-        }
-        
-        buttonReplay = Button(this).apply {
-            id = androidx.core.view.ViewCompat.generateViewId()
-            text = "REPLAY"
-            textSize = 16f
-            visibility = android.view.View.GONE
-        }
-        
-        // Status displays
-        levelDisplay = TextView(this).apply {
-            id = androidx.core.view.ViewCompat.generateViewId()
-            text = "Level: ${progressTracker.getCurrentLevel()}"
-            textSize = 16f
-        }
-        
-        streakDisplay = TextView(this).apply {
-            id = androidx.core.view.ViewCompat.generateViewId()
-            text = "Streak: ${progressTracker.getCurrentStreak()}"
-            textSize = 16f
-        }
-        
-        // Add views to layout
-        layout.addView(title)
-        layout.addView(sequenceDisplay)
-        layout.addView(buttonStart)
-        layout.addView(buttonReveal)
-        layout.addView(buttonNext)
-        layout.addView(buttonReplay)
-        layout.addView(levelDisplay)
-        layout.addView(streakDisplay)
-        
-        // Create constraints programmatically
-        val constraintSet = androidx.constraintlayout.widget.ConstraintSet()
-        constraintSet.clone(layout)
-        
-        // Title constraints
-        constraintSet.connect(title.id, androidx.constraintlayout.widget.ConstraintSet.TOP, androidx.constraintlayout.widget.ConstraintSet.PARENT_ID, androidx.constraintlayout.widget.ConstraintSet.TOP, 32)
-        constraintSet.connect(title.id, androidx.constraintlayout.widget.ConstraintSet.START, androidx.constraintlayout.widget.ConstraintSet.PARENT_ID, androidx.constraintlayout.widget.ConstraintSet.START)
-        constraintSet.connect(title.id, androidx.constraintlayout.widget.ConstraintSet.END, androidx.constraintlayout.widget.ConstraintSet.PARENT_ID, androidx.constraintlayout.widget.ConstraintSet.END)
-        
-        // Sequence display constraints
-        constraintSet.connect(sequenceDisplay.id, androidx.constraintlayout.widget.ConstraintSet.TOP, title.id, androidx.constraintlayout.widget.ConstraintSet.BOTTOM, 48)
-        constraintSet.connect(sequenceDisplay.id, androidx.constraintlayout.widget.ConstraintSet.START, androidx.constraintlayout.widget.ConstraintSet.PARENT_ID, androidx.constraintlayout.widget.ConstraintSet.START)
-        constraintSet.connect(sequenceDisplay.id, androidx.constraintlayout.widget.ConstraintSet.END, androidx.constraintlayout.widget.ConstraintSet.PARENT_ID, androidx.constraintlayout.widget.ConstraintSet.END)
-        
-        // Button constraints
-        constraintSet.connect(buttonStart.id, androidx.constraintlayout.widget.ConstraintSet.TOP, sequenceDisplay.id, androidx.constraintlayout.widget.ConstraintSet.BOTTOM, 48)
-        constraintSet.connect(buttonStart.id, androidx.constraintlayout.widget.ConstraintSet.START, androidx.constraintlayout.widget.ConstraintSet.PARENT_ID, androidx.constraintlayout.widget.ConstraintSet.START)
-        constraintSet.connect(buttonStart.id, androidx.constraintlayout.widget.ConstraintSet.END, buttonReveal.id, androidx.constraintlayout.widget.ConstraintSet.START, 16)
-        
-        constraintSet.connect(buttonReveal.id, androidx.constraintlayout.widget.ConstraintSet.TOP, sequenceDisplay.id, androidx.constraintlayout.widget.ConstraintSet.BOTTOM, 48)
-        constraintSet.connect(buttonReveal.id, androidx.constraintlayout.widget.ConstraintSet.START, buttonStart.id, androidx.constraintlayout.widget.ConstraintSet.END, 16)
-        constraintSet.connect(buttonReveal.id, androidx.constraintlayout.widget.ConstraintSet.END, buttonNext.id, androidx.constraintlayout.widget.ConstraintSet.START, 16)
-        
-        constraintSet.connect(buttonNext.id, androidx.constraintlayout.widget.ConstraintSet.TOP, sequenceDisplay.id, androidx.constraintlayout.widget.ConstraintSet.BOTTOM, 48)
-        constraintSet.connect(buttonNext.id, androidx.constraintlayout.widget.ConstraintSet.START, buttonReveal.id, androidx.constraintlayout.widget.ConstraintSet.END, 16)
-        constraintSet.connect(buttonNext.id, androidx.constraintlayout.widget.ConstraintSet.END, buttonReplay.id, androidx.constraintlayout.widget.ConstraintSet.START, 16)
-        
-        constraintSet.connect(buttonReplay.id, androidx.constraintlayout.widget.ConstraintSet.TOP, sequenceDisplay.id, androidx.constraintlayout.widget.ConstraintSet.BOTTOM, 48)
-        constraintSet.connect(buttonReplay.id, androidx.constraintlayout.widget.ConstraintSet.START, buttonNext.id, androidx.constraintlayout.widget.ConstraintSet.END, 16)
-        constraintSet.connect(buttonReplay.id, androidx.constraintlayout.widget.ConstraintSet.END, androidx.constraintlayout.widget.ConstraintSet.PARENT_ID, androidx.constraintlayout.widget.ConstraintSet.END)
-        
-        // Status displays
-        constraintSet.connect(levelDisplay.id, androidx.constraintlayout.widget.ConstraintSet.TOP, buttonStart.id, androidx.constraintlayout.widget.ConstraintSet.BOTTOM, 48)
-        constraintSet.connect(levelDisplay.id, androidx.constraintlayout.widget.ConstraintSet.START, androidx.constraintlayout.widget.ConstraintSet.PARENT_ID, androidx.constraintlayout.widget.ConstraintSet.START)
-        
-        constraintSet.connect(streakDisplay.id, androidx.constraintlayout.widget.ConstraintSet.TOP, buttonStart.id, androidx.constraintlayout.widget.ConstraintSet.BOTTOM, 48)
-        constraintSet.connect(streakDisplay.id, androidx.constraintlayout.widget.ConstraintSet.END, androidx.constraintlayout.widget.ConstraintSet.PARENT_ID, androidx.constraintlayout.widget.ConstraintSet.END)
-        
-        constraintSet.applyTo(layout)
-        setContentView(layout)
-    }
-    
-    private fun setupListeners() {
-        buttonStart.setOnClickListener { startTraining() }
-        buttonReveal.setOnClickListener { revealSequence() }
-        buttonNext.setOnClickListener { nextSequence() }
-        buttonReplay.setOnClickListener { replaySequence() }
-    }
-    
-    private fun startTraining() {
-        currentSequence = sequenceGenerator.generateSequence(
-            settings.sequenceLength,
-            progressTracker.getCurrentLevel()
+        drawerToggle = ActionBarDrawerToggle(
+            this, drawerLayout, binding.toolbar,
+            R.string.navigation_drawer_open, R.string.navigation_drawer_close
         )
-        isRevealed = false
         
-        sequenceDisplay.text = "🎵 Listen to the sequence..."
-        updateButtonVisibility(false, false, false, false)
+        drawerLayout.addDrawerListener(drawerToggle)
+        drawerToggle.syncState()
         
-        playSequence()
+        navigationView.setNavigationItemSelectedListener(this)
+        navigationView.setCheckedItem(R.id.nav_trainer)
     }
     
-    private fun playSequence() {
-        lifecycleScope.launch {
-            try {
-                morseGenerator.playSequence(currentSequence, settings)
-                
-                // After playing, show reveal and replay options
-                updateButtonVisibility(false, true, false, true)
-                sequenceDisplay.text = "What did you hear? Press REVEAL to see the answer."
-                
-            } catch (e: Exception) {
-                Toast.makeText(this@MainActivity, "Audio playback error: ${e.message}", Toast.LENGTH_LONG).show()
-                updateButtonVisibility(true, false, false, false)
+    override fun onNavigationItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.nav_trainer -> {
+                loadFragment(TrainerFragment(), item.itemId)
+                supportActionBar?.title = "Morse Code Trainer"
+            }
+            R.id.nav_listen -> {
+                loadFragment(ListenFragment(), item.itemId)
+                supportActionBar?.title = "Listen Mode"
+            }
+            R.id.nav_progress -> {
+                loadFragment(ProgressFragment(), item.itemId)
+                supportActionBar?.title = "Progress Tracking"
+            }
+            R.id.nav_settings -> {
+                loadFragment(SettingsFragment(), item.itemId)
+                supportActionBar?.title = "Settings"
+            }
+            R.id.nav_about -> {
+                loadFragment(AboutFragment(), item.itemId)
+                supportActionBar?.title = "About"
             }
         }
+        
+        drawerLayout.closeDrawer(GravityCompat.START)
+        return true
     }
     
-    private fun revealSequence() {
-        isRevealed = true
-        sequenceDisplay.text = "📡 Sequence: $currentSequence"
-        updateButtonVisibility(false, false, true, true)
-        updateStats()
+    private fun loadFragment(fragment: Fragment, menuId: Int) {
+        supportFragmentManager.beginTransaction()
+            .setCustomAnimations(
+                R.anim.slide_in_right, R.anim.slide_out_left,
+                R.anim.slide_in_left, R.anim.slide_out_right
+            )
+            .replace(R.id.fragment_container, fragment)
+            .commit()
+        
+        navigationView.setCheckedItem(menuId)
     }
     
-    private fun nextSequence() {
-        startTraining()
-    }
-    
-    private fun replaySequence() {
-        sequenceDisplay.text = "🎵 Replaying sequence..."
-        playSequence()
-    }
-    
-    private fun updateButtonVisibility(start: Boolean, reveal: Boolean, next: Boolean, replay: Boolean) {
-        buttonStart.visibility = if (start) android.view.View.VISIBLE else android.view.View.GONE
-        buttonReveal.visibility = if (reveal) android.view.View.VISIBLE else android.view.View.GONE
-        buttonNext.visibility = if (next) android.view.View.VISIBLE else android.view.View.GONE
-        buttonReplay.visibility = if (replay) android.view.View.VISIBLE else android.view.View.GONE
-    }
-    
-    private fun updateStats() {
-        levelDisplay.text = "Level: ${progressTracker.getCurrentLevel()}"
-        streakDisplay.text = "Streak: ${progressTracker.getCurrentStreak()}"
-    }
-    
-    override fun onDestroy() {
-        super.onDestroy()
-        if (::morseGenerator.isInitialized) {
-            morseGenerator.release()
+    override fun onBackPressed() {
+        if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            drawerLayout.closeDrawer(GravityCompat.START)
+        } else {
+            super.onBackPressed()
         }
     }
-} 
+    
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return if (drawerToggle.onOptionsItemSelected(item)) {
+            true
+        } else {
+            super.onOptionsItemSelected(item)
+        }
+    }
+}

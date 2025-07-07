@@ -1,9 +1,93 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- App Name -->
     <string name="app_name">QRS Trainer</string>
+    
+    <!-- Navigation -->
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+    
+    <!-- Navigation Menu Items -->
+    <string name="nav_trainer">Trainer</string>
+    <string name="nav_listen">Listen</string>
+    <string name="nav_progress">Progress</string>
+    <string name="nav_settings">Settings</string>
+    <string name="nav_about">About</string>
+    
+    <!-- Navigation Sections -->
+    <string name="nav_section_training">Training</string>
+    <string name="nav_section_progress">Progress</string>
+    <string name="nav_section_more">More</string>
+    
+    <!-- Trainer Screen -->
     <string name="trainer_title">Morse Code Trainer</string>
-    <string name="trainer_tab">Trainer</string>
-    <string name="listen_tab">Listen</string>
-    <string name="progress_tab">Progress</string>
-    <string name="settings_tab">Settings</string>
-</resources> 
+    <string name="trainer_subtitle">Practice and improve your CW skills</string>
+    <string name="trainer_ready">Ready to train! Press START to begin.</string>
+    <string name="trainer_listening">🎵 Listen to the sequence...</string>
+    <string name="trainer_type_answer">Type what you heard:</string>
+    <string name="trainer_correct">✅ Correct! Well done!</string>
+    <string name="trainer_incorrect">❌ Incorrect. The answer was: %1$s</string>
+    <string name="trainer_paused">Training paused</string>
+    
+    <!-- Control Buttons -->
+    <string name="button_start">START</string>
+    <string name="button_stop">STOP</string>
+    <string name="button_pause">PAUSE</string>
+    <string name="button_resume">RESUME</string>
+    <string name="button_submit">SUBMIT</string>
+    <string name="button_next">NEXT</string>
+    <string name="button_replay">REPLAY</string>
+    <string name="button_reveal">REVEAL</string>
+    <string name="button_hint">HINT</string>
+    <string name="button_clear">CLEAR</string>
+    
+    <!-- Listen Screen -->
+    <string name="listen_title">Listen &amp; Learn</string>
+    <string name="listen_subtitle">Passive listening practice</string>
+    <string name="listen_ready">Ready to listen...</string>
+    <string name="listen_sequence_revealed">Sequence: %1$s</string>
+    <string name="listen_auto_reveal">Auto Reveal</string>
+    <string name="listen_speak_answer">Speak Answer</string>
+    
+    <!-- Progress Screen -->
+    <string name="progress_title">Your Progress</string>
+    <string name="progress_subtitle">Track your learning journey</string>
+    <string name="progress_level">Level %1$d</string>
+    <string name="progress_streak">Streak: %1$d</string>
+    <string name="progress_best_streak">Best: %1$d</string>
+    <string name="progress_accuracy">Accuracy: %1$.1f%%</string>
+    <string name="progress_total_attempts">Total Attempts: %1$d</string>
+    <string name="progress_correct_answers">Correct: %1$d</string>
+    <string name="progress_average_time">Avg Time: %1$.1fs</string>
+    
+    <!-- Settings Screen -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_audio">Audio Settings</string>
+    <string name="settings_wpm">Speed (WPM)</string>
+    <string name="settings_frequency">Tone Frequency</string>
+    <string name="settings_volume">Volume</string>
+    <string name="settings_training">Training Settings</string>
+    <string name="settings_sequence_length">Sequence Length</string>
+    <string name="settings_noise">Noise Settings</string>
+    <string name="settings_noise_enabled">Add Background Noise</string>
+    
+    <!-- About Screen -->
+    <string name="about_title">About QRS Trainer</string>
+    <string name="about_version">Version %1$s</string>
+    <string name="about_description">QRS Trainer is a modern Morse code training application designed to help you master CW communication skills.</string>
+    
+    <!-- Error Messages -->
+    <string name="error_audio_playback">Audio playback error: %1$s</string>
+    <string name="error_generic">An error occurred: %1$s</string>
+    
+    <!-- Confirmation Dialogs -->
+    <string name="dialog_reset_progress_title">Reset Progress</string>
+    <string name="dialog_reset_progress_message">Are you sure you want to reset all progress? This action cannot be undone.</string>
+    <string name="dialog_reset_confirm">Reset</string>
+    <string name="dialog_cancel">Cancel</string>
+    
+    <!-- Level Progress Messages -->
+    <string name="level_up_message">🎉 Level Up! You\'ve reached level %1$d!</string>
+    <string name="streak_milestone">🔥 Amazing! %1$d correct answers in a row!</string>
+    
+</resources>

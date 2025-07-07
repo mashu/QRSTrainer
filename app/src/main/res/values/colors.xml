@@ -1,5 +1,77 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Modern Primary Colors -->
+    <color name="primary">#2E7D97</color>
+    <color name="primary_dark">#1F5F75</color>
+    <color name="primary_light">#4A9BBB</color>
+    <color name="primary_variant">#005577</color>
+    
+    <!-- Accent Colors -->
+    <color name="accent">#FF6B35</color>
+    <color name="accent_dark">#E5522A</color>
+    <color name="accent_light">#FF8A60</color>
+    
+    <!-- Secondary Colors -->
+    <color name="secondary">#34A853</color>
+    <color name="secondary_dark">#2D8A47</color>
+    <color name="secondary_light">#5CB870</color>
+    
+    <!-- Background Colors -->
+    <color name="background_light">#F8F9FA</color>
+    <color name="background_dark">#121212</color>
+    <color name="surface_light">#FFFFFF</color>
+    <color name="surface_dark">#1E1E1E</color>
+    
+    <!-- Text Colors -->
+    <color name="text_primary">#212529</color>
+    <color name="text_secondary">#6C757D</color>
+    <color name="text_hint">#ADB5BD</color>
+    <color name="text_disabled">#DEE2E6</color>
+    <color name="text_on_primary">#FFFFFF</color>
+    <color name="text_on_accent">#FFFFFF</color>
+    
+    <!-- Status Colors -->
+    <color name="success">#28A745</color>
+    <color name="warning">#FFC107</color>
+    <color name="error">#DC3545</color>
+    <color name="info">#17A2B8</color>
+    
+    <!-- Morse Training Specific Colors -->
+    <color name="correct_green">#4CAF50</color>
+    <color name="incorrect_red">#F44336</color>
+    <color name="playing_blue">#2196F3</color>
+    <color name="waiting_orange">#FF9800</color>
+    <color name="neutral_grey">#9E9E9E</color>
+    
+    <!-- Navigation Colors -->
+    <color name="nav_item_selected">#E3F2FD</color>
+    <color name="nav_item_unselected">#FFFFFF</color>
+    <color name="nav_text_selected">@color/primary</color>
+    <color name="nav_text_unselected">@color/text_secondary</color>
+    
+    <!-- Card Colors -->
+    <color name="card_background">#FFFFFF</color>
+    <color name="card_background_dark">#2C2C2C</color>
+    
+    <!-- Border Colors -->
+    <color name="border_light">#E0E0E0</color>
+    <color name="border_medium">#BDBDBD</color>
+    <color name="border_dark">#757575</color>
+    <color name="divider">#F0F0F0</color>
+    
+    <!-- Alpha Colors -->
+    <color name="white_70">#B3FFFFFF</color>
+    <color name="white_50">#80FFFFFF</color>
+    <color name="black_70">#B3000000</color>
+    <color name="black_50">#80000000</color>
+    
+    <!-- Switch Colors -->
+    <color name="switch_thumb_checked">@color/primary</color>
+    <color name="switch_thumb_unchecked">#FFFFFF</color>
+    <color name="switch_track_checked">@color/primary_light</color>
+    <color name="switch_track_unchecked">@color/border_medium</color>
+    
+    <!-- Legacy Colors -->
     <color name="purple_200">#FFBB86FC</color>
     <color name="purple_500">#FF6200EE</color>
     <color name="purple_700">#FF3700B3</color>
@@ -7,24 +79,6 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    
-    <!-- App specific colors -->
     <color name="grey_300">#E0E0E0</color>
-    <color name="correct_green">#4CAF50</color>
     <color name="yellow">#FFC107</color>
-    <color name="error_red">#F44336</color>
-    
-    <!-- Primary colors -->
-    <color name="primary">#2196F3</color>
-    <color name="primary_dark">#1976D2</color>
-    <color name="accent">#FF4081</color>
-    
-    <!-- Background colors -->
-    <color name="background_light">#FAFAFA</color>
-    <color name="background_dark">#121212</color>
-    
-    <!-- Text colors -->
-    <color name="text_primary">#212121</color>
-    <color name="text_secondary">#757575</color>
-    <color name="text_hint">#9E9E9E</color>
-</resources> 
+</resources>

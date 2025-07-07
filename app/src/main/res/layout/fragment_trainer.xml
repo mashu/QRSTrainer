@@ -1,51 +1,154 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp">
+    android:background="@drawable/gradient_background"
+    android:padding="16dp"
+    tools:context=".ui.trainer.TrainerFragment">
 
+    <!-- Progress indicator at the top -->
     <TextView
-        android:id="@+id/textView"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/trainer_title"
+        android:id="@+id/progress_indicator"
+        android:layout_width="0dp"
+        android:layout_height="80dp"
+        android:layout_marginBottom="24dp"
+        android:background="@drawable/card_background"
+        android:elevation="4dp"
+        android:gravity="center"
+        android:text="Level 1 - Progress: 75%"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Audio visualization -->
+    <View
+        android:id="@+id/audio_visualization"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/circle_background"
+        android:elevation="8dp"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/sequence_display" />
+
+    <!-- Main sequence display in the center -->
+    <TextView
+        android:id="@+id/sequence_display"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="24dp"
+        android:layout_marginBottom="24dp"
+        android:background="@drawable/sequence_display_background"
+        android:elevation="6dp"
+        android:gravity="center"
+        android:padding="24dp"
+        android:text="Ready to train!\nPress START to begin."
+        android:textColor="@android:color/white"
         android:textSize="24sp"
         android:textStyle="bold"
-        android:layout_marginBottom="24dp"
-        android:gravity="center" />
+        app:layout_constraintBottom_toTopOf="@+id/control_panel"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/progress_indicator" />
 
-    <TextView
-        android:id="@+id/sequenceDisplay"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Ready to train..."
-        android:textSize="18sp"
-        android:layout_marginBottom="16dp"
-        android:gravity="center"
-        android:minHeight="48dp" />
-
+    <!-- Control panel with modern buttons -->
     <LinearLayout
-        android:layout_width="match_parent"
+        android:id="@+id/control_panel"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/card_background"
+        android:elevation="4dp"
         android:gravity="center"
-        android:layout_marginTop="16dp">
+        android:orientation="horizontal"
+        android:padding="16dp"
+        app:layout_constraintBottom_toTopOf="@+id/morse_keyboard"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
 
         <Button
-            android:id="@+id/startButton"
-            android:layout_width="wrap_content"
+            android:id="@+id/button_start"
+            style="@style/ModernButton"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Start Training"
-            android:layout_marginEnd="8dp" />
+            android:layout_weight="1"
+            android:text="@string/button_start" />
 
         <Button
-            android:id="@+id/stopButton"
-            android:layout_width="wrap_content"
+            android:id="@+id/button_stop"
+            style="@style/ModernButton"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Stop"
-            android:layout_marginStart="8dp" />
+            android:layout_weight="1"
+            android:text="@string/button_stop" />
+
+        <Button
+            android:id="@+id/button_replay"
+            style="@style/ModernButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/button_replay" />
 
     </LinearLayout>
 
-</LinearLayout>
+    <!-- Morse keyboard at the bottom -->
+    <GridLayout
+        android:id="@+id/morse_keyboard"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/card_background"
+        android:columnCount="5"
+        android:elevation="4dp"
+        android:padding="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <!-- Sample morse keys - you'll expand this with your existing MorseKeyboard component -->
+        <Button
+            style="@style/MorseKeyButton"
+            android:text="A" />
+
+        <Button
+            style="@style/MorseKeyButton"
+            android:text="B" />
+
+        <Button
+            style="@style/MorseKeyButton"
+            android:text="C" />
+
+        <Button
+            style="@style/MorseKeyButton"
+            android:text="D" />
+
+        <Button
+            style="@style/MorseKeyButton"
+            android:text="E" />
+
+    </GridLayout>
+
+    <!-- Floating hint button -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_hint"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:contentDescription="Get Hint"
+        android:src="@drawable/ic_lightbulb"
+        android:visibility="gone"
+        app:backgroundTint="@color/yellow"
+        app:elevation="6dp"
+        app:fabSize="mini"
+        app:layout_constraintBottom_toTopOf="@+id/morse_keyboard"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:tint="@android:color/white" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

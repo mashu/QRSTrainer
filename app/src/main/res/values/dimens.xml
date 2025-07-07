@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Standard Margins and Padding -->
+    <dimen name="margin_tiny">4dp</dimen>
+    <dimen name="margin_small">8dp</dimen>
+    <dimen name="margin_medium">16dp</dimen>
+    <dimen name="margin_large">24dp</dimen>
+    <dimen name="margin_xlarge">32dp</dimen>
+    
+    <dimen name="padding_tiny">4dp</dimen>
+    <dimen name="padding_small">8dp</dimen>
+    <dimen name="padding_medium">16dp</dimen>
+    <dimen name="padding_large">24dp</dimen>
+    
+    <!-- Standard Heights -->
+    <dimen name="button_height">48dp</dimen>
+    <dimen name="toolbar_height">56dp</dimen>
+    <dimen name="list_item_height">72dp</dimen>
+    
+    <!-- Card Dimensions -->
+    <dimen name="card_corner_radius">16dp</dimen>
+    <dimen name="card_elevation">8dp</dimen>
+    
+    <!-- Navigation Drawer -->
+    <dimen name="nav_header_height">176dp</dimen>
+    <dimen name="nav_header_vertical_spacing">16dp</dimen>
+    <dimen name="nav_item_height">48dp</dimen>
+    <dimen name="nav_icon_size">24dp</dimen>
+    
+    <!-- App Bar -->
+    <dimen name="app_bar_height">56dp</dimen>
+    
+    <!-- FAB -->
+    <dimen name="fab_margin">16dp</dimen>
+    <dimen name="fab_size_normal">56dp</dimen>
+    <dimen name="fab_elevation">6dp</dimen>
+    
+    <!-- Morse Code Specific -->
+    <dimen name="sequence_display_height">200dp</dimen>
+    <dimen name="sequence_display_padding">24dp</dimen>
+    <dimen name="morse_key_size">56dp</dimen>
+    <dimen name="morse_key_margin">4dp</dimen>
+    <dimen name="progress_indicator_height">80dp</dimen>
+    
+    <!-- Touch Targets -->
+    <dimen name="touch_target_min">48dp</dimen>
+    
+    <!-- Screen Margins -->
+    <dimen name="activity_horizontal_margin">16dp</dimen>
+    <dimen name="activity_vertical_margin">16dp</dimen>
+    
+</resources>
