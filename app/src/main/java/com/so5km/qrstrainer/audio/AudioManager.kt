@@ -29,7 +29,7 @@ class AudioManager(private val context: Context) {
     private val scope = CoroutineScope(Dispatchers.Default)
     private var playbackJob: Job? = null
     
-    fun playSequence(sequence: String, settings: TrainingSettings) {
+    suspend fun playSequence(sequence: String, settings: TrainingSettings) {
         playbackJob?.cancel()
         
         playbackJob = scope.launch {
@@ -37,14 +37,21 @@ class AudioManager(private val context: Context) {
             
             try {
                 morsePlayer.playSequence(sequence, settings)
+            } catch (e: Exception) {
+                // Log error but don't throw
+                android.util.Log.e("AudioManager", "Error playing sequence", e)
             } finally {
                 store.dispatch(AppAction.SetAudioPlaying(false))
             }
         }
+        
+        // Wait for the job to complete
+        playbackJob?.join()
     }
     
     fun stopPlayback() {
         playbackJob?.cancel()
+        morsePlayer.stopSequence()
         audioEngine.stop()
         store.dispatch(AppAction.SetAudioPlaying(false))
     }

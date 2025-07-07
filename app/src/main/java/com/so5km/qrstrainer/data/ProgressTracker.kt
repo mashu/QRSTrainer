@@ -95,24 +95,35 @@ class ProgressTracker(private val context: Context) {
      */
     fun getRequiredForNextLevel(): Int {
         val level = getCurrentLevel()
-        return level * 50 // Each level requires 50 more correct answers than the previous
+        return when (level) {
+            1 -> 25  // Level 1 to 2: 25 correct
+            2 -> 35  // Level 2 to 3: 35 correct
+            3 -> 45  // Level 3 to 4: 45 correct
+            4 -> 55  // Level 4 to 5: 55 correct
+            5 -> 65  // Level 5 to 6: 65 correct
+            6 -> 75  // Level 6 to 7: 75 correct
+            7 -> 85  // Level 7 to 8: 85 correct
+            8 -> 95  // Level 8 to 9: 95 correct
+            9 -> 100 // Level 9 to 10: 100 correct
+            else -> 100
+        }
     }
     
     /**
-     * Get characters for current level
+     * Get characters for current level using Koch method
      */
     fun getCharactersForLevel(level: Int): List<Char> {
         return when (level) {
-            1 -> listOf('E', 'T', 'I', 'A', 'N')
-            2 -> listOf('M', 'S', 'U', 'R', 'W')
-            3 -> listOf('D', 'K', 'G', 'O', 'H')
-            4 -> listOf('V', 'F', 'L', 'P', 'J')
-            5 -> listOf('B', 'X', 'C', 'Y', 'Z')
-            6 -> listOf('Q', '0', '1', '2', '3')
-            7 -> listOf('4', '5', '6', '7', '8')
-            8 -> listOf('9', '.', ',', '?', '!')
-            9 -> listOf('/', '(', ')', '&', ':')
-            10 -> listOf(';', '=', '+', '-', '_')
+            1 -> listOf('K', 'M')
+            2 -> listOf('K', 'M', 'U', 'R')
+            3 -> listOf('K', 'M', 'U', 'R', 'E', 'S')
+            4 -> listOf('K', 'M', 'U', 'R', 'E', 'S', 'N', 'A')
+            5 -> listOf('K', 'M', 'U', 'R', 'E', 'S', 'N', 'A', 'P', 'T')
+            6 -> listOf('K', 'M', 'U', 'R', 'E', 'S', 'N', 'A', 'P', 'T', 'L', 'W')
+            7 -> listOf('K', 'M', 'U', 'R', 'E', 'S', 'N', 'A', 'P', 'T', 'L', 'W', 'I', 'J')
+            8 -> listOf('K', 'M', 'U', 'R', 'E', 'S', 'N', 'A', 'P', 'T', 'L', 'W', 'I', 'J', 'Z', 'F')
+            9 -> listOf('K', 'M', 'U', 'R', 'E', 'S', 'N', 'A', 'P', 'T', 'L', 'W', 'I', 'J', 'Z', 'F', 'O', 'Y')
+            10 -> listOf('K', 'M', 'U', 'R', 'E', 'S', 'N', 'A', 'P', 'T', 'L', 'W', 'I', 'J', 'Z', 'F', 'O', 'Y', 'V', 'G')
             else -> MorseCode.MORSE_MAP.keys.toList()
         }
     }
@@ -185,6 +196,9 @@ class ProgressTracker(private val context: Context) {
         
         if (currentCorrect >= required && getCurrentLevel() < 10) {
             _currentLevel.value = getCurrentLevel() + 1
+            
+            // Show level up message or trigger event
+            android.util.Log.d("ProgressTracker", "Level up! Now at level ${getCurrentLevel()}")
         }
         
         // Update best streak
@@ -225,4 +239,4 @@ class ProgressTracker(private val context: Context) {
             }
         }
     }
-} 
+}

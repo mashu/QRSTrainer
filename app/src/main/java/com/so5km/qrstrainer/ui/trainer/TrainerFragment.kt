@@ -53,8 +53,11 @@ class TrainerFragment : Fragment() {
         initializeComponents()
         setupUI()
         observeState()
-        setupAnimations()
         updateProgressDisplay()
+        setupAnimations()
+        
+        // Set initial state properly
+        updateUIForState(TrainingState.READY)
     }
     
     private fun initializeComponents() {
@@ -116,6 +119,7 @@ class TrainerFragment : Fragment() {
         
         lifecycleScope.launch {
             try {
+                updateUIForState(TrainingState.PLAYING)
                 audioManager.playSequence(currentSequence, settings)
                 delay(500)
                 storeViewModel.dispatch(AppAction.UpdateUserInput(""))
@@ -151,6 +155,14 @@ class TrainerFragment : Fragment() {
         userInput += char
         storeViewModel.dispatch(AppAction.UpdateUserInput(userInput))
         updateInputDisplay()
+        
+        // Auto-submit when user input matches the expected sequence length
+        if (userInput.length >= currentSequence.length) {
+            lifecycleScope.launch {
+                delay(500) // Small delay for user to see the typed character
+                submitAnswer()
+            }
+        }
     }
     
     private fun clearInput() {
@@ -168,9 +180,10 @@ class TrainerFragment : Fragment() {
         val responseTime = System.currentTimeMillis() - startTime
         val isCorrect = userInput.uppercase() == currentSequence.uppercase()
         
-        currentSequence.toCharArray().forEach { char ->
-            val userChar = if (userInput.length > currentSequence.indexOf(char)) {
-                userInput[currentSequence.indexOf(char)]
+        // Record progress for each character
+        currentSequence.forEachIndexed { index, char ->
+            val userChar = if (userInput.length > index) {
+                userInput[index]
             } else null
             
             val charCorrect = userChar?.uppercaseChar() == char.uppercaseChar()
@@ -191,11 +204,8 @@ class TrainerFragment : Fragment() {
         
         lifecycleScope.launch {
             delay(2000)
-            if (isCorrect) {
-                startTraining()
-            } else {
-                updateUIForState(TrainingState.READY)
-            }
+            // Always start a new training session after answering
+            startTraining()
         }
     }
     
@@ -212,18 +222,25 @@ class TrainerFragment : Fragment() {
     private fun updateUIForState(state: TrainingState) {
         when (state) {
             TrainingState.READY -> {
-                binding.sequenceDisplay.text = "Ready to train!\nPress START to begin."
+                binding.sequenceDisplay.text = "🎯 Ready to train!\n\nPress START to begin your Morse code practice session."
                 binding.buttonStart.isEnabled = true
+                binding.buttonStart.visibility = View.VISIBLE
                 binding.buttonStop.isEnabled = false
+                binding.buttonStop.visibility = View.GONE
                 binding.buttonReplay.isEnabled = false
+                binding.buttonReplay.visibility = View.GONE
                 binding.morseKeyboard.alpha = 0.5f
                 setKeyboardEnabled(false)
+                userInput = ""
             }
             TrainingState.PLAYING -> {
                 binding.sequenceDisplay.text = "🎵 Listen to the sequence..."
                 binding.buttonStart.isEnabled = false
+                binding.buttonStart.visibility = View.GONE
                 binding.buttonStop.isEnabled = true
+                binding.buttonStop.visibility = View.VISIBLE
                 binding.buttonReplay.isEnabled = false
+                binding.buttonReplay.visibility = View.GONE
                 binding.morseKeyboard.alpha = 0.5f
                 setKeyboardEnabled(false)
                 startSequenceAnimation()
@@ -231,24 +248,33 @@ class TrainerFragment : Fragment() {
             TrainingState.WAITING -> {
                 binding.sequenceDisplay.text = "Type what you heard:\n$userInput"
                 binding.buttonStart.isEnabled = false
+                binding.buttonStart.visibility = View.GONE
                 binding.buttonStop.isEnabled = true
+                binding.buttonStop.visibility = View.VISIBLE
                 binding.buttonReplay.isEnabled = true
+                binding.buttonReplay.visibility = View.VISIBLE
                 binding.morseKeyboard.alpha = 1.0f
                 setKeyboardEnabled(true)
                 animateToInputMode()
             }
             TrainingState.FINISHED -> {
                 binding.buttonStart.isEnabled = true
+                binding.buttonStart.visibility = View.VISIBLE
                 binding.buttonStop.isEnabled = false
+                binding.buttonStop.visibility = View.GONE
                 binding.buttonReplay.isEnabled = true
+                binding.buttonReplay.visibility = View.VISIBLE
                 binding.morseKeyboard.alpha = 0.5f
                 setKeyboardEnabled(false)
             }
             TrainingState.PAUSED -> {
                 binding.sequenceDisplay.text = "Training paused"
                 binding.buttonStart.isEnabled = true
+                binding.buttonStart.visibility = View.VISIBLE
                 binding.buttonStop.isEnabled = false
+                binding.buttonStop.visibility = View.GONE
                 binding.buttonReplay.isEnabled = true
+                binding.buttonReplay.visibility = View.VISIBLE
             }
         }
     }
@@ -370,6 +396,7 @@ class TrainerFragment : Fragment() {
         val levelChars = progressTracker.getCharactersForLevel(level)
         
         binding.morseKeyboard.removeAllViews()
+        binding.morseKeyboard.columnCount = 5
         
         levelChars.forEach { char ->
             val button = android.widget.Button(requireContext()).apply {
@@ -378,10 +405,11 @@ class TrainerFragment : Fragment() {
                     width = 0
                     height = resources.getDimensionPixelSize(R.dimen.morse_key_size)
                     columnSpec = android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED, 1f)
-                    setMargins(8, 8, 8, 8)
+                    setMargins(4, 4, 4, 4)
                 }
                 setBackgroundResource(R.drawable.morse_key_background)
                 setOnClickListener { onCharacterSelected(char) }
+                textSize = 18f
             }
             binding.morseKeyboard.addView(button)
         }
@@ -390,31 +418,20 @@ class TrainerFragment : Fragment() {
     }
     
     private fun addControlButtons() {
-        val submitButton = android.widget.Button(requireContext()).apply {
-            text = "SUBMIT"
-            layoutParams = android.widget.GridLayout.LayoutParams().apply {
-                width = 0
-                height = resources.getDimensionPixelSize(R.dimen.morse_key_size)
-                columnSpec = android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED, 2f)
-                setMargins(8, 8, 8, 8)
-            }
-            setBackgroundResource(R.drawable.morse_key_background)
-            setOnClickListener { submitAnswer() }
-        }
-        binding.morseKeyboard.addView(submitButton)
-        
         val clearButton = android.widget.Button(requireContext()).apply {
             text = "CLEAR"
             layoutParams = android.widget.GridLayout.LayoutParams().apply {
                 width = 0
                 height = resources.getDimensionPixelSize(R.dimen.morse_key_size)
-                columnSpec = android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED, 2f)
-                setMargins(8, 8, 8, 8)
+                columnSpec = android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED, 5f) // Full width now
+                setMargins(4, 4, 4, 4)
             }
             setBackgroundResource(R.drawable.morse_key_background)
             setOnClickListener { clearInput() }
+            textSize = 16f
         }
         binding.morseKeyboard.addView(clearButton)
+        // DONE button removed - auto-submission is now handled when typing
     }
     
     private fun showMessage(message: String) {

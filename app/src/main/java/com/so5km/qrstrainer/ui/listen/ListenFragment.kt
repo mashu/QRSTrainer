@@ -65,6 +65,7 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
         // Setup control buttons
         binding.listenControls.apply {
             onStartClick = { startListening() }
+            onStopClick = { stopListening() }
             onRevealClick = { revealSequence() }
             onNextClick = { nextSequence() }
             onReplayClick = { replaySequence() }
@@ -87,6 +88,7 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
         
         // Initial state
         updateUIForState(ListeningState.READY)
+        binding.listenControls.updateState(ListeningState.READY, false)
         updateProgress()
     }
     
@@ -121,6 +123,7 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
         
         // Update UI
         binding.textSequence.text = "🎵 Listen to the sequence..."
+        updateUIForState(ListeningState.PLAYING)
         
         // Play the sequence
         lifecycleScope.launch {
@@ -134,6 +137,12 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
                 binding.textSequence.text = "Audio error. Try again."
             }
         }
+    }
+    
+    private fun stopListening() {
+        audioManager.stopPlayback()
+        updateUIForState(ListeningState.READY)
+        binding.textSequence.text = "Ready to listen..."
     }
     
     private fun revealSequence() {

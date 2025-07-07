@@ -49,7 +49,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         setupToolbar()
         setupNavigationDrawer()
         setupBackPressedHandler()
-        setupFAB()
+        // Remove or hide the FAB completely
+        binding.fabQuickPlay.hide()
         observeAppState()
         
         if (savedInstanceState == null) {
@@ -112,68 +113,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         })
     }
     
-    private fun setupFAB() {
-        binding.fabQuickPlay.setOnClickListener {
-            // Quick play functionality - start a quick training session
-            quickPlay()
-        }
-    }
-    
     private fun observeAppState() {
-        lifecycleScope.launch {
-            storeViewModel.audioState.collect { audioState ->
-                updateFABForAudioState(audioState.isPlaying)
-            }
-        }
-        
-        // Now actually using trainingState to update navigation header
         lifecycleScope.launch {
             storeViewModel.trainingState.collect { trainingState ->
                 updateNavigationHeaderWithTrainingState(trainingState.state)
-                
-                // Update FAB based on training state
-                when (trainingState.state) {
-                    TrainingState.PLAYING -> {
-                        binding.fabQuickPlay.hide()
-                    }
-                    TrainingState.READY, TrainingState.FINISHED -> {
-                        binding.fabQuickPlay.show()
-                    }
-                    else -> { /* Keep current state */ }
-                }
-            }
-        }
-    }
-    
-    private fun updateFABForAudioState(isPlaying: Boolean) {
-        binding.fabQuickPlay.apply {
-            if (isPlaying) {
-                setImageResource(R.drawable.ic_stop)
-                contentDescription = "Stop Audio"
-            } else {
-                setImageResource(R.drawable.ic_play_arrow)
-                contentDescription = "Quick Play"
-            }
-        }
-    }
-    
-    private fun quickPlay() {
-        val audioState = storeViewModel.audioState.value
-        
-        if (audioState.isPlaying) {
-            // Stop current audio
-            audioManager.stopPlayback()
-            showMessage("Audio stopped")
-        } else {
-            // Start quick training
-            val settings = storeViewModel.settings.value
-            lifecycleScope.launch {
-                try {
-                    audioManager.playSequence("HELLO", settings)
-                    showMessage("Playing quick test sequence")
-                } catch (e: Exception) {
-                    showMessage("Audio error: ${e.message}")
-                }
             }
         }
     }

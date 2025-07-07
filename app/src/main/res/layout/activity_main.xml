@@ -36,6 +36,7 @@
             android:background="@color/background_light"
             android:elevation="2dp" />
 
+        <!-- Remove or hide the FAB -->
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/fab_quick_play"
             android:layout_width="wrap_content"
@@ -47,7 +48,8 @@
             app:backgroundTint="@color/accent"
             app:tint="@android:color/white"
             app:elevation="6dp"
-            app:fabSize="normal" />
+            app:fabSize="normal"
+            android:visibility="gone" />
 
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 

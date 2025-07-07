@@ -16,6 +16,7 @@ class ListenControls @JvmOverloads constructor(
     private val binding: ComponentListenControlsBinding
     
     var onStartClick: (() -> Unit)? = null
+    var onStopClick: (() -> Unit)? = null
     var onRevealClick: (() -> Unit)? = null
     var onNextClick: (() -> Unit)? = null
     var onReplayClick: (() -> Unit)? = null
@@ -29,6 +30,7 @@ class ListenControls @JvmOverloads constructor(
     
     private fun setupListeners() {
         binding.buttonStart.setOnClickListener { onStartClick?.invoke() }
+        binding.buttonStop.setOnClickListener { onStopClick?.invoke() }
         binding.buttonReveal.setOnClickListener { onRevealClick?.invoke() }
         binding.buttonNext.setOnClickListener { onNextClick?.invoke() }
         binding.buttonReplay.setOnClickListener { onReplayClick?.invoke() }
@@ -38,30 +40,38 @@ class ListenControls @JvmOverloads constructor(
         when (state) {
             ListeningState.READY -> {
                 binding.buttonStart.visibility = VISIBLE
+                binding.buttonStop.visibility = GONE
                 binding.buttonReveal.visibility = GONE
                 binding.buttonNext.visibility = GONE
                 binding.buttonReplay.visibility = GONE
             }
             ListeningState.PLAYING -> {
                 binding.buttonStart.visibility = GONE
+                binding.buttonStop.visibility = VISIBLE
                 binding.buttonReveal.visibility = GONE
                 binding.buttonNext.visibility = GONE
                 binding.buttonReplay.visibility = GONE
             }
             ListeningState.WAITING -> {
                 binding.buttonStart.visibility = GONE
+                binding.buttonStop.visibility = GONE
                 binding.buttonReveal.visibility = if (!isSequenceRevealed) VISIBLE else GONE
                 binding.buttonNext.visibility = if (isSequenceRevealed) VISIBLE else GONE
                 binding.buttonReplay.visibility = VISIBLE
             }
             ListeningState.REVEALED -> {
                 binding.buttonStart.visibility = GONE
+                binding.buttonStop.visibility = GONE
                 binding.buttonReveal.visibility = GONE
                 binding.buttonNext.visibility = VISIBLE
                 binding.buttonReplay.visibility = VISIBLE
             }
             ListeningState.PAUSED -> {
-                // Handle pause state if needed
+                binding.buttonStart.visibility = GONE
+                binding.buttonStop.visibility = GONE
+                binding.buttonReveal.visibility = GONE
+                binding.buttonNext.visibility = GONE
+                binding.buttonReplay.visibility = GONE
             }
         }
     }

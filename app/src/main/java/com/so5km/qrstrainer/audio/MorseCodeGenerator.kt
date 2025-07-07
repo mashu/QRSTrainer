@@ -11,7 +11,7 @@ class MorseCodeGenerator(context: Context) {
     
     private val audioManager = AudioManager(context)
     
-    fun playSequence(sequence: String, settings: TrainingSettings) {
+    suspend fun playSequence(sequence: String, settings: TrainingSettings) {
         audioManager.playSequence(sequence, settings)
     }
     

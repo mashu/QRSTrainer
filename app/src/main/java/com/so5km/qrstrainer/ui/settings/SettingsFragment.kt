@@ -225,18 +225,26 @@ class SettingsFragment : Fragment() {
         val settings = storeViewModel.settings.value
         val testSequence = "TEST"
         
+        // Check if already playing - if so, stop it
+        if (binding.buttonTestAudio.text == "Stop Test") {
+            audioManager.stopPlayback()
+            binding.buttonTestAudio.apply {
+                isEnabled = true
+                text = "Test Audio"
+            }
+            return
+        }
+        
         binding.buttonTestAudio.apply {
-            isEnabled = false
-            text = "Playing..."
+            isEnabled = true
+            text = "Stop Test"
         }
         
         lifecycleScope.launch {
             try {
                 audioManager.playSequence(testSequence, settings)
                 
-                // Re-enable button after test
-                kotlinx.coroutines.delay(testSequence.length * 1000L + 500) // Rough estimate
-                
+                // Re-enable button after test completes
                 binding.buttonTestAudio.apply {
                     isEnabled = true
                     text = "Test Audio"

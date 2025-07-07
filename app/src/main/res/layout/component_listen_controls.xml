@@ -12,7 +12,18 @@
         android:layout_height="wrap_content"
         android:text="Start"
         android:textSize="18sp"
-        app:layout_constraintEnd_toStartOf="@+id/button_reveal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/button_stop"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Stop"
+        android:textSize="18sp"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -24,7 +35,7 @@
         android:textSize="18sp"
         android:visibility="gone"
         app:layout_constraintEnd_toStartOf="@+id/button_next"
-        app:layout_constraintStart_toEndOf="@+id/button_start"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
