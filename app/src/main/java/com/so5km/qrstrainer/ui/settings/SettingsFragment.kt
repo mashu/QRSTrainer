@@ -14,6 +14,7 @@ import com.so5km.qrstrainer.state.AppAction
 import com.so5km.qrstrainer.data.TrainingSettings
 import com.so5km.qrstrainer.audio.AudioManager
 import kotlinx.coroutines.launch
+import com.google.android.material.textfield.TextInputEditText
 
 class SettingsFragment : Fragment() {
     
@@ -37,7 +38,12 @@ class SettingsFragment : Fragment() {
         
         initializeComponents()
         setupCollapsibleSections()
-        setupSliders()
+        setupAudioSliders()
+        setupGroupSliders()
+        setupTimingSliders()
+        setupLevelSliders()
+        setupCharacterSwitches()
+        setupNoiseControls()
         setupButtons()
         observeSettings()
         setupAnimations()
@@ -54,9 +60,24 @@ class SettingsFragment : Fragment() {
             toggleSection(binding.layoutAudioSettings)
         }
         
-        // Training Settings Section
-        binding.cardTrainingSettings.setOnClickListener {
-            toggleSection(binding.layoutTrainingSettings)
+        // Group Settings Section
+        binding.cardGroupSettings.setOnClickListener {
+            toggleSection(binding.layoutGroupSettings)
+        }
+        
+        // Timing Settings Section
+        binding.cardTimingSettings.setOnClickListener {
+            toggleSection(binding.layoutTimingSettings)
+        }
+        
+        // Level Settings Section
+        binding.cardLevelSettings.setOnClickListener {
+            toggleSection(binding.layoutLevelSettings)
+        }
+        
+        // Character Settings Section
+        binding.cardCharacterSettings.setOnClickListener {
+            toggleSection(binding.layoutCharacterSettings)
         }
         
         // Noise Settings Section
@@ -96,12 +117,12 @@ class SettingsFragment : Fragment() {
         }
     }
     
-    private fun setupSliders() {
+    private fun setupAudioSliders() {
         // Character Speed (WPM) Slider
         binding.sliderWpm.addOnChangeListener { _, value, fromUser ->
             if (fromUser) {
                 val wpm = value.toInt()
-                binding.textWpmValue.text = "$wpm WPM"
+                binding.textWpmValue.text = getString(R.string.value_wpm, wpm)
                 updateSettings { it.copy(wpm = wpm) }
                 
                 // Ensure effective WPM doesn't exceed character WPM
@@ -115,7 +136,7 @@ class SettingsFragment : Fragment() {
         binding.sliderEffectiveWpm.addOnChangeListener { _, value, fromUser ->
             if (fromUser) {
                 val effectiveWpm = value.toInt()
-                binding.textEffectiveWpmValue.text = "$effectiveWpm WPM"
+                binding.textEffectiveWpmValue.text = getString(R.string.value_wpm, effectiveWpm)
                 updateSettings { it.copy(effectiveWpm = effectiveWpm) }
                 
                 // Ensure effective WPM doesn't exceed character WPM
@@ -129,7 +150,7 @@ class SettingsFragment : Fragment() {
         binding.sliderFrequency.addOnChangeListener { _, value, fromUser ->
             if (fromUser) {
                 val frequency = value.toInt()
-                binding.textFrequencyValue.text = "$frequency Hz"
+                binding.textFrequencyValue.text = getString(R.string.value_hz, frequency)
                 updateSettings { it.copy(frequency = frequency) }
             }
         }
@@ -138,20 +159,157 @@ class SettingsFragment : Fragment() {
         binding.sliderVolume.addOnChangeListener { _, value, fromUser ->
             if (fromUser) {
                 val volume = value / 100f
-                binding.textVolumeValue.text = "${value.toInt()}%"
+                binding.textVolumeValue.text = getString(R.string.value_percent, value.toInt())
                 updateSettings { it.copy(volume = volume) }
             }
         }
         
-        // Sequence Length Slider
-        binding.sliderSequenceLength.addOnChangeListener { _, value, fromUser ->
+        // Rise Time Slider
+        binding.sliderRiseTime.addOnChangeListener { _, value, fromUser ->
             if (fromUser) {
-                val length = value.toInt()
-                binding.textSequenceLengthValue.text = "$length chars"
-                updateSettings { it.copy(sequenceLength = length) }
+                binding.textRiseTimeValue.text = getString(R.string.value_ms, value.toInt())
+                updateSettings { it.copy(riseTimeMs = value.toDouble()) }
+            }
+        }
+    }
+    
+    private fun setupGroupSliders() {
+        // Min Group Size
+        binding.sliderMinGroupSize.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                val minSize = value.toInt()
+                binding.textMinGroupSizeValue.text = getString(R.string.value_chars, minSize)
+                updateSettings { it.copy(minGroupSize = minSize) }
+                
+                // Ensure max group size is at least min size
+                if (binding.sliderMaxGroupSize.value < value) {
+                    binding.sliderMaxGroupSize.value = value
+                }
             }
         }
         
+        // Max Group Size
+        binding.sliderMaxGroupSize.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                val maxSize = value.toInt()
+                binding.textMaxGroupSizeValue.text = getString(R.string.value_chars, maxSize)
+                updateSettings { it.copy(maxGroupSize = maxSize) }
+                
+                // Ensure min group size doesn't exceed max size
+                if (binding.sliderMinGroupSize.value > value) {
+                    binding.sliderMinGroupSize.value = value
+                }
+            }
+        }
+        
+        // Sequence Length (groups per sequence)
+        binding.sliderSequenceLength.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                val length = value.toInt()
+                binding.textSequenceLengthValue.text = "$length groups"
+                updateSettings { it.copy(sequenceLength = length) }
+            }
+        }
+    }
+    
+    private fun setupTimingSliders() {
+        // Number of Repeats
+        binding.sliderNumberOfRepeats.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                val repeats = value.toInt()
+                binding.textNumberOfRepeatsValue.text = getString(R.string.value_repeats, repeats)
+                updateSettings { it.copy(numberOfRepeats = repeats) }
+            }
+        }
+        
+        // Sequence Delay
+        binding.sliderSequenceDelay.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                val delaySeconds = value / 1000f
+                binding.textSequenceDelayValue.text = getString(R.string.value_seconds, delaySeconds)
+                updateSettings { it.copy(sequenceDelayMs = value.toLong()) }
+            }
+        }
+        
+        // Repeat Delay
+        binding.sliderRepeatDelay.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                val delaySeconds = value / 1000f
+                binding.textRepeatDelayValue.text = getString(R.string.value_seconds, delaySeconds)
+                updateSettings { it.copy(repeatDelayMs = value.toLong()) }
+            }
+        }
+        
+        // Group Delay
+        binding.sliderGroupDelay.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                val delaySeconds = value / 1000f
+                binding.textGroupDelayValue.text = getString(R.string.value_seconds, delaySeconds)
+                updateSettings { it.copy(groupDelayMs = value.toLong()) }
+            }
+        }
+    }
+    
+    private fun setupLevelSliders() {
+        // Current Level
+        binding.sliderCurrentLevel.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                val level = value.toInt()
+                binding.textCurrentLevelValue.text = getString(R.string.value_level, level)
+                updateSettings { it.copy(currentLevel = level) }
+            }
+        }
+        
+        // Lock Level Switch
+        binding.switchLockLevel.setOnCheckedChangeListener { _, isChecked ->
+            updateSettings { it.copy(lockLevel = isChecked) }
+        }
+        
+        // Correct Answers to Level Up
+        binding.sliderCorrectToLevelUp.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                val count = value.toInt()
+                binding.textCorrectToLevelUpValue.text = count.toString()
+                updateSettings { it.copy(correctAnswersToLevelUp = count) }
+            }
+        }
+        
+        // Incorrect Answers to Drop Level
+        binding.sliderIncorrectToDrop.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                val count = value.toInt()
+                binding.textIncorrectToDropValue.text = count.toString()
+                updateSettings { it.copy(incorrectAnswersToDropLevel = count) }
+            }
+        }
+    }
+    
+    private fun setupCharacterSwitches() {
+        // Prosigns Switch
+        binding.switchUseProsigns.setOnCheckedChangeListener { _, isChecked ->
+            updateSettings { it.copy(useProsigns = isChecked) }
+        }
+        
+        // Numbers Switch
+        binding.switchUseNumbers.setOnCheckedChangeListener { _, isChecked ->
+            updateSettings { it.copy(useNumbers = isChecked) }
+        }
+        
+        // Punctuation Switch
+        binding.switchUsePunctuation.setOnCheckedChangeListener { _, isChecked ->
+            updateSettings { it.copy(usePunctuation = isChecked) }
+        }
+        
+        // Custom Characters
+        binding.editCustomCharacters.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                val customChars = binding.editCustomCharacters.text?.toString() ?: ""
+                updateSettings { it.copy(customCharacterSet = customChars.uppercase()) }
+            }
+        }
+    }
+    
+    private fun setupNoiseControls() {
         // Noise Settings
         binding.switchNoise.setOnCheckedChangeListener { _, isChecked ->
             binding.layoutNoiseControls.visibility = if (isChecked) View.VISIBLE else View.GONE
@@ -161,8 +319,16 @@ class SettingsFragment : Fragment() {
         binding.sliderNoiseVolume.addOnChangeListener { _, value, fromUser ->
             if (fromUser) {
                 val noiseVolume = value / 100f
-                binding.textNoiseVolumeValue.text = "${value.toInt()}%"
+                binding.textNoiseVolumeValue.text = getString(R.string.value_percent, value.toInt())
                 updateSettings { it.copy(noiseVolume = noiseVolume) }
+            }
+        }
+        
+        binding.sliderNoiseBandwidth.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                val bandwidth = value.toInt()
+                binding.textNoiseBandwidthValue.text = getString(R.string.value_hz, bandwidth)
+                updateSettings { it.copy(noiseBandwidthHz = bandwidth.toFloat()) }
             }
         }
     }
@@ -193,15 +359,49 @@ class SettingsFragment : Fragment() {
             sliderEffectiveWpm.value = settings.effectiveWpm.toFloat()
             sliderFrequency.value = settings.frequency.toFloat()
             sliderVolume.value = (settings.volume * 100)
+            sliderRiseTime.value = settings.riseTimeMs.toFloat()
             
-            textWpmValue.text = "${settings.wpm} WPM"
-            textEffectiveWpmValue.text = "${settings.effectiveWpm} WPM"
-            textFrequencyValue.text = "${settings.frequency} Hz"
-            textVolumeValue.text = "${(settings.volume * 100).toInt()}%"
+            textWpmValue.text = getString(R.string.value_wpm, settings.wpm)
+            textEffectiveWpmValue.text = getString(R.string.value_wpm, settings.effectiveWpm)
+            textFrequencyValue.text = getString(R.string.value_hz, settings.frequency)
+            textVolumeValue.text = getString(R.string.value_percent, (settings.volume * 100).toInt())
+            textRiseTimeValue.text = getString(R.string.value_ms, settings.riseTimeMs.toInt())
             
-            // Training settings
+            // Group settings
+            sliderMinGroupSize.value = settings.minGroupSize.toFloat()
+            sliderMaxGroupSize.value = settings.maxGroupSize.toFloat()
             sliderSequenceLength.value = settings.sequenceLength.toFloat()
-            textSequenceLengthValue.text = "${settings.sequenceLength} chars"
+            
+            textMinGroupSizeValue.text = getString(R.string.value_chars, settings.minGroupSize)
+            textMaxGroupSizeValue.text = getString(R.string.value_chars, settings.maxGroupSize)
+            textSequenceLengthValue.text = "${settings.sequenceLength} groups"
+            
+            // Timing settings
+            sliderNumberOfRepeats.value = settings.numberOfRepeats.toFloat()
+            sliderSequenceDelay.value = settings.sequenceDelayMs.toFloat()
+            sliderRepeatDelay.value = settings.repeatDelayMs.toFloat()
+            sliderGroupDelay.value = settings.groupDelayMs.toFloat()
+            
+            textNumberOfRepeatsValue.text = getString(R.string.value_repeats, settings.numberOfRepeats)
+            textSequenceDelayValue.text = getString(R.string.value_seconds, settings.sequenceDelayMs / 1000f)
+            textRepeatDelayValue.text = getString(R.string.value_seconds, settings.repeatDelayMs / 1000f)
+            textGroupDelayValue.text = getString(R.string.value_seconds, settings.groupDelayMs / 1000f)
+            
+            // Level settings
+            sliderCurrentLevel.value = settings.currentLevel.toFloat()
+            switchLockLevel.isChecked = settings.lockLevel
+            sliderCorrectToLevelUp.value = settings.correctAnswersToLevelUp.toFloat()
+            sliderIncorrectToDrop.value = settings.incorrectAnswersToDropLevel.toFloat()
+            
+            textCurrentLevelValue.text = getString(R.string.value_level, settings.currentLevel)
+            textCorrectToLevelUpValue.text = settings.correctAnswersToLevelUp.toString()
+            textIncorrectToDropValue.text = settings.incorrectAnswersToDropLevel.toString()
+            
+            // Character settings
+            switchUseProsigns.isChecked = settings.useProsigns
+            switchUseNumbers.isChecked = settings.useNumbers
+            switchUsePunctuation.isChecked = settings.usePunctuation
+            editCustomCharacters.setText(settings.customCharacterSet)
             
             // Noise settings
             switchNoise.isChecked = settings.noiseEnabled
@@ -209,7 +409,9 @@ class SettingsFragment : Fragment() {
             
             if (settings.noiseEnabled) {
                 sliderNoiseVolume.value = (settings.noiseVolume * 100)
-                textNoiseVolumeValue.text = "${(settings.noiseVolume * 100).toInt()}%"
+                sliderNoiseBandwidth.value = settings.noiseBandwidthHz
+                textNoiseVolumeValue.text = getString(R.string.value_percent, (settings.noiseVolume * 100).toInt())
+                textNoiseBandwidthValue.text = getString(R.string.value_hz, settings.noiseBandwidthHz.toInt())
             }
         }
     }
@@ -266,7 +468,10 @@ class SettingsFragment : Fragment() {
         // Staggered entrance animations
         val cards = listOf(
             binding.cardAudioSettings,
-            binding.cardTrainingSettings,
+            binding.cardGroupSettings,
+            binding.cardTimingSettings,
+            binding.cardLevelSettings,
+            binding.cardCharacterSettings,
             binding.cardNoiseSettings
         )
         

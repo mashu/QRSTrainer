@@ -71,6 +71,96 @@
     <string name="settings_noise">Noise Settings</string>
     <string name="settings_noise_enabled">Add Background Noise</string>
     
+    <!-- Advanced Settings Sections -->
+    <string name="settings_group_settings">Group Settings</string>
+    <string name="settings_timing_repeats">Timing &amp; Repeats</string>
+    <string name="settings_level_management">Level Management</string>
+    <string name="settings_training_dynamics">Training Dynamics</string>
+    <string name="settings_character_selection">Character Selection</string>
+    <string name="settings_advanced_noise">Advanced Noise</string>
+    <string name="settings_advanced_audio">Advanced Audio</string>
+    <string name="settings_progress_tracking">Progress Tracking</string>
+    
+    <!-- Group Settings -->
+    <string name="settings_min_group_size">Min Group Size</string>
+    <string name="settings_max_group_size">Max Group Size</string>
+    <string name="settings_groups_per_sequence">Groups per Sequence</string>
+    
+    <!-- Timing & Repeats -->
+    <string name="settings_sequence_delay">Sequence Delay</string>
+    <string name="settings_repeat_delay">Repeat Delay</string>
+    <string name="settings_group_delay">Group Delay</string>
+    <string name="settings_number_of_repeats">Number of Repeats</string>
+    
+    <!-- Level Management -->
+    <string name="settings_current_level">Current Level</string>
+    <string name="settings_max_level">Max Level</string>
+    <string name="settings_lock_level">Lock Level</string>
+    <string name="settings_lock_level_desc">Prevent automatic level changes</string>
+    <string name="settings_correct_to_level_up">Correct to Level Up</string>
+    <string name="settings_incorrect_to_drop">Incorrect to Drop Level</string>
+    
+    <!-- Training Dynamics -->
+    <string name="settings_adaptive_speed">Adaptive Speed</string>
+    <string name="settings_adaptive_speed_desc">Auto-adjust WPM based on performance</string>
+    <string name="settings_adaptive_group_size">Adaptive Group Size</string>
+    <string name="settings_adaptive_group_size_desc">Auto-adjust group size</string>
+    <string name="settings_require_perfect_copy">Require Perfect Copy</string>
+    <string name="settings_require_perfect_copy_desc">Must get every character right</string>
+    <string name="settings_allow_partial_credit">Allow Partial Credit</string>
+    <string name="settings_allow_partial_credit_desc">Partial points for partially correct</string>
+    <string name="settings_dynamic_spacing">Dynamic Spacing</string>
+    <string name="settings_dynamic_spacing_desc">Adjust spacing based on performance</string>
+    
+    <!-- Character Selection -->
+    <string name="settings_use_prosigns">Use Prosigns</string>
+    <string name="settings_use_prosigns_desc">Include prosigns (AR, SK, etc.)</string>
+    <string name="settings_use_numbers">Use Numbers</string>
+    <string name="settings_use_numbers_desc">Include 0-9 digits</string>
+    <string name="settings_use_punctuation">Use Punctuation</string>
+    <string name="settings_use_punctuation_desc">Include punctuation marks</string>
+    <string name="settings_custom_character_set">Custom Character Set</string>
+    <string name="settings_custom_character_set_hint">Enter custom characters to practice</string>
+    
+    <!-- Advanced Noise Settings -->
+    <string name="settings_noise_volume">Noise Volume</string>
+    <string name="settings_noise_bandwidth">Noise Bandwidth</string>
+    <string name="settings_qrm_enabled">QRM Interference</string>
+    <string name="settings_qrm_enabled_desc">Simulate radio interference</string>
+    <string name="settings_qrm_volume">QRM Volume</string>
+    <string name="settings_qsb_enabled">QSB Fading</string>
+    <string name="settings_qsb_enabled_desc">Simulate signal fading</string>
+    <string name="settings_qsb_rate">QSB Rate</string>
+    
+    <!-- Advanced Audio Settings -->
+    <string name="settings_effective_wpm">Effective WPM (Farnsworth)</string>
+    <string name="settings_rise_time">Rise Time</string>
+    <string name="settings_clicks_enabled">Key Clicks</string>
+    <string name="settings_clicks_enabled_desc">Add clicking sound</string>
+    <string name="settings_click_volume">Click Volume</string>
+    <string name="settings_bandwidth">Signal Bandwidth</string>
+    <string name="settings_shaping_enabled">Waveform Shaping</string>
+    <string name="settings_shaping_enabled_desc">Apply signal shaping</string>
+    
+    <!-- Progress Tracking -->
+    <string name="settings_enable_statistics">Enable Statistics</string>
+    <string name="settings_enable_statistics_desc">Track detailed performance data</string>
+    <string name="settings_save_progress">Save Progress</string>
+    <string name="settings_save_progress_desc">Automatically save your progress</string>
+    <string name="settings_session_time">Target Session Time</string>
+    <string name="settings_break_reminder">Break Reminder</string>
+    
+    <!-- Value Display Formats -->
+    <string name="value_chars">%1$d chars</string>
+    <string name="value_ms">%1$d ms</string>
+    <string name="value_seconds">%1$.1f s</string>
+    <string name="value_hz">%1$d Hz</string>
+    <string name="value_percent">%1$d%%</string>
+    <string name="value_wpm">%1$d WPM</string>
+    <string name="value_level">%1$d</string>
+    <string name="value_minutes">%1$d min</string>
+    <string name="value_repeats">%1$d times</string>
+    
     <!-- About Screen -->
     <string name="about_title">About QRS Trainer</string>
     <string name="about_version">Version %1$s</string>

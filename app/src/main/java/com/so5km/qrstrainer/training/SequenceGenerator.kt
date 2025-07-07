@@ -1,6 +1,7 @@
 package com.so5km.qrstrainer.training
 
 import com.so5km.qrstrainer.data.ProgressTracker
+import com.so5km.qrstrainer.data.TrainingSettings
 import com.so5km.qrstrainer.data.MorseCode
 import kotlin.random.Random
 
@@ -10,7 +11,66 @@ import kotlin.random.Random
 class SequenceGenerator(private val progressTracker: ProgressTracker) {
     
     /**
-     * Generate a training sequence for the given length and level
+     * Generate a training sequence with groups based on settings
+     * @param settings Training settings including group sizes and sequence length
+     * @return A string with groups separated by spaces
+     */
+    fun generateGroupSequence(settings: TrainingSettings): String {
+        val level = settings.currentLevel
+        val availableChars = getAvailableCharacters(settings)
+        val weightsBasedOnProgress = getCharacterWeights(availableChars)
+        
+        val groups = mutableListOf<String>()
+        
+        // Generate the specified number of groups
+        repeat(settings.sequenceLength) {
+            val groupSize = if (settings.minGroupSize == settings.maxGroupSize) {
+                settings.minGroupSize
+            } else {
+                Random.nextInt(settings.minGroupSize, settings.maxGroupSize + 1)
+            }
+            
+            val group = (1..groupSize).map {
+                selectWeightedRandomCharacter(availableChars, weightsBasedOnProgress)
+            }.joinToString("")
+            
+            groups.add(group)
+        }
+        
+        return groups.joinToString(" ")
+    }
+    
+    /**
+     * Get available characters based on settings
+     */
+    private fun getAvailableCharacters(settings: TrainingSettings): List<Char> {
+        val baseChars = progressTracker.getCharactersForLevel(settings.currentLevel).toMutableList()
+        
+        // Add numbers if enabled
+        if (settings.useNumbers) {
+            baseChars.addAll('0'..'9')
+        }
+        
+        // Add punctuation if enabled
+        if (settings.usePunctuation) {
+            baseChars.addAll(listOf('.', ',', '?', '/', '=', '+', '-'))
+        }
+        
+        // Add prosigns if enabled
+        if (settings.useProsigns) {
+            baseChars.addAll(listOf('<', '>', '@')) // Representing AR, SK, AS
+        }
+        
+        // Add custom characters
+        if (settings.customCharacterSet.isNotEmpty()) {
+            baseChars.addAll(settings.customCharacterSet.toList())
+        }
+        
+        return baseChars.distinct()
+    }
+    
+    /**
+     * Generate a training sequence for the given length and level (legacy method)
      */
     fun generateSequence(length: Int, level: Int): String {
         val availableChars = progressTracker.getCharactersForLevel(level)
@@ -38,9 +98,8 @@ class SequenceGenerator(private val progressTracker: ProgressTracker) {
     /**
      * Generate a sequence with more difficult characters based on user performance
      */
-    fun generateAdaptiveSequence(length: Int): String {
-        val level = progressTracker.getCurrentLevel()
-        val availableChars = progressTracker.getCharactersForLevel(level)
+    fun generateAdaptiveSequence(settings: TrainingSettings): String {
+        val availableChars = getAvailableCharacters(settings)
         val stats = progressTracker.getAllCharacterStats()
         
         // Prefer characters with lower accuracy
@@ -50,18 +109,42 @@ class SequenceGenerator(private val progressTracker: ProgressTracker) {
         }
         
         val charsToUse = if (difficultChars.isEmpty()) availableChars else difficultChars
-        val weights = getCharacterWeights(charsToUse)
+        val weightsBasedOnProgress = getCharacterWeights(charsToUse)
         
-        return (1..length).map {
-            selectWeightedRandomCharacter(charsToUse, weights)
-        }.joinToString("")
+        val groups = mutableListOf<String>()
+        
+        // Generate adaptive groups
+        repeat(settings.sequenceLength) {
+            val groupSize = if (settings.adaptiveGroupSize) {
+                // Smaller groups for difficult characters
+                val avgDifficulty = charsToUse.mapNotNull { char ->
+                    stats[char]?.accuracy
+                }.average()
+                
+                when {
+                    avgDifficulty < 0.5 -> settings.minGroupSize
+                    avgDifficulty < 0.7 -> (settings.minGroupSize + settings.maxGroupSize) / 2
+                    else -> settings.maxGroupSize
+                }
+            } else {
+                Random.nextInt(settings.minGroupSize, settings.maxGroupSize + 1)
+            }
+            
+            val group = (1..groupSize).map {
+                selectWeightedRandomCharacter(charsToUse, weightsBasedOnProgress)
+            }.joinToString("")
+            
+            groups.add(group)
+        }
+        
+        return groups.joinToString(" ")
     }
     
     /**
      * Generate a sequence for review of previously learned characters
      */
-    fun generateReviewSequence(length: Int): String {
-        val currentLevel = progressTracker.getCurrentLevel()
+    fun generateReviewSequence(settings: TrainingSettings): String {
+        val currentLevel = settings.currentLevel
         val allLearnedChars = mutableListOf<Char>()
         
         // Include characters from all levels up to current
@@ -69,10 +152,27 @@ class SequenceGenerator(private val progressTracker: ProgressTracker) {
             allLearnedChars.addAll(progressTracker.getCharactersForLevel(level))
         }
         
-        val weights = getCharacterWeights(allLearnedChars)
-        return (1..length).map {
-            selectWeightedRandomCharacter(allLearnedChars, weights)
-        }.joinToString("")
+        // Add enabled character sets
+        if (settings.useNumbers) allLearnedChars.addAll('0'..'9')
+        if (settings.usePunctuation) allLearnedChars.addAll(listOf('.', ',', '?', '/', '=', '+', '-'))
+        if (settings.useProsigns) allLearnedChars.addAll(listOf('<', '>', '@'))
+        if (settings.customCharacterSet.isNotEmpty()) allLearnedChars.addAll(settings.customCharacterSet.toList())
+        
+        val distinctChars = allLearnedChars.distinct()
+        val weights = getCharacterWeights(distinctChars)
+        
+        val groups = mutableListOf<String>()
+        
+        repeat(settings.sequenceLength) {
+            val groupSize = Random.nextInt(settings.minGroupSize, settings.maxGroupSize + 1)
+            val group = (1..groupSize).map {
+                selectWeightedRandomCharacter(distinctChars, weights)
+            }.joinToString("")
+            
+            groups.add(group)
+        }
+        
+        return groups.joinToString(" ")
     }
     
     /**
@@ -121,29 +221,37 @@ class SequenceGenerator(private val progressTracker: ProgressTracker) {
     /**
      * Generate a sequence with specific pattern (e.g., alternating characters)
      */
-    fun generatePatternSequence(length: Int, pattern: SequencePattern): String {
-        val level = progressTracker.getCurrentLevel()
-        val availableChars = progressTracker.getCharactersForLevel(level)
+    fun generatePatternSequence(settings: TrainingSettings, pattern: SequencePattern): String {
+        val availableChars = getAvailableCharacters(settings)
         
         return when (pattern) {
-            SequencePattern.ALTERNATING -> generateAlternatingSequence(length, availableChars)
-            SequencePattern.SIMILAR_SOUNDING -> generateSimilarSoundingSequence(length)
-            SequencePattern.RANDOM -> generateSequence(length, level)
+            SequencePattern.ALTERNATING -> generateAlternatingSequence(settings, availableChars)
+            SequencePattern.SIMILAR_SOUNDING -> generateSimilarSoundingSequence(settings)
+            SequencePattern.RANDOM -> generateGroupSequence(settings)
         }
     }
     
-    private fun generateAlternatingSequence(length: Int, chars: List<Char>): String {
-        if (chars.size < 2) return generateSequence(length, progressTracker.getCurrentLevel())
+    private fun generateAlternatingSequence(settings: TrainingSettings, chars: List<Char>): String {
+        if (chars.size < 2) return generateGroupSequence(settings)
         
-        val char1 = chars[0]
-        val char2 = chars[1]
+        val char1 = chars.random()
+        val char2 = chars.filter { it != char1 }.random()
         
-        return (1..length).map { index ->
-            if (index % 2 == 1) char1 else char2
-        }.joinToString("")
+        val groups = mutableListOf<String>()
+        
+        repeat(settings.sequenceLength) { groupIndex ->
+            val groupSize = Random.nextInt(settings.minGroupSize, settings.maxGroupSize + 1)
+            val group = (1..groupSize).map { charIndex ->
+                if ((groupIndex + charIndex) % 2 == 0) char1 else char2
+            }.joinToString("")
+            
+            groups.add(group)
+        }
+        
+        return groups.joinToString(" ")
     }
     
-    private fun generateSimilarSoundingSequence(length: Int): String {
+    private fun generateSimilarSoundingSequence(settings: TrainingSettings): String {
         // Groups of similar-sounding morse patterns
         val similarGroups = listOf(
             listOf('E', 'I', 'S', 'H'), // Short sounds
@@ -155,9 +263,18 @@ class SequenceGenerator(private val progressTracker: ProgressTracker) {
         val selectedGroup = similarGroups.random()
         val weights = getCharacterWeights(selectedGroup)
         
-        return (1..length).map {
-            selectWeightedRandomCharacter(selectedGroup, weights)
-        }.joinToString("")
+        val groups = mutableListOf<String>()
+        
+        repeat(settings.sequenceLength) {
+            val groupSize = Random.nextInt(settings.minGroupSize, settings.maxGroupSize + 1)
+            val group = (1..groupSize).map {
+                selectWeightedRandomCharacter(selectedGroup, weights)
+            }.joinToString("")
+            
+            groups.add(group)
+        }
+        
+        return groups.joinToString(" ")
     }
     
     enum class SequencePattern {
