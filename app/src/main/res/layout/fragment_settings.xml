@@ -56,11 +56,11 @@
                     android:orientation="vertical"
                     android:visibility="gone">
 
-                    <!-- WPM Slider -->
+                    <!-- Character Speed (WPM) -->
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/settings_wpm"
+                        android:text="Character Speed (WPM)"
                         android:textSize="16sp"
                         android:textStyle="bold" />
 
@@ -81,6 +81,40 @@
 
                         <TextView
                             android:id="@+id/text_wpm_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:minWidth="60dp"
+                            android:text="20 WPM"
+                            android:textAlignment="center" />
+
+                    </LinearLayout>
+
+                    <!-- Effective Speed (Farnsworth) -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Effective Speed (Farnsworth)"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_effective_wpm"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:valueFrom="5"
+                            android:valueTo="50"
+                            android:value="20" />
+
+                        <TextView
+                            android:id="@+id/text_effective_wpm_value"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="8dp"

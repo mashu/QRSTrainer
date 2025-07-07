@@ -7,6 +7,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import com.google.android.material.snackbar.Snackbar
 import com.so5km.qrstrainer.R
 import com.so5km.qrstrainer.databinding.FragmentAboutBinding
 
@@ -34,8 +35,13 @@ class AboutFragment : Fragment() {
     
     private fun setupVersionInfo() {
         binding.apply {
-            // Use hardcoded version for now since BuildConfig might not be available
-            textVersion.text = getString(R.string.about_version, "1.0.0")
+            try {
+                val packageInfo = requireContext().packageManager.getPackageInfo(requireContext().packageName, 0)
+                textVersion.text = getString(R.string.about_version, packageInfo.versionName)
+            } catch (e: Exception) {
+                textVersion.text = getString(R.string.about_version, "1.0.0")
+            }
+            
             textAppName.text = getString(R.string.app_name)
             textDescription.text = getString(R.string.about_description)
         }
@@ -91,7 +97,7 @@ class AboutFragment : Fragment() {
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
             startActivity(intent)
         } catch (e: Exception) {
-            // Handle error - could show toast or snackbar
+            showMessage("Unable to open link")
         }
     }
     
@@ -100,11 +106,11 @@ class AboutFragment : Fragment() {
             val intent = Intent(Intent.ACTION_SENDTO).apply {
                 data = Uri.parse("mailto:so5km@example.com")
                 putExtra(Intent.EXTRA_SUBJECT, "QRS Trainer Feedback")
-                putExtra(Intent.EXTRA_TEXT, "App Version: 1.0.0\n\n")
+                putExtra(Intent.EXTRA_TEXT, "App Version: ${getVersionName()}\nDevice: ${android.os.Build.MODEL}\nAndroid: ${android.os.Build.VERSION.RELEASE}\n\nFeedback:\n")
             }
-            startActivity(intent)
+            startActivity(Intent.createChooser(intent, "Send Email"))
         } catch (e: Exception) {
-            // Handle error
+            showMessage("No email app found")
         }
     }
     
@@ -122,24 +128,48 @@ class AboutFragment : Fragment() {
     }
     
     private fun shareApp() {
+        val appName = getString(R.string.app_name)
         val shareText = """
-            Check out QRS Trainer - an amazing Morse code training app!
+            🎧 Check out $appName - Master Morse Code Like a Pro! 📻
             
-            🎧 Progressive training with Koch method
-            📊 Comprehensive progress tracking  
-            🎵 Realistic audio simulation
-            📱 Modern, intuitive interface
+            ✨ Features:
+            • Progressive Koch method training
+            • Real-time progress tracking  
+            • Realistic HF noise simulation
+            • Listen & learn mode
+            • Modern, intuitive interface
             
-            Download: https://play.google.com/store/apps/details?id=${requireContext().packageName}
+            Perfect for ham radio operators, scouts, and morse code enthusiasts!
+            
+            📱 Download: https://play.google.com/store/apps/details?id=${requireContext().packageName}
+            
+            #MorseCode #HamRadio #CW #RadioTraining
         """.trimIndent()
         
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
             putExtra(Intent.EXTRA_TEXT, shareText)
-            putExtra(Intent.EXTRA_SUBJECT, "QRS Trainer - Morse Code Training")
+            putExtra(Intent.EXTRA_SUBJECT, "$appName - Morse Code Training")
         }
         
-        startActivity(Intent.createChooser(intent, "Share QRS Trainer"))
+        try {
+            startActivity(Intent.createChooser(intent, "Share $appName"))
+        } catch (e: Exception) {
+            showMessage("Unable to share")
+        }
+    }
+    
+    private fun getVersionName(): String {
+        return try {
+            val packageInfo = requireContext().packageManager.getPackageInfo(requireContext().packageName, 0)
+            packageInfo.versionName
+        } catch (e: Exception) {
+            "1.0.0"
+        }
+    }
+    
+    private fun showMessage(message: String) {
+        Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT).show()
     }
     
     override fun onDestroyView() {
