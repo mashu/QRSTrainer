@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background_light"
+    android:background="?attr/colorSurface"
     android:padding="16dp"
     tools:context=".ui.about.AboutFragment">
 
@@ -53,7 +53,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Version 1.0.0"
-                    android:textColor="@color/text_secondary"
+                    android:textColor="?attr/colorOnSurfaceVariant"
                     android:textSize="16sp" />
 
             </LinearLayout>
@@ -89,8 +89,9 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
                     android:lineSpacingExtra="4dp"
-                    android:text="@string/about_description"
-                    android:textSize="16sp" />
+                                    android:text="@string/about_description"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="16sp" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -278,7 +279,7 @@
                         android:gravity="center"
                         android:padding="12dp"
                         android:text="Open Source - MIT License"
-                        android:textColor="@color/text_secondary"
+                        android:textColor="?attr/colorOnSurfaceVariant"
                         android:textSize="14sp" />
 
                 </androidx.cardview.widget.CardView>

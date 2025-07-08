@@ -255,7 +255,7 @@
                         android:layout_height="150dp"
                         android:layout_marginTop="8dp"
                         android:layout_marginBottom="8dp"
-                        android:background="@color/white" />
+                                                    android:background="@color/visualization_background_light" />
 
                 </LinearLayout>
             </LinearLayout>
@@ -732,6 +732,7 @@
         <!-- Character Selection Card -->
         <androidx.cardview.widget.CardView
             android:id="@+id/card_character_settings"
+            style="@style/Widget.App.CardView.Light"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
