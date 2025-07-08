@@ -70,8 +70,8 @@ data class TrainingSettings(
         
         fun validate(settings: TrainingSettings): TrainingSettings {
             return TrainingSettings(
-                // Audio validation
-                wpm = settings.wpm.coerceIn(1, 60),
+                // Audio validation - increased max WPM for advanced training
+                wpm = settings.wpm.coerceIn(1, 100),
                 effectiveWpm = settings.effectiveWpm.coerceIn(1, settings.wpm),
                 frequency = settings.frequency.coerceIn(200, 2000),
                 volume = settings.volume.coerceIn(0f, 1f),

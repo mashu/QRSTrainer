@@ -165,28 +165,36 @@ class SettingsFragment : Fragment() {
     private fun setupAudioSliders() {
         // Character Speed (WPM) Slider
         binding.sliderWpm.addOnChangeListener { _, value, fromUser ->
+            val wpm = value.toInt()
+            binding.textWpmValue.text = getString(R.string.value_wpm, wpm)
+            
             if (fromUser) {
-                val wpm = value.toInt()
-                binding.textWpmValue.text = getString(R.string.value_wpm, wpm)
                 updateSettings { it.copy(wpm = wpm) }
                 
                 // Ensure effective WPM doesn't exceed character WPM
                 if (binding.sliderEffectiveWpm.value > value) {
                     binding.sliderEffectiveWpm.value = value
+                    // Update effective WPM text since it was changed programmatically
+                    binding.textEffectiveWpmValue.text = getString(R.string.value_wpm, value.toInt())
+                    updateSettings { it.copy(effectiveWpm = value.toInt()) }
                 }
             }
         }
         
         // Effective Speed (Farnsworth) Slider
         binding.sliderEffectiveWpm.addOnChangeListener { _, value, fromUser ->
+            val effectiveWpm = value.toInt()
+            binding.textEffectiveWpmValue.text = getString(R.string.value_wpm, effectiveWpm)
+            
             if (fromUser) {
-                val effectiveWpm = value.toInt()
-                binding.textEffectiveWpmValue.text = getString(R.string.value_wpm, effectiveWpm)
                 updateSettings { it.copy(effectiveWpm = effectiveWpm) }
                 
                 // Ensure effective WPM doesn't exceed character WPM
                 if (value > binding.sliderWpm.value) {
                     binding.sliderWpm.value = value
+                    // Update WPM text since it was changed programmatically
+                    binding.textWpmValue.text = getString(R.string.value_wpm, value.toInt())
+                    updateSettings { it.copy(wpm = value.toInt()) }
                 }
             }
         }
@@ -234,28 +242,36 @@ class SettingsFragment : Fragment() {
     private fun setupGroupSliders() {
         // Min Group Size
         binding.sliderMinGroupSize.addOnChangeListener { _, value, fromUser ->
+            val minSize = value.toInt()
+            binding.textMinGroupSizeValue.text = getString(R.string.value_chars, minSize)
+            
             if (fromUser) {
-                val minSize = value.toInt()
-                binding.textMinGroupSizeValue.text = getString(R.string.value_chars, minSize)
                 updateSettings { it.copy(minGroupSize = minSize) }
                 
                 // Ensure max group size is at least min size
                 if (binding.sliderMaxGroupSize.value < value) {
                     binding.sliderMaxGroupSize.value = value
+                    // Update max group size text since it was changed programmatically
+                    binding.textMaxGroupSizeValue.text = getString(R.string.value_chars, value.toInt())
+                    updateSettings { it.copy(maxGroupSize = value.toInt()) }
                 }
             }
         }
         
         // Max Group Size
         binding.sliderMaxGroupSize.addOnChangeListener { _, value, fromUser ->
+            val maxSize = value.toInt()
+            binding.textMaxGroupSizeValue.text = getString(R.string.value_chars, maxSize)
+            
             if (fromUser) {
-                val maxSize = value.toInt()
-                binding.textMaxGroupSizeValue.text = getString(R.string.value_chars, maxSize)
                 updateSettings { it.copy(maxGroupSize = maxSize) }
                 
                 // Ensure min group size doesn't exceed max size
                 if (binding.sliderMinGroupSize.value > value) {
                     binding.sliderMinGroupSize.value = value
+                    // Update min group size text since it was changed programmatically
+                    binding.textMinGroupSizeValue.text = getString(R.string.value_chars, value.toInt())
+                    updateSettings { it.copy(minGroupSize = value.toInt()) }
                 }
             }
         }
