@@ -21,6 +21,9 @@ class ProgressTracker(private val context: Context) {
     
     private val characterStats = mutableMapOf<Char, CharacterStats>()
     
+    // Current training settings - can be updated
+    private var currentSettings: TrainingSettings = TrainingSettings.default()
+    
     init {
         loadProgress()
     }
@@ -35,6 +38,13 @@ class ProgressTracker(private val context: Context) {
     }
     
     /**
+     * Update training settings used for level advancement
+     */
+    fun updateSettings(settings: TrainingSettings) {
+        currentSettings = settings
+    }
+    
+    /**
      * Record a character attempt
      */
     fun recordAttempt(character: Char, wasCorrect: Boolean, responseTimeMs: Long) {
@@ -45,12 +55,22 @@ class ProgressTracker(private val context: Context) {
         
         if (wasCorrect) {
             stats.correct++
-            _currentStreak.value = _currentStreak.value + 1
+            // Positive streak for correct answers
+            if (_currentStreak.value < 0) {
+                _currentStreak.value = 1  // Reset to 1 if coming from negative streak
+            } else {
+                _currentStreak.value = _currentStreak.value + 1
+            }
         } else {
-            _currentStreak.value = 0
+            // Negative streak for wrong answers
+            if (_currentStreak.value > 0) {
+                _currentStreak.value = -1  // Reset to -1 if coming from positive streak
+            } else {
+                _currentStreak.value = _currentStreak.value - 1
+            }
         }
         
-        // Check for level progression
+        // Check for level progression using current settings
         checkLevelProgression()
         saveProgress()
     }
@@ -86,27 +106,18 @@ class ProgressTracker(private val context: Context) {
      */
     fun getCurrentLevelProgress(): Float {
         val requiredForNext = getRequiredForNextLevel()
-        val currentProgress = getCurrentLevelCorrectCount()
-        return if (requiredForNext > 0) currentProgress.toFloat() / requiredForNext else 1f
+        val currentStreak = maxOf(0, getCurrentStreak()) // Only count positive streak toward progress
+        return if (requiredForNext > 0) {
+            minOf(1.0f, currentStreak.toFloat() / requiredForNext)
+        } else 1f
     }
     
     /**
      * Get number of correct answers required for next level
      */
     fun getRequiredForNextLevel(): Int {
-        val level = getCurrentLevel()
-        return when (level) {
-            1 -> 25  // Level 1 to 2: 25 correct
-            2 -> 35  // Level 2 to 3: 35 correct
-            3 -> 45  // Level 3 to 4: 45 correct
-            4 -> 55  // Level 4 to 5: 55 correct
-            5 -> 65  // Level 5 to 6: 65 correct
-            6 -> 75  // Level 6 to 7: 75 correct
-            7 -> 85  // Level 7 to 8: 85 correct
-            8 -> 95  // Level 8 to 9: 95 correct
-            9 -> 100 // Level 9 to 10: 100 correct
-            else -> 100
-        }
+        // Use configurable settings instead of hardcoded values
+        return currentSettings.correctAnswersToLevelUp
     }
     
     /**
@@ -191,20 +202,31 @@ class ProgressTracker(private val context: Context) {
     }
     
     private fun checkLevelProgression() {
-        val currentCorrect = getCurrentLevelCorrectCount()
-        val required = getRequiredForNextLevel()
-        
-        if (currentCorrect >= required && getCurrentLevel() < 10) {
-            _currentLevel.value = getCurrentLevel() + 1
-            
-            // Show level up message or trigger event
-            android.util.Log.d("ProgressTracker", "Level up! Now at level ${getCurrentLevel()}")
+        // Skip level changes if level is locked
+        if (currentSettings.lockLevel) {
+            return
         }
         
-        // Update best streak
+        val currentLevel = getCurrentLevel()
         val currentStreak = getCurrentStreak()
-        if (currentStreak > getBestStreak()) {
-            prefs.edit().putInt("best_streak", currentStreak).apply()
+        
+        // Check for level up
+        if (currentStreak >= currentSettings.correctAnswersToLevelUp && currentLevel < currentSettings.maxLevel) {
+            _currentLevel.value = currentLevel + 1
+            _currentStreak.value = 0 // Reset streak after level up
+            android.util.Log.d("ProgressTracker", "Level up! Now at level ${getCurrentLevel()}")
+        }
+        // Check for level down (only if streak is negative, meaning consecutive wrong answers)
+        else if (currentStreak <= -currentSettings.incorrectAnswersToDropLevel && currentLevel > 1) {
+            _currentLevel.value = currentLevel - 1
+            _currentStreak.value = 0 // Reset streak after level down
+            android.util.Log.d("ProgressTracker", "Level down. Now at level ${getCurrentLevel()}")
+        }
+        
+        // Update best streak (only for positive streaks)
+        val positiveStreak = maxOf(0, currentStreak)
+        if (positiveStreak > getBestStreak()) {
+            prefs.edit().putInt("best_streak", positiveStreak).apply()
         }
     }
     

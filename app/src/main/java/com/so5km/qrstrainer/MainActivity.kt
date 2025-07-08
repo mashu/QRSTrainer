@@ -50,6 +50,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Apply theme before super.onCreate()
+        applySelectedTheme()
+        
         super.onCreate(savedInstanceState)
         
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -66,6 +69,21 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         if (savedInstanceState == null) {
             loadDefaultFragment()
         }
+    }
+    
+    private fun applySelectedTheme() {
+        // Load theme preference from SharedPreferences
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val themeMode = prefs.getString("theme_mode", "light") ?: "light"
+        
+        val themeResId = when (themeMode) {
+            "dark" -> R.style.AppTheme_Dark
+            "system" -> R.style.AppTheme // DayNight theme
+            else -> R.style.AppTheme_Light // default to light
+        }
+        
+        setTheme(themeResId)
+        Log.d(TAG, "Applied theme: $themeMode (resId: $themeResId)")
     }
     
     private fun initializeComponents() {
@@ -130,6 +148,35 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 updateNavigationHeaderWithTrainingState(trainingState.state)
             }
         }
+        
+        // Observe theme changes and recreate activity when theme changes
+        lifecycleScope.launch {
+            storeViewModel.settings.collect { settings ->
+                val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                val currentTheme = prefs.getString("theme_mode", "light") ?: "light"
+                
+                if (settings.themeMode != currentTheme) {
+                    // Save new theme preference
+                    prefs.edit().putString("theme_mode", settings.themeMode).apply()
+                    
+                    // Recreate activity to apply new theme
+                    recreate()
+                }
+            }
+        }
+    }
+    
+    /**
+     * Update theme when called from settings
+     */
+    fun updateTheme(newThemeMode: String) {
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val currentTheme = prefs.getString("theme_mode", "light") ?: "light"
+        
+        if (newThemeMode != currentTheme) {
+            prefs.edit().putString("theme_mode", newThemeMode).apply()
+            recreate() // Recreate activity to apply new theme
+        }
     }
     
     private fun updateNavigationHeader() {
@@ -138,7 +185,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         
         // Update with current progress
         val level = progressTracker.getCurrentLevel()
-        val streak = progressTracker.getCurrentStreak()
+        val streak = maxOf(0, progressTracker.getCurrentStreak()) // Show only positive streaks
         subtitleText?.text = "Level $level • Streak $streak"
     }
     
@@ -147,7 +194,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val subtitleText = headerView.findViewById<TextView>(R.id.nav_header_subtitle)
         
         val level = progressTracker.getCurrentLevel()
-        val streak = progressTracker.getCurrentStreak()
+        val streak = maxOf(0, progressTracker.getCurrentStreak()) // Show only positive streaks
         
         val stateText = when (trainingState) {
             TrainingState.PLAYING -> "Training Active"

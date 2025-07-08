@@ -3,7 +3,9 @@ package com.so5km.qrstrainer.ui.components.settings
 import android.content.Context
 import android.graphics.*
 import android.util.AttributeSet
+import android.util.TypedValue
 import android.view.View
+import androidx.core.content.ContextCompat
 import kotlin.math.*
 
 class FilterResponseView @JvmOverloads constructor(
@@ -13,14 +15,12 @@ class FilterResponseView @JvmOverloads constructor(
 ) : View(context, attrs, defStyleAttr) {
     
     private val responsePaint = Paint().apply {
-        color = Color.parseColor("#4CAF50")
         strokeWidth = 3f
         style = Paint.Style.STROKE
         isAntiAlias = true
     }
     
     private val centerFreqPaint = Paint().apply {
-        color = Color.parseColor("#FF5722")
         strokeWidth = 2f
         style = Paint.Style.STROKE
         isAntiAlias = true
@@ -28,21 +28,17 @@ class FilterResponseView @JvmOverloads constructor(
     }
     
     private val gridPaint = Paint().apply {
-        color = Color.parseColor("#E0E0E0")
         strokeWidth = 1f
         style = Paint.Style.STROKE
         isAntiAlias = true
     }
     
     private val textPaint = Paint().apply {
-        color = Color.parseColor("#757575")
         textSize = 20f
         isAntiAlias = true
     }
     
     private val fillPaint = Paint().apply {
-        color = Color.parseColor("#4CAF50")
-        alpha = 30
         style = Paint.Style.FILL
         isAntiAlias = true
     }
@@ -50,6 +46,56 @@ class FilterResponseView @JvmOverloads constructor(
     private var centerFrequency: Float = 600f
     private var bandwidth: Float = 50f
     private var showRinging: Boolean = false
+    
+    init {
+        updateThemeColors()
+    }
+    
+    private fun updateThemeColors() {
+        // Get theme colors
+        val typedValue = TypedValue()
+        val theme = context.theme
+        
+        // Set surface background color
+        theme.resolveAttribute(com.google.android.material.R.attr.colorSurface, typedValue, true)
+        setBackgroundColor(typedValue.data)
+        
+        // Primary color for response curve
+        theme.resolveAttribute(com.google.android.material.R.attr.colorPrimary, typedValue, true)
+        val primaryColor = typedValue.data
+        responsePaint.color = primaryColor
+        
+        // Set fill paint with transparency
+        fillPaint.color = primaryColor
+        fillPaint.alpha = 30
+        
+        // Secondary color for center frequency line
+        theme.resolveAttribute(com.google.android.material.R.attr.colorSecondary, typedValue, true)
+        centerFreqPaint.color = typedValue.data
+        
+        // Outline color for grid
+        theme.resolveAttribute(com.google.android.material.R.attr.colorOutline, typedValue, true)
+        gridPaint.color = typedValue.data
+        
+        // On surface color for text
+        theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurface, typedValue, true)
+        textPaint.color = typedValue.data
+        
+        // Force redraw
+        invalidate()
+    }
+    
+    /**
+     * Call this method when theme changes to update colors
+     */
+    fun refreshThemeColors() {
+        updateThemeColors()
+    }
+    
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        updateThemeColors() // Update colors when attached to ensure current theme
+    }
     
     fun setCenterFrequency(hz: Float) {
         centerFrequency = hz
@@ -162,7 +208,10 @@ class FilterResponseView @JvmOverloads constructor(
         val centerY = (startY + endY) / 2
         
         val ringingPaint = Paint().apply {
-            color = Color.parseColor("#FF9800")
+            // Use tertiary color for ringing visualization
+            val typedValue = TypedValue()
+            context.theme.resolveAttribute(com.google.android.material.R.attr.colorTertiary, typedValue, true)
+            color = typedValue.data
             strokeWidth = 2f
             style = Paint.Style.STROKE
             isAntiAlias = true

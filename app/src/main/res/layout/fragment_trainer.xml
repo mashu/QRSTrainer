@@ -51,13 +51,15 @@
         android:id="@+id/sequence_card"
         style="@style/Widget.App.CardView"
         android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
+        android:minHeight="120dp"
         app:cardBackgroundColor="?attr/colorSurfaceVariant"
         app:layout_constraintBottom_toTopOf="@+id/control_card"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/progress_card">
+        app:layout_constraintTop_toBottomOf="@+id/progress_card"
+        app:layout_constraintVertical_bias="0.0">
 
         <RelativeLayout
             android:layout_width="match_parent"
@@ -142,9 +144,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginEnd="8dp"
-                android:text="@string/button_start"
-                app:icon="@drawable/ic_play_arrow"
-                app:iconGravity="start" />
+                android:text="@string/button_start" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_stop"
@@ -154,9 +154,7 @@
                 android:layout_weight="1"
                 android:layout_marginStart="4dp"
                 android:layout_marginEnd="4dp"
-                android:text="@string/button_stop"
-                app:icon="@drawable/ic_stop"
-                app:iconGravity="start" />
+                android:text="@string/button_stop" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_replay"
@@ -165,9 +163,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginStart="8dp"
-                android:text="@string/button_replay"
-                app:icon="@drawable/ic_replay"
-                app:iconGravity="start" />
+                android:text="@string/button_replay" />
 
         </LinearLayout>
 

@@ -3,7 +3,9 @@ package com.so5km.qrstrainer.ui.components.settings
 import android.content.Context
 import android.graphics.*
 import android.util.AttributeSet
+import android.util.TypedValue
 import android.view.View
+import androidx.core.content.ContextCompat
 import kotlin.math.*
 
 class WaveformVisualizationView @JvmOverloads constructor(
@@ -13,14 +15,12 @@ class WaveformVisualizationView @JvmOverloads constructor(
 ) : View(context, attrs, defStyleAttr) {
     
     private val waveformPaint = Paint().apply {
-        color = Color.parseColor("#2196F3")
         strokeWidth = 3f
         style = Paint.Style.STROKE
         isAntiAlias = true
     }
     
     private val envelopePaint = Paint().apply {
-        color = Color.parseColor("#FF9800")
         strokeWidth = 2f
         style = Paint.Style.STROKE
         isAntiAlias = true
@@ -28,14 +28,12 @@ class WaveformVisualizationView @JvmOverloads constructor(
     }
     
     private val gridPaint = Paint().apply {
-        color = Color.parseColor("#E0E0E0")
         strokeWidth = 1f
         style = Paint.Style.STROKE
         isAntiAlias = true
     }
     
     private val textPaint = Paint().apply {
-        color = Color.parseColor("#757575")
         textSize = 24f
         isAntiAlias = true
     }
@@ -43,6 +41,51 @@ class WaveformVisualizationView @JvmOverloads constructor(
     private var riseTimeMs: Float = 5f
     private var frequency: Float = 600f
     private var showEnvelope: Boolean = true
+    
+    init {
+        updateThemeColors()
+    }
+    
+    private fun updateThemeColors() {
+        // Get theme colors
+        val typedValue = TypedValue()
+        val theme = context.theme
+        
+        // Set transparent background or surface color
+        theme.resolveAttribute(com.google.android.material.R.attr.colorSurface, typedValue, true)
+        setBackgroundColor(typedValue.data)
+        
+        // Primary color for waveform
+        theme.resolveAttribute(com.google.android.material.R.attr.colorPrimary, typedValue, true)
+        waveformPaint.color = typedValue.data
+        
+        // Secondary color for envelope
+        theme.resolveAttribute(com.google.android.material.R.attr.colorSecondary, typedValue, true)
+        envelopePaint.color = typedValue.data
+        
+        // Outline color for grid
+        theme.resolveAttribute(com.google.android.material.R.attr.colorOutline, typedValue, true)
+        gridPaint.color = typedValue.data
+        
+        // On surface color for text
+        theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurface, typedValue, true)
+        textPaint.color = typedValue.data
+        
+        // Force redraw
+        invalidate()
+    }
+    
+    /**
+     * Call this method when theme changes to update colors
+     */
+    fun refreshThemeColors() {
+        updateThemeColors()
+    }
+    
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        updateThemeColors() // Update colors when attached to ensure current theme
+    }
     
     fun setRiseTime(ms: Float) {
         riseTimeMs = ms
@@ -102,15 +145,17 @@ class WaveformVisualizationView @JvmOverloads constructor(
         
         // Duration for one dit (60ms at 20 WPM)
         val ditDuration = 60f // ms
-        val totalDuration = ditDuration * 1.5f // Show 1.5 dits
+        // Always show full width - adjust total duration to ensure full width utilization
+        val totalDuration = max(ditDuration * 1.5f, 90f) // Minimum 90ms for full width visualization
         
         for (i in 0..samples) {
             val x = width * i / samples
             val t = totalDuration * i / samples / 1000f // Convert to seconds
             
-            // Generate sine wave
-            val y = if (t * 1000 < ditDuration) {
-                centerY - amplitude * sin(2 * PI * frequency * t).toFloat() * getEnvelopeValue(t * 1000, ditDuration)
+            // Generate sine wave - ensure signal is visible across full width
+            val timeMs = t * 1000
+            val y = if (timeMs < ditDuration) {
+                centerY - amplitude * sin(2 * PI * frequency * t).toFloat() * getEnvelopeValue(timeMs, ditDuration)
             } else {
                 centerY
             }
@@ -130,11 +175,12 @@ class WaveformVisualizationView @JvmOverloads constructor(
         val samples = 100
         val amplitude = centerY * 0.8f
         val ditDuration = 60f
+        val totalDuration = max(ditDuration * 1.5f, 90f) // Same logic as waveform
         
         // Draw upper envelope
         for (i in 0..samples) {
             val x = width * i / samples
-            val t = ditDuration * 1.5f * i / samples
+            val t = totalDuration * i / samples
             
             val envelope = if (t < ditDuration) {
                 getEnvelopeValue(t, ditDuration)
@@ -157,7 +203,7 @@ class WaveformVisualizationView @JvmOverloads constructor(
         path.reset()
         for (i in 0..samples) {
             val x = width * i / samples
-            val t = ditDuration * 1.5f * i / samples
+            val t = totalDuration * i / samples
             
             val envelope = if (t < ditDuration) {
                 getEnvelopeValue(t, ditDuration)

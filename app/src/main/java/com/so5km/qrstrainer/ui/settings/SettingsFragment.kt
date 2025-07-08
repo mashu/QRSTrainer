@@ -40,6 +40,7 @@ class SettingsFragment : Fragment() {
         
         initializeComponents()
         setupCollapsibleSections()
+        setupThemeControls()
         setupAudioSliders()
         setupGroupSliders()
         setupTimingSliders()
@@ -118,6 +119,47 @@ class SettingsFragment : Fragment() {
                     .start()
             }
         }
+    }
+    
+    private fun setupThemeControls() {
+        // Theme controls are now available via long press on Test Audio button
+        // This provides theme selection without needing additional UI elements
+    }
+    
+    private fun showThemeSelectionDialog() {
+        val themeOptions = arrayOf("Light", "Dark", "System")
+        val currentSettings = storeViewModel.settings.value
+        val currentSelection = when (currentSettings.themeMode) {
+            "light" -> 0
+            "dark" -> 1
+            "system" -> 2
+            else -> 0
+        }
+        
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Select Theme")
+            .setSingleChoiceItems(themeOptions, currentSelection) { dialog, which ->
+                val newThemeMode = when (which) {
+                    0 -> "light"
+                    1 -> "dark"
+                    2 -> "system"
+                    else -> "light"
+                }
+                
+                // Update settings
+                updateSettings { it.copy(themeMode = newThemeMode) }
+                
+                // Refresh visualization colors before activity recreates
+                binding.waveformVisualization.refreshThemeColors()
+                binding.filterResponseView.refreshThemeColors()
+                
+                // Update theme immediately via MainActivity
+                (requireActivity() as? com.so5km.qrstrainer.MainActivity)?.updateTheme(newThemeMode)
+                
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
     
     private fun setupAudioSliders() {
@@ -364,9 +406,18 @@ class SettingsFragment : Fragment() {
             testAudioSettings()
         }
         
+        // Add theme selection on long press of test button (temporary)
+        binding.buttonTestAudio.setOnLongClickListener {
+            showThemeSelectionDialog()
+            true
+        }
+        
         binding.buttonResetSettings.setOnClickListener {
             showResetConfirmation()
         }
+        
+        // Add info about theme selection
+        binding.buttonTestAudio.tooltipText = "Tap to test audio, long press to change theme"
     }
     
     private fun observeSettings() {

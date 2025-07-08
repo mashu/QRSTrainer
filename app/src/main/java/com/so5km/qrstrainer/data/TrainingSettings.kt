@@ -11,7 +11,7 @@ data class TrainingSettings(
     val riseTimeMs: Double = 5.0,
     
     // Group Settings
-    val minGroupSize: Int = 3,
+    val minGroupSize: Int = 1,
     val maxGroupSize: Int = 5,
     val sequenceLength: Int = 5, // number of groups per sequence
     
@@ -56,6 +56,9 @@ data class TrainingSettings(
     val bandwidthHz: Float = 50f,             // signal bandwidth
     val shapingEnabled: Boolean = true,       // waveform shaping
     
+    // Appearance
+    val themeMode: String = "light",          // "light", "dark", or "system"
+    
     // Progress Tracking
     val enableStatistics: Boolean = true,
     val saveProgress: Boolean = true,
@@ -66,7 +69,7 @@ data class TrainingSettings(
         fun default() = TrainingSettings()
         
         fun validate(settings: TrainingSettings): TrainingSettings {
-            return settings.copy(
+            return TrainingSettings(
                 // Audio validation
                 wpm = settings.wpm.coerceIn(1, 60),
                 effectiveWpm = settings.effectiveWpm.coerceIn(1, settings.wpm),
@@ -91,17 +94,44 @@ data class TrainingSettings(
                 correctAnswersToLevelUp = settings.correctAnswersToLevelUp.coerceIn(1, 50),
                 incorrectAnswersToDropLevel = settings.incorrectAnswersToDropLevel.coerceIn(1, 20),
                 
+                // Training dynamics - pass through as-is (booleans)
+                adaptiveSpeed = settings.adaptiveSpeed,
+                adaptiveGroupSize = settings.adaptiveGroupSize,
+                requirePerfectCopy = settings.requirePerfectCopy,
+                allowPartialCredit = settings.allowPartialCredit,
+                dynamicSpacing = settings.dynamicSpacing,
+                
+                // Character selection - pass through as-is
+                useProsigns = settings.useProsigns,
+                useNumbers = settings.useNumbers,
+                usePunctuation = settings.usePunctuation,
+                customCharacterSet = settings.customCharacterSet,
+                
                 // Noise validation
+                noiseEnabled = settings.noiseEnabled,
                 noiseVolume = settings.noiseVolume.coerceIn(0f, 1f),
                 noiseBandwidthHz = settings.noiseBandwidthHz.coerceIn(100f, 5000f),
+                qrmEnabled = settings.qrmEnabled,
                 qrmVolume = settings.qrmVolume.coerceIn(0f, 1f),
+                qsbEnabled = settings.qsbEnabled,
                 qsbRate = settings.qsbRate.coerceIn(0.01f, 2f),
                 
                 // Advanced audio validation
+                clicksEnabled = settings.clicksEnabled,
                 clickVolume = settings.clickVolume.coerceIn(0f, 0.5f),
                 bandwidthHz = settings.bandwidthHz.coerceIn(10f, 500f),
+                shapingEnabled = settings.shapingEnabled,
+                
+                // Appearance validation
+                themeMode = if (settings.themeMode in listOf("light", "dark", "system")) {
+                    settings.themeMode
+                } else {
+                    "light" // default to light if invalid
+                },
                 
                 // Progress validation
+                enableStatistics = settings.enableStatistics,
+                saveProgress = settings.saveProgress,
                 sessionTimeMinutes = settings.sessionTimeMinutes.coerceIn(1, 240),
                 breakReminderMinutes = settings.breakReminderMinutes.coerceIn(10, 300)
             )
@@ -165,6 +195,9 @@ fun TrainingSettings.toJson(): String {
     json.put("bandwidthHz", bandwidthHz.toDouble())
     json.put("shapingEnabled", shapingEnabled)
     
+    // Appearance
+    json.put("themeMode", themeMode)
+    
     // Progress Tracking
     json.put("enableStatistics", enableStatistics)
     json.put("saveProgress", saveProgress)
@@ -194,7 +227,7 @@ fun TrainingSettings.Companion.fromJson(json: String): TrainingSettings {
         riseTimeMs = getDoubleOrDefault("riseTimeMs", 5.0),
         
         // Group Settings
-        minGroupSize = getIntOrDefault("minGroupSize", 3),
+        minGroupSize = getIntOrDefault("minGroupSize", 1),
         maxGroupSize = getIntOrDefault("maxGroupSize", 5),
         sequenceLength = getIntOrDefault("sequenceLength", 5),
         
@@ -238,6 +271,9 @@ fun TrainingSettings.Companion.fromJson(json: String): TrainingSettings {
         clickVolume = getFloatOrDefault("clickVolume", 0.1f),
         bandwidthHz = getFloatOrDefault("bandwidthHz", 50f),
         shapingEnabled = getBooleanOrDefault("shapingEnabled", true),
+        
+        // Appearance
+        themeMode = getStringOrDefault("themeMode", "light"),
         
         // Progress Tracking
         enableStatistics = getBooleanOrDefault("enableStatistics", true),

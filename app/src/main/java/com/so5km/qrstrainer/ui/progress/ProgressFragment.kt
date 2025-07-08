@@ -97,7 +97,11 @@ class ProgressFragment : Fragment() {
     }
     
     private fun updateStreakDisplay(streak: Int) {
-        binding.textCurrentStreak.text = streak.toString()
+        binding.textCurrentStreak.text = if (streak >= 0) {
+            streak.toString()
+        } else {
+            "0" // Show 0 for negative streaks in UI, but track them internally
+        }
     }
     
     private fun updateOverviewCards(level: Int, streak: Int, bestStreak: Int, accuracy: Float) {

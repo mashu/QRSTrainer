@@ -248,11 +248,8 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
     
     private fun updateProgress() {
         val level = progressTracker.getCurrentLevel()
-        val streak = progressTracker.getCurrentStreak()
         
         binding.textLevel.text = "Level: $level"
-        // Now actually using the streak variable instead of sequenceCount
-        binding.textStreak.text = "Streak: $streak • Sessions: $sequenceCount"
     }
     
     private fun setupAnimations() {
@@ -261,8 +258,7 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
             binding.textTitle,
             binding.textSequence,
             binding.listenControls,
-            binding.textLevel,
-            binding.textStreak
+            binding.textLevel
         )
         
         views.forEachIndexed { index, view ->

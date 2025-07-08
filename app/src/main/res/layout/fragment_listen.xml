@@ -79,62 +79,24 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:padding="16dp">
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:gravity="center">
 
-            <LinearLayout
-                android:layout_width="0dp"
+            <TextView
+                android:id="@+id/text_level"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center">
+                android:text="Level: 1"
+                android:textAppearance="@style/TextAppearance.App.TitleLarge"
+                android:textColor="?attr/colorPrimary" />
 
-                <TextView
-                    android:id="@+id/text_level"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Level: 1"
-                    android:textAppearance="@style/TextAppearance.App.TitleLarge"
-                    android:textColor="?attr/colorPrimary" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Current Level"
-                    android:textAppearance="@style/TextAppearance.App.BodyMedium"
-                    android:textColor="?attr/colorOnSurfaceVariant" />
-
-            </LinearLayout>
-
-            <View
-                android:layout_width="1dp"
-                android:layout_height="match_parent"
-                android:layout_marginHorizontal="16dp"
-                android:background="?attr/colorOutline" />
-
-            <LinearLayout
-                android:layout_width="0dp"
+            <TextView
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center">
-
-                <TextView
-                    android:id="@+id/text_streak"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Streak: 0"
-                    android:textAppearance="@style/TextAppearance.App.TitleLarge"
-                    android:textColor="?attr/colorSecondary" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Current Streak"
-                    android:textAppearance="@style/TextAppearance.App.BodyMedium"
-                    android:textColor="?attr/colorOnSurfaceVariant" />
-
-            </LinearLayout>
+                android:text="Current Level"
+                android:textAppearance="@style/TextAppearance.App.BodyMedium"
+                android:textColor="?attr/colorOnSurfaceVariant" />
 
         </LinearLayout>
 
