@@ -162,6 +162,11 @@ class TrainerFragment : Fragment() {
         
         storeViewModel.dispatch(AppAction.StartTraining(currentSequence))
         
+        // Start continuous noise if enabled
+        if (settings.noiseEnabled) {
+            audioManager.startContinuousNoise(settings)
+        }
+        
         lifecycleScope.launch {
             try {
                 updateUIForState(TrainingState.PLAYING)
@@ -178,6 +183,7 @@ class TrainerFragment : Fragment() {
     
     private fun stopTraining() {
         audioManager.stopPlayback()
+        audioManager.stopContinuousNoise() // Stop background noise
         storeViewModel.dispatch(AppAction.StopTraining)
         updateUIForState(TrainingState.READY)
         updateProgressDisplay()

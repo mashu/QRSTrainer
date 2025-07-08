@@ -121,6 +121,11 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
         // Dispatch action to update state
         storeViewModel.dispatch(AppAction.StartListening(currentSequence))
         
+        // Start continuous noise if enabled
+        if (settings.noiseEnabled) {
+            audioManager.startContinuousNoise(settings)
+        }
+        
         // Update UI
         binding.textSequence.text = "🎵 Listen to the sequence..."
         updateUIForState(ListeningState.PLAYING)
@@ -141,12 +146,14 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
     
     private fun stopListening() {
         audioManager.stopPlayback()
+        audioManager.stopContinuousNoise() // Stop background noise
         updateUIForState(ListeningState.READY)
         binding.textSequence.text = "Ready to listen..."
     }
     
     private fun revealSequence() {
         storeViewModel.dispatch(AppAction.RevealSequence)
+        audioManager.stopContinuousNoise() // Stop background noise when revealing
         
         binding.textSequence.text = "Sequence: $currentSequence"
         
@@ -160,6 +167,7 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
     
     private fun nextSequence() {
         storeViewModel.dispatch(AppAction.NextSequence)
+        audioManager.stopContinuousNoise() // Stop background noise when moving to next
         sequenceCount++
         updateProgress()
         

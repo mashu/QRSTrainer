@@ -88,18 +88,7 @@ class MorsePlayer(
         )
         android.util.Log.d("MorsePlayer", "Applied envelope")
         
-        // Mix with noise if enabled
-        if (settings.noiseEnabled && noiseGenerator != null) {
-            val noise = noiseGenerator.generateNoise(
-                durationMs,
-                settings.noiseVolume,
-                settings.noiseBandwidthHz
-            )
-            signal = signalGenerator.mixSignals(signal, noise)
-            android.util.Log.d("MorsePlayer", "Mixed with noise")
-        }
-        
-        // Convert to audio format and play
+        // Convert to audio format and play (no noise mixing - noise runs separately)
         val audioData = floatToShortArray(signal)
         android.util.Log.d("MorsePlayer", "Converted to ${audioData.size} audio samples")
         

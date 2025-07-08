@@ -22,7 +22,7 @@ class AudioManager(private val context: Context) {
         audioEngine,
         signalGenerator,
         morseEncoder,
-        noiseGenerator
+        null // Remove noise generator from MorsePlayer
     )
     
     private val store = AppStore.getInstance()
@@ -66,34 +66,34 @@ class AudioManager(private val context: Context) {
     
     fun release() {
         stopPlayback()
+        stopContinuousNoise()
         audioEngine.release()
     }
     
     fun startContinuousNoise(settings: TrainingSettings) {
         if (!settings.noiseEnabled) return
         
-        scope.launch {
-            store.dispatch(AppAction.SetNoiseRunning(true))
-            
-            audioEngine.playStream {
-                if (store.state.value.audioState.isNoiseRunning) {
-                    val noise = noiseGenerator.generateNoise(
-                        100, // Generate 100ms chunks
-                        settings.noiseVolume,
-                        settings.noiseBandwidthHz
-                    )
-                    floatToShortArray(noise)
-                } else {
-                    null
-                }
+        android.util.Log.d("AudioManager", "Starting continuous noise")
+        store.dispatch(AppAction.SetNoiseRunning(true))
+        
+        audioEngine.startNoiseStream {
+            if (store.state.value.audioState.isNoiseRunning) {
+                val noise = noiseGenerator.generateNoise(
+                    100, // Generate 100ms chunks
+                    settings.noiseVolume,
+                    settings.noiseBandwidthHz
+                )
+                floatToShortArray(noise)
+            } else {
+                null
             }
-            
-            store.dispatch(AppAction.SetNoiseRunning(false))
         }
     }
     
     fun stopContinuousNoise() {
+        android.util.Log.d("AudioManager", "Stopping continuous noise")
         store.dispatch(AppAction.SetNoiseRunning(false))
+        audioEngine.stopNoise()
     }
     
     private fun floatToShortArray(floatArray: FloatArray): ShortArray {

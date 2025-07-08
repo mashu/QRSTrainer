@@ -18,16 +18,18 @@ class AudioEngine {
         private const val TAG = "AudioEngine"
     }
     
-    private var audioTrack: AudioTrack? = null
+    private var morseAudioTrack: AudioTrack? = null
+    private var noiseAudioTrack: AudioTrack? = null
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying
+    private var isNoiseRunning = false
     
     init {
         android.util.Log.d(TAG, "AudioEngine initializing...")
-        initializeAudioTrack()
+        initializeAudioTracks()
     }
     
-    private fun initializeAudioTrack() {
+    private fun initializeAudioTracks() {
         val bufferSize = AudioTrack.getMinBufferSize(
             SAMPLE_RATE,
             AudioFormat.CHANNEL_OUT_MONO,
@@ -36,7 +38,23 @@ class AudioEngine {
         
         android.util.Log.d(TAG, "Min buffer size: $bufferSize")
         
-        audioTrack = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        // Create morse code audio track
+        morseAudioTrack = createAudioTrack(bufferSize)
+        
+        // Create noise audio track
+        noiseAudioTrack = createAudioTrack(bufferSize)
+        
+        morseAudioTrack?.let { track ->
+            android.util.Log.d(TAG, "Morse AudioTrack state: ${track.state}, playState: ${track.playState}")
+        } ?: android.util.Log.e(TAG, "Morse AudioTrack is null after initialization!")
+        
+        noiseAudioTrack?.let { track ->
+            android.util.Log.d(TAG, "Noise AudioTrack state: ${track.state}, playState: ${track.playState}")
+        } ?: android.util.Log.e(TAG, "Noise AudioTrack is null after initialization!")
+    }
+    
+    private fun createAudioTrack(bufferSize: Int): AudioTrack? {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             android.util.Log.d(TAG, "Creating AudioTrack using new API")
             AudioTrack.Builder()
                 .setAudioAttributes(
@@ -67,14 +85,10 @@ class AudioEngine {
                 AudioTrack.MODE_STREAM
             )
         }
-        
-        audioTrack?.let { track ->
-            android.util.Log.d(TAG, "AudioTrack state: ${track.state}, playState: ${track.playState}")
-        } ?: android.util.Log.e(TAG, "AudioTrack is null after initialization!")
     }
     
     fun play(audioData: ShortArray) {
-        audioTrack?.let { track ->
+        morseAudioTrack?.let { track ->
             android.util.Log.d(TAG, "AudioEngine.play called with ${audioData.size} samples")
             if (audioData.isEmpty()) {
                 android.util.Log.e(TAG, "Audio data is empty!")
@@ -102,43 +116,59 @@ class AudioEngine {
         } ?: android.util.Log.e(TAG, "AudioTrack is null!")
     }
     
-    fun playStream(audioGenerator: () -> ShortArray?) {
-        audioTrack?.let { track ->
-            if (track.state == AudioTrack.STATE_INITIALIZED) {
+    fun startNoiseStream(audioGenerator: () -> ShortArray?) {
+        noiseAudioTrack?.let { track ->
+            if (track.state == AudioTrack.STATE_INITIALIZED && !isNoiseRunning) {
+                android.util.Log.d(TAG, "Starting noise stream")
+                isNoiseRunning = true
                 track.play()
-                _isPlaying.value = true
                 
-                while (_isPlaying.value) {
-                    val data = audioGenerator()
-                    if (data != null) {
-                        track.write(data, 0, data.size)
-                    } else {
-                        break
+                // Run noise in a separate thread
+                Thread {
+                    while (isNoiseRunning) {
+                        val data = audioGenerator()
+                        if (data != null && isNoiseRunning) {
+                            track.write(data, 0, data.size)
+                        } else {
+                            break
+                        }
                     }
-                }
-                
-                track.stop()
-                _isPlaying.value = false
+                    track.stop()
+                    android.util.Log.d(TAG, "Noise stream stopped")
+                }.start()
             }
         }
     }
     
+    fun stopNoise() {
+        android.util.Log.d(TAG, "Stopping noise")
+        isNoiseRunning = false
+        noiseAudioTrack?.stop()
+    }
+    
     fun stop() {
         _isPlaying.value = false
-        audioTrack?.stop()
+        morseAudioTrack?.stop()
+        stopNoise()
     }
     
     fun pause() {
-        audioTrack?.pause()
+        morseAudioTrack?.pause()
+        noiseAudioTrack?.pause()
     }
     
     fun resume() {
-        audioTrack?.play()
+        morseAudioTrack?.play()
+        if (isNoiseRunning) {
+            noiseAudioTrack?.play()
+        }
     }
     
     fun release() {
         stop()
-        audioTrack?.release()
-        audioTrack = null
+        morseAudioTrack?.release()
+        noiseAudioTrack?.release()
+        morseAudioTrack = null
+        noiseAudioTrack = null
     }
 }

@@ -534,6 +534,7 @@ class SettingsFragment : Fragment() {
         // Check if already playing - if so, stop it
         if (binding.buttonTestAudio.text == "Stop Test") {
             audioManager.stopPlayback()
+            audioManager.stopContinuousNoise() // Stop background noise
             binding.buttonTestAudio.apply {
                 isEnabled = true
                 text = "Test Audio"
@@ -546,16 +547,24 @@ class SettingsFragment : Fragment() {
             text = "Stop Test"
         }
         
+        // Start continuous noise if enabled for testing
+        if (settings.noiseEnabled) {
+            audioManager.startContinuousNoise(settings)
+        }
+        
         lifecycleScope.launch {
             try {
                 audioManager.playSequence(testSequence, settings)
                 
-                // Re-enable button after test completes
+                // Stop noise and re-enable button after test completes
+                audioManager.stopContinuousNoise()
                 binding.buttonTestAudio.apply {
                     isEnabled = true
                     text = "Test Audio"
                 }
             } catch (e: Exception) {
+                // Stop noise on error
+                audioManager.stopContinuousNoise()
                 binding.buttonTestAudio.apply {
                     isEnabled = true
                     text = "Test Failed"
