@@ -144,6 +144,12 @@
     <!-- Advanced Noise Settings -->
     <string name="settings_noise_volume">Noise Volume</string>
     <string name="settings_noise_bandwidth">Noise Bandwidth</string>
+    <string name="settings_filter_type">Filter Type</string>
+    <string name="settings_filter_order">Filter Order (Steepness)</string>
+    <string name="settings_filter_order_help">Higher order = steeper filter but more ringing</string>
+    <string name="settings_continuous_test">Continuous Character Test</string>
+    <string name="settings_continuous_test_desc">Repeats current level character continuously</string>
+    <string name="settings_testing_character">Testing: %s</string>
     <string name="settings_qrm_enabled">QRM Interference</string>
     <string name="settings_qrm_enabled_desc">Simulate radio interference</string>
     <string name="settings_qrm_volume">QRM Volume</string>

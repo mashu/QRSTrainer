@@ -46,6 +46,8 @@ class FilterResponseView @JvmOverloads constructor(
     private var centerFrequency: Float = 600f
     private var bandwidth: Float = 50f
     private var showRinging: Boolean = false
+    private var filterType: String = "butterworth"
+    private var filterOrder: Int = 4
     
     init {
         updateThemeColors()
@@ -109,6 +111,16 @@ class FilterResponseView @JvmOverloads constructor(
     
     fun setShowRinging(show: Boolean) {
         showRinging = show
+        invalidate()
+    }
+    
+    fun setFilterType(type: String) {
+        filterType = type
+        invalidate()
+    }
+    
+    fun setFilterOrder(order: Int) {
+        filterOrder = order
         invalidate()
     }
     
@@ -189,11 +201,42 @@ class FilterResponseView @JvmOverloads constructor(
     }
     
     private fun calculateFilterResponse(freq: Float): Float {
-        // Butterworth filter response
         val normalizedFreq = (freq - centerFrequency) / (bandwidth / 2)
-        val order = 4.0 // Filter order (sharper = more ringing)
         
-        return 1f / sqrt(1 + normalizedFreq.toDouble().pow(2 * order)).toFloat()
+        return when (filterType) {
+            "butterworth" -> {
+                // Butterworth filter response - maximally flat in passband
+                1f / sqrt(1 + normalizedFreq.toDouble().pow(2 * filterOrder)).toFloat()
+            }
+            "chebyshev" -> {
+                // Chebyshev Type I - ripple in passband, steeper rolloff
+                val epsilon = 0.5f // Ripple factor (0.5 = ~3dB ripple)
+                if (abs(normalizedFreq) <= 1) {
+                    // Passband with ripple
+                    val ripple = 1f / sqrt(1 + epsilon * epsilon * 
+                        cos(filterOrder * acos(normalizedFreq.toDouble())).pow(2)).toFloat()
+                    ripple
+                } else {
+                    // Stopband
+                    1f / sqrt(1 + epsilon * epsilon * 
+                        cosh(filterOrder * acosh(abs(normalizedFreq).toDouble())).pow(2)).toFloat()
+                }
+            }
+            "elliptic" -> {
+                // Elliptic (Cauer) - ripple in both passband and stopband, steepest rolloff
+                if (abs(normalizedFreq) <= 1) {
+                    // Simplified elliptic response in passband
+                    0.95f + 0.05f * cos(3 * PI * normalizedFreq).toFloat()
+                } else {
+                    // Very steep rolloff
+                    1f / (1 + abs(normalizedFreq).pow(filterOrder * 2))
+                }
+            }
+            else -> {
+                // Default to Butterworth
+                1f / sqrt(1 + normalizedFreq.toDouble().pow(2 * filterOrder)).toFloat()
+            }
+        }
     }
     
     private fun drawCenterFrequency(canvas: Canvas, width: Float, height: Float) {
@@ -254,10 +297,21 @@ class FilterResponseView @JvmOverloads constructor(
         textPaint.textAlign = Paint.Align.LEFT
         canvas.drawText("BW: ${bandwidth.toInt()}Hz", 10f, 30f, textPaint)
         
+        // Filter type and order
+        canvas.drawText("${filterType.replaceFirstChar { it.uppercase() }} Order $filterOrder", 10f, 50f, textPaint)
+        
         // dB scale
         textPaint.textAlign = Paint.Align.RIGHT
         textPaint.textSize = 16f
         canvas.drawText("0dB", width - 5f, 20f, textPaint)
         canvas.drawText("-40dB", width - 5f, height * 0.8f - 5f, textPaint)
+        
+        // -3dB line
+        val db3Y = height * 0.8f * 0.15f // -3dB is at ~0.707 amplitude
+        gridPaint.alpha = 100
+        canvas.drawLine(0f, db3Y, width, db3Y, gridPaint)
+        textPaint.textSize = 14f
+        canvas.drawText("-3dB", width - 5f, db3Y - 5f, textPaint)
+        gridPaint.alpha = 255
     }
 } 

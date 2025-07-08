@@ -45,6 +45,8 @@ data class TrainingSettings(
     val noiseEnabled: Boolean = false,
     val noiseVolume: Float = 0.3f,
     val noiseBandwidthHz: Float = 1000f,
+    val filterType: String = "butterworth",    // butterworth, chebyshev, elliptic
+    val filterOrder: Int = 4,                  // 2, 4, 6, 8 - higher = steeper but more ringing
     val qrmEnabled: Boolean = false,          // QRM (interference) simulation
     val qrmVolume: Float = 0.2f,
     val qsbEnabled: Boolean = false,          // QSB (fading) simulation
@@ -111,6 +113,8 @@ data class TrainingSettings(
                 noiseEnabled = settings.noiseEnabled,
                 noiseVolume = settings.noiseVolume.coerceIn(0f, 1f),
                 noiseBandwidthHz = settings.noiseBandwidthHz.coerceIn(100f, 5000f),
+                filterType = settings.filterType,
+                filterOrder = settings.filterOrder.coerceIn(2, 8),
                 qrmEnabled = settings.qrmEnabled,
                 qrmVolume = settings.qrmVolume.coerceIn(0f, 1f),
                 qsbEnabled = settings.qsbEnabled,
@@ -184,6 +188,8 @@ fun TrainingSettings.toJson(): String {
     json.put("noiseEnabled", noiseEnabled)
     json.put("noiseVolume", noiseVolume.toDouble())
     json.put("noiseBandwidthHz", noiseBandwidthHz.toDouble())
+    json.put("filterType", filterType)
+    json.put("filterOrder", filterOrder)
     json.put("qrmEnabled", qrmEnabled)
     json.put("qrmVolume", qrmVolume.toDouble())
     json.put("qsbEnabled", qsbEnabled)
@@ -261,6 +267,8 @@ fun TrainingSettings.Companion.fromJson(json: String): TrainingSettings {
         noiseEnabled = getBooleanOrDefault("noiseEnabled", false),
         noiseVolume = getFloatOrDefault("noiseVolume", 0.3f),
         noiseBandwidthHz = getFloatOrDefault("noiseBandwidthHz", 1000f),
+        filterType = getStringOrDefault("filterType", "butterworth"),
+        filterOrder = getIntOrDefault("filterOrder", 4),
         qrmEnabled = getBooleanOrDefault("qrmEnabled", false),
         qrmVolume = getFloatOrDefault("qrmVolume", 0.2f),
         qsbEnabled = getBooleanOrDefault("qsbEnabled", false),

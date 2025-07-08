@@ -78,10 +78,15 @@ class AudioManager(private val context: Context) {
         
         audioEngine.startNoiseStream {
             if (store.state.value.audioState.isNoiseRunning) {
-                val noise = noiseGenerator.generateNoise(
+                val noise = noiseGenerator.generateHFBandNoise(
                     100, // Generate 100ms chunks
                     settings.noiseVolume,
-                    settings.noiseBandwidthHz
+                    settings.frequency.toFloat(), // Pass center frequency
+                    settings.noiseBandwidthHz,
+                    settings.filterType,
+                    settings.filterOrder,
+                    includeStatic = true,
+                    includeQRN = true
                 )
                 floatToShortArray(noise)
             } else {

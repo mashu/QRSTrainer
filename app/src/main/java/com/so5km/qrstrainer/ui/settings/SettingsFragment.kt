@@ -17,6 +17,10 @@ import com.so5km.qrstrainer.ui.components.settings.WaveformVisualizationView
 import com.so5km.qrstrainer.ui.components.settings.FilterResponseView
 import kotlinx.coroutines.launch
 import com.google.android.material.textfield.TextInputEditText
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import com.so5km.qrstrainer.data.MorseCode
+import com.so5km.qrstrainer.data.ProgressTracker
 
 class SettingsFragment : Fragment() {
     
@@ -25,6 +29,10 @@ class SettingsFragment : Fragment() {
     
     private lateinit var storeViewModel: StoreViewModel
     private lateinit var audioManager: AudioManager
+    private lateinit var progressTracker: ProgressTracker
+    
+    private var testJob: Job? = null
+    private var isContinuousTestRunning = false
     
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -37,6 +45,10 @@ class SettingsFragment : Fragment() {
     
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        
+        storeViewModel = ViewModelProvider(requireActivity())[StoreViewModel::class.java]
+        audioManager = AudioManager(requireContext())
+        progressTracker = ProgressTracker(requireContext())
         
         initializeComponents()
         setupCollapsibleSections()
@@ -54,8 +66,16 @@ class SettingsFragment : Fragment() {
     }
     
     private fun initializeComponents() {
-        storeViewModel = ViewModelProvider(requireActivity())[StoreViewModel::class.java]
-        audioManager = AudioManager(requireContext())
+        // Components are already initialized in onViewCreated
+        setupAudioSliders()
+        setupGroupSliders()
+        setupTimingSliders()
+        setupLevelSliders()
+        setupCharacterSwitches()
+        setupNoiseControls()
+        setupButtons()
+        observeSettings()
+        setupAnimations()
     }
     
     private fun setupCollapsibleSections() {
@@ -409,10 +429,34 @@ class SettingsFragment : Fragment() {
             }
         }
         
+        // Filter type radio buttons
+        binding.radioGroupFilterType.setOnCheckedChangeListener { _, checkedId ->
+            val filterType = when (checkedId) {
+                R.id.radio_butterworth -> "butterworth"
+                R.id.radio_chebyshev -> "chebyshev"
+                R.id.radio_elliptic -> "elliptic"
+                else -> "butterworth"
+            }
+            updateSettings { it.copy(filterType = filterType) }
+            binding.filterResponseView.setFilterType(filterType)
+        }
+        
+        // Filter order slider
+        binding.sliderFilterOrder.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                val order = value.toInt()
+                binding.textFilterOrderValue.text = order.toString()
+                updateSettings { it.copy(filterOrder = order) }
+                binding.filterResponseView.setFilterOrder(order)
+            }
+        }
+        
         // Initialize filter visualization
         binding.filterResponseView.apply {
             setCenterFrequency(binding.sliderFrequency.value)
             setBandwidth(binding.sliderNoiseBandwidth.value)
+            setFilterType("butterworth")
+            setFilterOrder(4)
             setShowRinging(true)
         }
     }
@@ -420,6 +464,14 @@ class SettingsFragment : Fragment() {
     private fun setupButtons() {
         binding.buttonTestAudio.setOnClickListener {
             testAudioSettings()
+        }
+        
+        // Add continuous test mode switch handler
+        binding.switchContinuousTest.setOnCheckedChangeListener { _, isChecked ->
+            if (!isChecked && isContinuousTestRunning) {
+                // Stop continuous test if running
+                stopContinuousTest()
+            }
         }
         
         // Add theme selection on long press of test button (temporary)
@@ -505,6 +557,17 @@ class SettingsFragment : Fragment() {
                 sliderNoiseBandwidth.value = settings.noiseBandwidthHz
                 textNoiseVolumeValue.text = getString(R.string.value_percent, (settings.noiseVolume * 100).toInt())
                 textNoiseBandwidthValue.text = getString(R.string.value_hz, settings.noiseBandwidthHz.toInt())
+                
+                // Set filter type radio button
+                when (settings.filterType) {
+                    "butterworth" -> radioButterworth.isChecked = true
+                    "chebyshev" -> radioChebyshev.isChecked = true
+                    "elliptic" -> radioElliptic.isChecked = true
+                }
+                
+                // Set filter order
+                sliderFilterOrder.value = settings.filterOrder.toFloat()
+                textFilterOrderValue.text = settings.filterOrder.toString()
             }
             
             // Update visualizations with current settings
@@ -516,6 +579,8 @@ class SettingsFragment : Fragment() {
             filterResponseView.apply {
                 setCenterFrequency(settings.frequency.toFloat())
                 setBandwidth(settings.noiseBandwidthHz)
+                setFilterType(settings.filterType)
+                setFilterOrder(settings.filterOrder)
             }
         }
     }
@@ -529,16 +594,10 @@ class SettingsFragment : Fragment() {
     
     private fun testAudioSettings() {
         val settings = storeViewModel.settings.value
-        val testSequence = "TEST"
         
         // Check if already playing - if so, stop it
         if (binding.buttonTestAudio.text == "Stop Test") {
-            audioManager.stopPlayback()
-            audioManager.stopContinuousNoise() // Stop background noise
-            binding.buttonTestAudio.apply {
-                isEnabled = true
-                text = "Test Audio"
-            }
+            stopAllTests()
             return
         }
         
@@ -552,29 +611,89 @@ class SettingsFragment : Fragment() {
             audioManager.startContinuousNoise(settings)
         }
         
-        lifecycleScope.launch {
-            try {
-                audioManager.playSequence(testSequence, settings)
-                
-                // Stop noise and re-enable button after test completes
-                audioManager.stopContinuousNoise()
-                binding.buttonTestAudio.apply {
-                    isEnabled = true
-                    text = "Test Audio"
+        if (binding.switchContinuousTest.isChecked) {
+            // Start continuous character test
+            startContinuousCharacterTest(settings)
+        } else {
+            // Normal test sequence
+            testJob = lifecycleScope.launch {
+                try {
+                    audioManager.playSequence("TEST", settings)
+                    
+                    // Stop noise and re-enable button after test completes
+                    audioManager.stopContinuousNoise()
+                    binding.buttonTestAudio.apply {
+                        isEnabled = true
+                        text = "Test Audio"
+                    }
+                } catch (e: Exception) {
+                    // Stop noise on error
+                    audioManager.stopContinuousNoise()
+                    binding.buttonTestAudio.apply {
+                        isEnabled = true
+                        text = "Test Failed"
+                    }
+                    
+                    // Reset text after delay
+                    kotlinx.coroutines.delay(2000)
+                    binding.buttonTestAudio.text = "Test Audio"
                 }
-            } catch (e: Exception) {
-                // Stop noise on error
-                audioManager.stopContinuousNoise()
-                binding.buttonTestAudio.apply {
-                    isEnabled = true
-                    text = "Test Failed"
-                }
-                
-                // Reset text after delay
-                kotlinx.coroutines.delay(2000)
-                binding.buttonTestAudio.text = "Test Audio"
             }
         }
+    }
+    
+    private fun startContinuousCharacterTest(settings: TrainingSettings) {
+        isContinuousTestRunning = true
+        
+        // Get a character from the current level
+        val levelChars = progressTracker.getCharactersForLevel(settings.currentLevel)
+        val testChar = if (levelChars.isNotEmpty()) {
+            levelChars.random().toString()
+        } else {
+            "E" // Default to E if no characters at level
+        }
+        
+        // Show the current test character
+        binding.textCurrentTestCharacter.apply {
+            text = "Testing: $testChar"
+            visibility = View.VISIBLE
+        }
+        
+        testJob = lifecycleScope.launch {
+            while (isContinuousTestRunning && binding.switchContinuousTest.isChecked) {
+                try {
+                    // Play the character
+                    audioManager.playSequence(testChar, settings)
+                    
+                    // Short pause between repetitions
+                    delay(500)
+                } catch (e: Exception) {
+                    android.util.Log.e("SettingsFragment", "Error in continuous test", e)
+                    break
+                }
+            }
+            
+            // Clean up when loop exits
+            stopAllTests()
+        }
+    }
+    
+    private fun stopContinuousTest() {
+        isContinuousTestRunning = false
+        testJob?.cancel()
+        testJob = null
+    }
+    
+    private fun stopAllTests() {
+        stopContinuousTest()
+        audioManager.stopPlayback()
+        audioManager.stopContinuousNoise()
+        binding.buttonTestAudio.apply {
+            isEnabled = true
+            text = "Test Audio"
+        }
+        // Hide the test character display
+        binding.textCurrentTestCharacter.visibility = View.GONE
     }
     
     private fun setupAnimations() {
@@ -658,8 +777,8 @@ class SettingsFragment : Fragment() {
     }
     
     override fun onDestroyView() {
+        stopAllTests() // Make sure to stop any running tests
         super.onDestroyView()
-        audioManager.release()
         _binding = null
     }
 }
