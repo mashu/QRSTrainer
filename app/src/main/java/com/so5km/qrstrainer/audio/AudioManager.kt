@@ -78,15 +78,16 @@ class AudioManager(private val context: Context) {
         
         audioEngine.startNoiseStream {
             if (store.state.value.audioState.isNoiseRunning) {
+                // Always use realistic HF band noise for CW training
                 val noise = noiseGenerator.generateHFBandNoise(
                     100, // Generate 100ms chunks
                     settings.noiseVolume,
-                    settings.frequency.toFloat(), // Pass center frequency
+                    settings.frequency.toFloat(),
                     settings.noiseBandwidthHz,
                     settings.filterType,
                     settings.filterOrder,
                     includeStatic = true,
-                    includeQRN = true
+                    includeQRN = settings.qrmEnabled
                 )
                 floatToShortArray(noise)
             } else {

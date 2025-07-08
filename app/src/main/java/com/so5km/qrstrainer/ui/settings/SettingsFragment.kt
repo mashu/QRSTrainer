@@ -21,6 +21,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import com.so5km.qrstrainer.data.MorseCode
 import com.so5km.qrstrainer.data.ProgressTracker
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import com.so5km.qrstrainer.audio.NoiseGenerator
 
 class SettingsFragment : Fragment() {
     
@@ -30,6 +33,7 @@ class SettingsFragment : Fragment() {
     private lateinit var storeViewModel: StoreViewModel
     private lateinit var audioManager: AudioManager
     private lateinit var progressTracker: ProgressTracker
+    private lateinit var noiseGenerator: NoiseGenerator
     
     private var testJob: Job? = null
     private var isContinuousTestRunning = false
@@ -49,6 +53,7 @@ class SettingsFragment : Fragment() {
         storeViewModel = ViewModelProvider(requireActivity())[StoreViewModel::class.java]
         audioManager = AudioManager(requireContext())
         progressTracker = ProgressTracker(requireContext())
+        noiseGenerator = NoiseGenerator()
         
         initializeComponents()
         setupCollapsibleSections()
@@ -229,6 +234,11 @@ class SettingsFragment : Fragment() {
                 // Update both visualizations
                 binding.filterResponseView.setCenterFrequency(value)
                 binding.waveformVisualization.setFrequency(value)
+                
+                // Update spectrum if visible
+                if (binding.spectrumVisualizationView.visibility == View.VISIBLE) {
+                    updateSpectrumVisualization()
+                }
             }
         }
         
@@ -408,6 +418,16 @@ class SettingsFragment : Fragment() {
         binding.switchNoise.setOnCheckedChangeListener { _, isChecked ->
             binding.layoutNoiseControls.visibility = if (isChecked) View.VISIBLE else View.GONE
             updateSettings { it.copy(noiseEnabled = isChecked) }
+            
+            // Update spectrum if visible
+            if (binding.spectrumVisualizationView.visibility == View.VISIBLE) {
+                updateSpectrumVisualization()
+            }
+        }
+        
+        // QRM switch
+        binding.switchQrm.setOnCheckedChangeListener { _, isChecked ->
+            updateSettings { it.copy(qrmEnabled = isChecked) }
         }
         
         binding.sliderNoiseVolume.addOnChangeListener { _, value, fromUser ->
@@ -426,6 +446,11 @@ class SettingsFragment : Fragment() {
                 
                 // Update filter visualization
                 binding.filterResponseView.setBandwidth(value)
+                
+                // Update spectrum if visible
+                if (binding.spectrumVisualizationView.visibility == View.VISIBLE) {
+                    updateSpectrumVisualization()
+                }
             }
         }
         
@@ -448,6 +473,11 @@ class SettingsFragment : Fragment() {
                 binding.textFilterOrderValue.text = order.toString()
                 updateSettings { it.copy(filterOrder = order) }
                 binding.filterResponseView.setFilterOrder(order)
+                
+                // Update spectrum if visible
+                if (binding.spectrumVisualizationView.visibility == View.VISIBLE) {
+                    updateSpectrumVisualization()
+                }
             }
         }
         
@@ -558,6 +588,9 @@ class SettingsFragment : Fragment() {
                 textNoiseVolumeValue.text = getString(R.string.value_percent, (settings.noiseVolume * 100).toInt())
                 textNoiseBandwidthValue.text = getString(R.string.value_hz, settings.noiseBandwidthHz.toInt())
                 
+                // Set QRM switch
+                switchQrm.isChecked = settings.qrmEnabled
+                
                 // Set filter type radio button
                 when (settings.filterType) {
                     "butterworth" -> radioButterworth.isChecked = true
@@ -659,11 +692,23 @@ class SettingsFragment : Fragment() {
             visibility = View.VISIBLE
         }
         
+        // Show spectrum visualization
+        binding.spectrumVisualizationView.apply {
+            visibility = View.VISIBLE
+            setFilterParameters(settings.frequency.toFloat(), settings.noiseBandwidthHz, settings.filterOrder)
+            setSampleRate(44100)
+        }
+        
         testJob = lifecycleScope.launch {
             while (isContinuousTestRunning && binding.switchContinuousTest.isChecked) {
                 try {
                     // Play the character
                     audioManager.playSequence(testChar, settings)
+                    
+                    // Update spectrum visualization if available
+                    withContext(Dispatchers.Main) {
+                        updateSpectrumVisualization()
+                    }
                     
                     // Short pause between repetitions
                     delay(500)
@@ -675,6 +720,24 @@ class SettingsFragment : Fragment() {
             
             // Clean up when loop exits
             stopAllTests()
+        }
+    }
+    
+    private fun updateSpectrumVisualization() {
+        val settings = storeViewModel.settings.value
+        
+        // Generate test spectrum data
+        val (inputSpectrum, outputSpectrum) = noiseGenerator.generateTestSpectrum(
+            settings.frequency.toFloat(),
+            settings.noiseBandwidthHz,
+            settings.filterOrder,
+            settings.noiseEnabled
+        )
+        
+        // Update visualization
+        binding.spectrumVisualizationView.apply {
+            setFilterParameters(settings.frequency.toFloat(), settings.noiseBandwidthHz, settings.filterOrder)
+            updateSpectrum(inputSpectrum, outputSpectrum)
         }
     }
     
@@ -694,6 +757,8 @@ class SettingsFragment : Fragment() {
         }
         // Hide the test character display
         binding.textCurrentTestCharacter.visibility = View.GONE
+        // Hide spectrum visualization
+        binding.spectrumVisualizationView.visibility = View.GONE
     }
     
     private fun setupAnimations() {

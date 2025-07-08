@@ -47,7 +47,7 @@ data class TrainingSettings(
     val noiseBandwidthHz: Float = 1000f,
     val filterType: String = "butterworth",    // butterworth, chebyshev, elliptic
     val filterOrder: Int = 4,                  // 2, 4, 6, 8 - higher = steeper but more ringing
-    val qrmEnabled: Boolean = false,          // QRM (interference) simulation
+    val qrmEnabled: Boolean = true,           // QRM (interference) simulation - default true for realism
     val qrmVolume: Float = 0.2f,
     val qsbEnabled: Boolean = false,          // QSB (fading) simulation
     val qsbRate: Float = 0.1f,                // fading rate
@@ -269,7 +269,7 @@ fun TrainingSettings.Companion.fromJson(json: String): TrainingSettings {
         noiseBandwidthHz = getFloatOrDefault("noiseBandwidthHz", 1000f),
         filterType = getStringOrDefault("filterType", "butterworth"),
         filterOrder = getIntOrDefault("filterOrder", 4),
-        qrmEnabled = getBooleanOrDefault("qrmEnabled", false),
+        qrmEnabled = getBooleanOrDefault("qrmEnabled", true),
         qrmVolume = getFloatOrDefault("qrmVolume", 0.2f),
         qsbEnabled = getBooleanOrDefault("qsbEnabled", false),
         qsbRate = getFloatOrDefault("qsbRate", 0.1f),
