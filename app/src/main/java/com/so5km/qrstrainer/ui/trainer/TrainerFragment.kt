@@ -238,6 +238,7 @@ class TrainerFragment : Fragment() {
     
     private fun failSequenceImmediately() {
         val responseTime = System.currentTimeMillis() - startTime
+        val settings = storeViewModel.settings.value
         
         // Record failure for all characters in the sequence
         currentSequence.forEachIndexed { index, char ->
@@ -254,9 +255,9 @@ class TrainerFragment : Fragment() {
         
         updateProgressDisplay()
         
-        // Start new sequence after delay
+        // Start new sequence after user-configured delay
         lifecycleScope.launch {
-            delay(3000) // Longer delay for incorrect to show full answer
+            delay(settings.sequenceDelayMs)
             startTraining()
         }
     }
@@ -268,6 +269,7 @@ class TrainerFragment : Fragment() {
         }
         
         val responseTime = System.currentTimeMillis() - startTime
+        val settings = storeViewModel.settings.value
         val isCorrect = userInput.uppercase() == currentSequence.uppercase()
         
         // Record progress for each character
@@ -294,7 +296,7 @@ class TrainerFragment : Fragment() {
         updateProgressDisplay()
         
         lifecycleScope.launch {
-            delay(2000) // Standard delay for sequence completion
+            delay(settings.sequenceDelayMs)
             startTraining()
         }
     }
@@ -559,6 +561,8 @@ class TrainerFragment : Fragment() {
     }
 
     private fun showProgressMessage(message: String, isCorrect: Boolean) {
+        val settings = storeViewModel.settings.value
+        
         // Create a custom snackbar with progress bar
         val snackbar = com.google.android.material.snackbar.Snackbar.make(
             binding.root, 
@@ -607,8 +611,15 @@ class TrainerFragment : Fragment() {
         
         snackbar.show()
         
-        // Animate progress bar countdown
-        val duration = if (isCorrect) 2000L else 3000L // Longer for incorrect to show answer
+        // Use actual sequence delay setting for progress bar countdown
+        val duration = settings.sequenceDelayMs
+        
+        // Handle zero delay case
+        if (duration <= 0) {
+            snackbar.dismiss()
+            return
+        }
+        
         val animator = android.animation.ValueAnimator.ofInt(100, 0)
         animator.duration = duration
         animator.interpolator = android.view.animation.LinearInterpolator()

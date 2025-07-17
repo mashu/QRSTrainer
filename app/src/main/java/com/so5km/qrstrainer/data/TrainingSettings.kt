@@ -85,9 +85,9 @@ data class TrainingSettings(
                 sequenceLength = settings.sequenceLength.coerceIn(1, 50),
                 
                 // Timing validation
-                sequenceDelayMs = settings.sequenceDelayMs.coerceIn(100, 10000),
-                repeatDelayMs = settings.repeatDelayMs.coerceIn(100, 5000),
-                groupDelayMs = settings.groupDelayMs.coerceIn(500, 10000),
+                sequenceDelayMs = settings.sequenceDelayMs.coerceIn(0, 10000),
+                repeatDelayMs = settings.repeatDelayMs.coerceIn(0, 5000),
+                groupDelayMs = settings.groupDelayMs.coerceIn(0, 10000),
                 numberOfRepeats = settings.numberOfRepeats.coerceIn(1, 10),
                 
                 // Level validation
