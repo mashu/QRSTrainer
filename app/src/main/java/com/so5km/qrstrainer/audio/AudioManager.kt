@@ -67,7 +67,15 @@ class AudioManager(private val context: Context) {
     fun release() {
         stopPlayback()
         stopContinuousNoise()
-        audioEngine.release()
+        
+        // Launch coroutine to handle suspend release
+        scope.launch {
+            try {
+                audioEngine.release()
+            } catch (e: Exception) {
+                android.util.Log.e("AudioManager", "Error releasing audio engine", e)
+            }
+        }
     }
     
     fun startContinuousNoise(settings: TrainingSettings) {

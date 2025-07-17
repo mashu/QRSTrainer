@@ -2,6 +2,7 @@ package com.so5km.qrstrainer.audio
 
 import com.so5km.qrstrainer.data.TrainingSettings
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.yield
 
 /**
  * High-level Morse code player that coordinates audio generation and playback
@@ -29,50 +30,88 @@ class MorsePlayer(
         val symbols = morseEncoder.encodeSequence(sequence, settings)
         android.util.Log.d("MorsePlayer", "Encoded ${symbols.size} symbols")
         
+        if (symbols.isEmpty()) {
+            android.util.Log.w("MorsePlayer", "No symbols to play")
+            return
+        }
+        
         isSequencePlaying = true
         
+        try {
+            // Start streaming mode for smooth playback
+            audioEngine.startStreaming()
+            
+            // Generate and queue all audio data
+            generateAndQueueSequence(symbols, settings)
+            
+            // Calculate total duration and wait for completion
+            val totalDurationMs = symbols.sumOf { it.durationMs }
+            android.util.Log.d("MorsePlayer", "Total sequence duration: ${totalDurationMs}ms")
+            
+            // Wait for sequence to complete with small chunks to allow cancellation
+            var remainingMs = totalDurationMs
+            val checkIntervalMs = 100L
+            
+            while (remainingMs > 0 && isSequencePlaying) {
+                val sleepTime = minOf(checkIntervalMs, remainingMs.toLong())
+                delay(sleepTime)
+                remainingMs -= sleepTime.toInt()
+                
+                // Allow other coroutines to run
+                yield()
+            }
+            
+        } finally {
+            // Always stop streaming when done
+            audioEngine.stopStreaming()
+            isSequencePlaying = false
+            android.util.Log.d("MorsePlayer", "Finished playing sequence")
+        }
+    }
+    
+    private fun generateAndQueueSequence(
+        symbols: List<MorseEncoder.MorseSymbol>,
+        settings: TrainingSettings
+    ) {
+        android.util.Log.d("MorsePlayer", "Generating continuous audio stream for ${symbols.size} symbols")
+        
         for ((index, symbol) in symbols.withIndex()) {
-            // Allow cancellation mid-sequence
+            // Check if sequence was cancelled
             if (!isSequencePlaying) {
                 android.util.Log.d("MorsePlayer", "Sequence cancelled at symbol $index")
                 break
             }
             
-            android.util.Log.d("MorsePlayer", "Processing symbol $index: ${symbol.type}")
+            android.util.Log.d("MorsePlayer", "Generating symbol $index: ${symbol.type} (${symbol.durationMs}ms)")
             
             when (symbol.type) {
                 MorseEncoder.SymbolType.DIT,
                 MorseEncoder.SymbolType.DAH -> {
-                    android.util.Log.d("MorsePlayer", "Playing ${symbol.type} for ${symbol.durationMs}ms")
-                    playTone(settings.frequency, symbol.durationMs, settings)
+                    // Generate tone
+                    val audioData = generateTone(settings.frequency, symbol.durationMs, settings)
+                    audioEngine.queueAudio(audioData)
                 }
                 MorseEncoder.SymbolType.ELEMENT_SPACE,
                 MorseEncoder.SymbolType.CHARACTER_SPACE,
                 MorseEncoder.SymbolType.WORD_SPACE -> {
-                    android.util.Log.d("MorsePlayer", "Playing silence for ${symbol.durationMs}ms")
-                    delay(symbol.durationMs.toLong())
+                    // Generate silence
+                    val audioData = generateSilence(symbol.durationMs)
+                    audioEngine.queueAudio(audioData)
                 }
             }
         }
         
-        isSequencePlaying = false
-        android.util.Log.d("MorsePlayer", "Finished playing sequence")
+        android.util.Log.d("MorsePlayer", "Finished generating audio stream")
     }
     
-    fun stopSequence() {
-        android.util.Log.d("MorsePlayer", "Stopping sequence playback")
-        isSequencePlaying = false
-        audioEngine.stop()
-    }
-    
-    private suspend fun playTone(
+    private fun generateTone(
         frequency: Int,
         durationMs: Int,
         settings: TrainingSettings
-    ) {
-        android.util.Log.d("MorsePlayer", "playTone: freq=$frequency, duration=$durationMs, volume=${settings.volume}")
+    ): ShortArray {
+        android.util.Log.d("MorsePlayer", "Generating tone: freq=$frequency, duration=$durationMs, volume=${settings.volume}")
         
-        // Generate tone
+        // Generate sine wave
         var signal = signalGenerator.generateSineWave(
             frequency,
             durationMs,
@@ -80,24 +119,32 @@ class MorsePlayer(
         )
         android.util.Log.d("MorsePlayer", "Generated signal with ${signal.size} samples")
         
-        // Apply envelope
+        // Apply envelope to prevent clicks
         signal = signalGenerator.applyEnvelope(
             signal,
             settings.riseTimeMs,
             settings.riseTimeMs
         )
-        android.util.Log.d("MorsePlayer", "Applied envelope")
+        android.util.Log.d("MorsePlayer", "Applied envelope with ${settings.riseTimeMs}ms rise/fall time")
         
-        // Convert to audio format and play (no noise mixing - noise runs separately)
+        // Convert to audio format
         val audioData = floatToShortArray(signal)
         android.util.Log.d("MorsePlayer", "Converted to ${audioData.size} audio samples")
         
-        // Play audio synchronously
-        audioEngine.play(audioData)
-        android.util.Log.d("MorsePlayer", "Called audioEngine.play()")
-        
-        // Add a small delay to ensure timing is correct
-        delay(10)
+        return audioData
+    }
+    
+    private fun generateSilence(durationMs: Int): ShortArray {
+        val numSamples = (AudioEngine.SAMPLE_RATE * durationMs / 1000.0).toInt()
+        val audioData = ShortArray(numSamples) { 0 }
+        android.util.Log.d("MorsePlayer", "Generated ${audioData.size} silence samples for ${durationMs}ms")
+        return audioData
+    }
+    
+    fun stopSequence() {
+        android.util.Log.d("MorsePlayer", "Stopping sequence playback")
+        isSequencePlaying = false
+        // Note: AudioEngine streaming will be stopped by the playSequence method
     }
     
     private fun floatToShortArray(floatArray: FloatArray): ShortArray {
@@ -108,3 +155,4 @@ class MorsePlayer(
         }
     }
 }
+
