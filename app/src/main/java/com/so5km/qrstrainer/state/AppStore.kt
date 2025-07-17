@@ -1,5 +1,10 @@
 package com.so5km.qrstrainer.state
 
+import android.content.Context
+import android.content.SharedPreferences
+import com.so5km.qrstrainer.data.TrainingSettings
+import com.so5km.qrstrainer.data.fromJson
+import com.so5km.qrstrainer.data.toJson
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -9,13 +14,33 @@ import kotlinx.coroutines.flow.update
  * Central state store for the entire application
  * Implements a Redux-like pattern with actions and reducers
  */
-class AppStore {
+class AppStore private constructor() {
     private val _state = MutableStateFlow(AppState())
     val state: StateFlow<AppState> = _state.asStateFlow()
     
+    private var sharedPreferences: SharedPreferences? = null
+    
+    /**
+     * Initialize the store with context for persistence
+     */
+    fun initialize(context: Context) {
+        sharedPreferences = context.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+        loadSettings()
+    }
+    
     fun dispatch(action: AppAction) {
         _state.update { currentState ->
-            reduce(currentState, action)
+            val newState = reduce(currentState, action)
+            
+            // Save settings whenever they change
+            if (action is AppAction.UpdateSettings || 
+                action is AppAction.UpdateWpm || 
+                action is AppAction.UpdateEffectiveWpm ||
+                action is AppAction.ResetSettings) {
+                saveSettings(newState.settings)
+            }
+            
+            newState
         }
     }
     
@@ -71,13 +96,16 @@ class AppStore {
             
             // Settings Actions
             is AppAction.UpdateSettings -> state.copy(
-                settings = action.settings
+                settings = TrainingSettings.validate(action.settings)
             )
             is AppAction.UpdateWpm -> state.copy(
                 settings = state.settings.copy(wpm = action.wpm)
             )
             is AppAction.UpdateEffectiveWpm -> state.copy(
                 settings = state.settings.copy(effectiveWpm = action.effectiveWpm)
+            )
+            is AppAction.ResetSettings -> state.copy(
+                settings = TrainingSettings.default()
             )
             
             // App Lifecycle Actions
@@ -111,6 +139,56 @@ class AppStore {
                 )
             )
         }
+    }
+    
+    /**
+     * Save settings to SharedPreferences
+     */
+    private fun saveSettings(settings: TrainingSettings) {
+        try {
+            sharedPreferences?.edit()?.apply {
+                putString("training_settings", settings.toJson())
+                apply()
+            }
+            android.util.Log.d("AppStore", "Settings saved successfully")
+        } catch (e: Exception) {
+            android.util.Log.e("AppStore", "Failed to save settings", e)
+        }
+    }
+    
+    /**
+     * Load settings from SharedPreferences
+     */
+    private fun loadSettings() {
+        try {
+            val settingsJson = sharedPreferences?.getString("training_settings", null)
+            if (settingsJson != null) {
+                val loadedSettings = TrainingSettings.fromJson(settingsJson)
+                _state.update { currentState ->
+                    currentState.copy(settings = TrainingSettings.validate(loadedSettings))
+                }
+                android.util.Log.d("AppStore", "Settings loaded successfully")
+            } else {
+                android.util.Log.d("AppStore", "No saved settings found, using defaults")
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("AppStore", "Failed to load settings, using defaults", e)
+            _state.update { currentState ->
+                currentState.copy(settings = TrainingSettings.default())
+            }
+        }
+    }
+    
+    /**
+     * Reset all settings to defaults
+     */
+    fun resetToDefaults() {
+        val defaultSettings = TrainingSettings.default()
+        _state.update { currentState ->
+            currentState.copy(settings = defaultSettings)
+        }
+        saveSettings(defaultSettings)
+        android.util.Log.d("AppStore", "Settings reset to defaults")
     }
     
     companion object {

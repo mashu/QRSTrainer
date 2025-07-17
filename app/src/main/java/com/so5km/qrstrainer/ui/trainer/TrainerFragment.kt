@@ -1,5 +1,7 @@
 package com.so5km.qrstrainer.ui.trainer
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
@@ -13,6 +15,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.animation.LinearInterpolator
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
@@ -207,14 +210,20 @@ class TrainerFragment : Fragment() {
         storeViewModel.dispatch(AppAction.UpdateUserInput(userInput))
         updateInputDisplay()
         
-        // Check if this character is incorrect and stop audio if so
+        // Check if this character is incorrect
         val currentIndex = userInput.length - 1
         if (currentIndex < currentSequence.length) {
             val expectedChar = currentSequence[currentIndex]
             if (char.uppercaseChar() != expectedChar.uppercaseChar()) {
-                // Stop audio playback on first mismatch
+                // First incorrect character - fail immediately
                 audioManager.stopPlayback()
-                showMessage("❌ Incorrect character entered - audio stopped")
+                
+                // Wait a moment to show the red character, then fail the sequence
+                lifecycleScope.launch {
+                    delay(500) // Let user see the red character
+                    failSequenceImmediately()
+                }
+                return
             }
         }
         
@@ -224,6 +233,31 @@ class TrainerFragment : Fragment() {
                 delay(500) // Small delay for user to see the typed character
                 submitAnswer()
             }
+        }
+    }
+    
+    private fun failSequenceImmediately() {
+        val responseTime = System.currentTimeMillis() - startTime
+        
+        // Record failure for all characters in the sequence
+        currentSequence.forEachIndexed { index, char ->
+            val userChar = if (userInput.length > index) userInput[index] else null
+            val charCorrect = userChar?.uppercaseChar() == char.uppercaseChar()
+            progressTracker.recordAttempt(char, charCorrect, responseTime / currentSequence.length)
+        }
+        
+        storeViewModel.dispatch(AppAction.SubmitAnswer(userInput))
+        
+        // Show failure animation and message with progress bar
+        showIncorrectAnswerAnimation()
+        showProgressMessage("❌ Incorrect! The answer was: $currentSequence", false)
+        
+        updateProgressDisplay()
+        
+        // Start new sequence after delay
+        lifecycleScope.launch {
+            delay(3000) // Longer delay for incorrect to show full answer
+            startTraining()
         }
     }
     
@@ -248,19 +282,19 @@ class TrainerFragment : Fragment() {
         
         storeViewModel.dispatch(AppAction.SubmitAnswer(userInput))
         
+        // Show completion feedback with progress bar
         if (isCorrect) {
             showCorrectAnswerAnimation()
-            showMessage("✅ Correct! Well done!")
+            showProgressMessage("✅ Correct! Well done!", true)
         } else {
             showIncorrectAnswerAnimation()
-            showMessage("❌ Incorrect. The answer was: $currentSequence")
+            showProgressMessage("❌ Incorrect! The answer was: $currentSequence", false)
         }
         
         updateProgressDisplay()
         
         lifecycleScope.launch {
-            delay(2000)
-            // Always start a new training session after answering
+            delay(2000) // Standard delay for sequence completion
             startTraining()
         }
     }
@@ -268,11 +302,7 @@ class TrainerFragment : Fragment() {
     private fun updateUIForTrainingState(state: TrainingStateData) {
         updateUIForState(state.state)
         
-        if (state.previousWasCorrect && state.previousSequence.isNotEmpty()) {
-            showMessage("✅ Correct!")
-        } else if (!state.previousWasCorrect && state.previousSequence.isNotEmpty()) {
-            showMessage("❌ Try again!")
-        }
+        // Remove the old state-based messages since we now handle them in sequence completion
     }
     
     private fun updateUIForState(state: TrainingState) {
@@ -526,6 +556,75 @@ class TrainerFragment : Fragment() {
     
     private fun showMessage(message: String) {
         Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT).show()
+    }
+
+    private fun showProgressMessage(message: String, isCorrect: Boolean) {
+        // Create a custom snackbar with progress bar
+        val snackbar = com.google.android.material.snackbar.Snackbar.make(
+            binding.root, 
+            message, 
+            com.google.android.material.snackbar.Snackbar.LENGTH_INDEFINITE
+        )
+        
+        // Customize the snackbar appearance
+        val snackbarView = snackbar.view
+        val textView = snackbarView.findViewById<android.widget.TextView>(com.google.android.material.R.id.snackbar_text)
+        
+        // Set colors based on correctness
+        val backgroundColor = if (isCorrect) {
+            androidx.core.content.ContextCompat.getColor(requireContext(), R.color.md_theme_light_primary)
+        } else {
+            androidx.core.content.ContextCompat.getColor(requireContext(), R.color.md_theme_light_error)
+        }
+        
+        val textColor = if (isCorrect) {
+            androidx.core.content.ContextCompat.getColor(requireContext(), R.color.md_theme_light_onPrimary)
+        } else {
+            androidx.core.content.ContextCompat.getColor(requireContext(), R.color.md_theme_light_onError)
+        }
+        
+        snackbarView.setBackgroundColor(backgroundColor)
+        textView.setTextColor(textColor)
+        textView.textSize = 16f
+        
+        // Create progress bar
+        val progressBar = com.google.android.material.progressindicator.LinearProgressIndicator(requireContext())
+        progressBar.isIndeterminate = false
+        progressBar.max = 100
+        progressBar.progress = 100
+        
+        // Set progress bar colors
+        progressBar.setIndicatorColor(textColor)
+        progressBar.trackColor = backgroundColor
+        
+        // Add progress bar to snackbar
+        val layout = snackbarView as com.google.android.material.snackbar.Snackbar.SnackbarLayout
+        val progressParams = android.view.ViewGroup.LayoutParams(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            8 // 8dp height
+        )
+        layout.addView(progressBar, progressParams)
+        
+        snackbar.show()
+        
+        // Animate progress bar countdown
+        val duration = if (isCorrect) 2000L else 3000L // Longer for incorrect to show answer
+        val animator = android.animation.ValueAnimator.ofInt(100, 0)
+        animator.duration = duration
+        animator.interpolator = android.view.animation.LinearInterpolator()
+        
+        animator.addUpdateListener { animation ->
+            val progress = animation.animatedValue as Int
+            progressBar.progress = progress
+        }
+        
+        animator.addListener(object : android.animation.AnimatorListenerAdapter() {
+            override fun onAnimationEnd(animation: android.animation.Animator) {
+                snackbar.dismiss()
+            }
+        })
+        
+        animator.start()
     }
     
     override fun onDestroyView() {

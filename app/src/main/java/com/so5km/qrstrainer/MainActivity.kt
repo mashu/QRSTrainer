@@ -87,14 +87,15 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
     
     private fun initializeComponents() {
+        // Initialize the AppStore with context for persistence
+        com.so5km.qrstrainer.state.AppStore.getInstance().initialize(this)
+        
         storeViewModel = ViewModelProvider(this)[StoreViewModel::class.java]
         audioManager = AudioManager(this)
         progressTracker = ProgressTracker(this)
         preferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         
-        // Initialize app state
-        val defaultSettings = TrainingSettings.default()
-        storeViewModel.dispatch(AppAction.UpdateSettings(defaultSettings))
+        // Initialize app state (settings will be loaded from persistence)
         storeViewModel.dispatch(AppAction.SetAppInForeground(true))
     }
     

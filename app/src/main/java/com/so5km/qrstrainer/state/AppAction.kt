@@ -18,6 +18,7 @@ sealed class AppAction {
     data class UpdateSettings(val settings: TrainingSettings) : AppAction()
     data class UpdateWpm(val wpm: Int) : AppAction()
     data class UpdateEffectiveWpm(val effectiveWpm: Int) : AppAction()
+    object ResetSettings : AppAction()
     
     // App Lifecycle Actions
     data class SetAppInForeground(val inForeground: Boolean) : AppAction()

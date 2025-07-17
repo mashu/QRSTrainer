@@ -830,8 +830,7 @@ class SettingsFragment : Fragment() {
     }
     
     private fun resetToDefaults() {
-        val defaultSettings = TrainingSettings.default()
-        storeViewModel.dispatch(AppAction.UpdateSettings(defaultSettings))
+        storeViewModel.dispatch(AppAction.ResetSettings)
         
         // Show confirmation
         com.google.android.material.snackbar.Snackbar.make(
