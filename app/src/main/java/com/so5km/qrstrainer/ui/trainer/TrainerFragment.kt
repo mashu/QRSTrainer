@@ -467,13 +467,15 @@ class TrainerFragment : Fragment() {
         binding.audioVisualization.visibility = View.VISIBLE
         
         binding.audioVisualization.let { view ->
-            val pulse = ObjectAnimator.ofFloat(view, "scaleX", 1f, 1.2f, 1f).apply {
-                duration = 500
+            val pulse = ObjectAnimator.ofFloat(view, "scaleX", 1f, 1.1f, 1f).apply {
+                duration = 600
                 repeatCount = ValueAnimator.INFINITE
+                interpolator = AccelerateDecelerateInterpolator()
             }
-            val pulseY = ObjectAnimator.ofFloat(view, "scaleY", 1f, 1.2f, 1f).apply {
-                duration = 500
+            val pulseY = ObjectAnimator.ofFloat(view, "scaleY", 1f, 1.1f, 1f).apply {
+                duration = 600
                 repeatCount = ValueAnimator.INFINITE
+                interpolator = AccelerateDecelerateInterpolator()
             }
             
             AnimatorSet().apply {
