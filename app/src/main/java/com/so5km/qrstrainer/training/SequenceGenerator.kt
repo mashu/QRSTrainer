@@ -10,14 +10,26 @@ import kotlin.random.Random
  */
 class SequenceGenerator(private val progressTracker: ProgressTracker) {
     
+    companion object {
+        /**
+         * Get available characters based on settings and level
+         * This now uses the corrected progressive Koch method
+         */
+        fun getAvailableCharacters(settings: TrainingSettings, progressTracker: ProgressTracker): List<Char> {
+            // Update progress tracker with current settings first
+            progressTracker.updateSettings(settings)
+            // Use the corrected getCharactersForLevel method
+            return progressTracker.getCharactersForLevel(settings.currentLevel)
+        }
+    }
+    
     /**
      * Generate a training sequence with groups based on settings
      * @param settings Training settings including group sizes and sequence length
      * @return A string with groups separated by spaces
      */
     fun generateGroupSequence(settings: TrainingSettings): String {
-        val level = settings.currentLevel
-        val availableChars = getAvailableCharacters(settings)
+        val availableChars = getAvailableCharacters(settings, progressTracker)
         val weightsBasedOnProgress = getCharacterWeights(availableChars)
         
         val groups = mutableListOf<String>()
@@ -41,32 +53,10 @@ class SequenceGenerator(private val progressTracker: ProgressTracker) {
     }
     
     /**
-     * Get available characters based on settings
+     * Get available characters based on settings (instance method for backward compatibility)
      */
     private fun getAvailableCharacters(settings: TrainingSettings): List<Char> {
-        val baseChars = progressTracker.getCharactersForLevel(settings.currentLevel).toMutableList()
-        
-        // Add numbers if enabled
-        if (settings.useNumbers) {
-            baseChars.addAll('0'..'9')
-        }
-        
-        // Add punctuation if enabled
-        if (settings.usePunctuation) {
-            baseChars.addAll(listOf('.', ',', '?', '/', '=', '+', '-'))
-        }
-        
-        // Add prosigns if enabled
-        if (settings.useProsigns) {
-            baseChars.addAll(listOf('<', '>', '@')) // Representing AR, SK, AS
-        }
-        
-        // Add custom characters
-        if (settings.customCharacterSet.isNotEmpty()) {
-            baseChars.addAll(settings.customCharacterSet.toList())
-        }
-        
-        return baseChars.distinct()
+        return getAvailableCharacters(settings, progressTracker)
     }
     
     /**

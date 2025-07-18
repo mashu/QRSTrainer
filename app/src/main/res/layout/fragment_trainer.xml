@@ -5,16 +5,16 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="?attr/colorSurface"
-    android:padding="12dp"
+    android:padding="4dp"
     tools:context=".ui.trainer.TrainerFragment">
 
-    <!-- Progress Card -->
+    <!-- Progress Card - Minimal padding -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/progress_card"
         style="@style/Widget.App.CardView"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
+        android:layout_marginBottom="4dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -23,14 +23,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="12dp">
+            android:padding="6dp">
 
             <TextView
                 android:id="@+id/progress_indicator"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Level 1 - Progress: 75%"
-                android:textAppearance="@style/TextAppearance.App.TitleLarge"
+                android:textAppearance="@style/TextAppearance.App.BodyMedium"
                 android:textColor="?attr/colorOnSurface"
                 android:gravity="center" />
 
@@ -39,21 +39,20 @@
                 style="@style/Widget.App.LinearProgressIndicator"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
+                android:layout_marginTop="2dp"
                 android:progress="75" />
 
         </LinearLayout>
 
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Sequence Display Card -->
+    <!-- Sequence Display Card - Reduced height -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/sequence_card"
         style="@style/Widget.App.CardView"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
-        android:minHeight="100dp"
+        android:layout_height="0dp"
+        android:layout_marginBottom="4dp"
         android:clipChildren="false"
         android:clipToPadding="false"
         app:cardBackgroundColor="?attr/colorSurfaceVariant"
@@ -61,12 +60,13 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/progress_card"
-        app:layout_constraintVertical_bias="0.0">
+        app:layout_constraintHeight_default="wrap"
+        app:layout_constraintHeight_min="60dp">
 
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:padding="16dp"
+            android:padding="8dp"
             android:clipChildren="false"
             android:clipToPadding="false">
 
@@ -76,29 +76,29 @@
                 android:layout_height="wrap_content"
                 android:layout_centerInParent="true"
                 android:gravity="center"
-                android:text="Ready to train!\nPress START to begin."
+                android:text=""
                 android:textAppearance="@style/TextAppearance.App.HeadlineMedium"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:fontFamily="monospace"
-                android:lineSpacingExtra="4dp" />
+                android:lineSpacingExtra="2dp" />
 
             <!-- Audio visualization indicator -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/audio_visualization"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
                 android:layout_alignParentEnd="true"
                 android:layout_alignParentTop="true"
-                android:layout_marginEnd="8dp"
-                android:layout_marginTop="8dp"
+                android:layout_marginEnd="4dp"
+                android:layout_marginTop="4dp"
                 android:visibility="gone"
-                app:cardCornerRadius="24dp"
-                app:cardElevation="4dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
                 app:cardBackgroundColor="?attr/colorPrimary">
                 
                 <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
                     android:layout_gravity="center"
                     android:src="@drawable/ic_volume_up"
                     android:tint="?attr/colorOnPrimary" />
@@ -124,13 +124,13 @@
 
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Control Panel Card -->
+    <!-- Control Panel Card - Minimal height -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/control_card"
         style="@style/Widget.App.CardView"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
+        android:layout_marginBottom="4dp"
         app:layout_constraintBottom_toTopOf="@+id/keyboard_card"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
@@ -140,42 +140,45 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:padding="12dp"
+            android:padding="4dp"
             android:gravity="center">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_start"
                 style="@style/Widget.App.Button.Filled"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="40dp"
                 android:layout_weight="1"
-                android:layout_marginEnd="6dp"
-                android:text="@string/button_start" />
+                android:layout_marginEnd="2dp"
+                android:text="@string/button_start"
+                android:textSize="11sp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_stop"
                 style="@style/Widget.App.Button.Outlined"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="40dp"
                 android:layout_weight="1"
-                android:layout_marginStart="3dp"
-                android:layout_marginEnd="3dp"
-                android:text="@string/button_stop" />
+                android:layout_marginStart="1dp"
+                android:layout_marginEnd="1dp"
+                android:text="@string/button_stop"
+                android:textSize="11sp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_replay"
                 style="@style/Widget.App.Button.Outlined"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="40dp"
                 android:layout_weight="1"
-                android:layout_marginStart="6dp"
-                android:text="@string/button_replay" />
+                android:layout_marginStart="2dp"
+                android:text="@string/button_replay"
+                android:textSize="11sp" />
 
         </LinearLayout>
 
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Morse Keyboard Card -->
+    <!-- Morse Keyboard Card - Minimal padding -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/keyboard_card"
         style="@style/Widget.App.CardView"
@@ -189,16 +192,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="12dp">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Select Character"
-                android:textAppearance="@style/TextAppearance.App.BodyMedium"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:gravity="center"
-                android:layout_marginBottom="8dp" />
+            android:padding="4dp">
 
             <!-- Morse keyboard using proper MorseKeyboard component -->
             <com.so5km.qrstrainer.ui.components.trainer.MorseKeyboard

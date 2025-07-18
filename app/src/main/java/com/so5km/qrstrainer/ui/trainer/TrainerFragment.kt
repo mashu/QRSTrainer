@@ -120,20 +120,23 @@ class TrainerFragment : Fragment() {
             onCharacterSelected(char)
         }
         
-        // Initialize keyboard with current level characters from AppStore
-        val currentLevel = storeViewModel.settings.value.currentLevel
+        // Initialize keyboard with characters that match what sequence generator uses
+        val settings = storeViewModel.settings.value
+        val availableChars = SequenceGenerator.getAvailableCharacters(settings, progressTracker)
         
-        Log.d(TAG, "Initializing keyboard with level $currentLevel")
+        Log.d(TAG, "Initializing keyboard with ${availableChars.size} characters: $availableChars")
         
-        val levelChars = progressTracker.getCharactersForLevel(currentLevel)
-        binding.morseKeyboard.setAvailableCharacters(levelChars.toSet())
-        keyboardLevel = currentLevel // Track what level keyboard was built for
+        binding.morseKeyboard.setAvailableCharacters(availableChars.toSet())
+        keyboardLevel = settings.currentLevel // Track what level keyboard was built for
     }
     
     private fun observeState() {
         viewLifecycleOwner.lifecycleScope.launch {
             storeViewModel.trainingState.collect { trainingState ->
+                Log.d(TAG, "=== TRAINING STATE CHANGED ===")
+                Log.d(TAG, "New state: ${trainingState.state}, userInput: '${trainingState.userInput}', currentSequence: '${trainingState.currentSequence}'")
                 updateUIForTrainingState(trainingState)
+                Log.d(TAG, "=== TRAINING STATE CHANGE COMPLETE ===")
             }
         }
         
@@ -152,10 +155,11 @@ class TrainerFragment : Fragment() {
                 // Update progress tracker with new settings
                 progressTracker.updateSettings(settings)
                 
-                // Update keyboard when level changes
-                if (settings.currentLevel != keyboardLevel) {
-                    Log.d(TAG, "Level changed from $keyboardLevel to ${settings.currentLevel} - updating keyboard")
-                    updateMorseKeyboardForLevel(settings.currentLevel)
+                // Update keyboard when level or character settings change
+                val newAvailableChars = SequenceGenerator.getAvailableCharacters(settings, progressTracker)
+                if (settings.currentLevel != keyboardLevel || !binding.morseKeyboard.hasCharacters(newAvailableChars.toSet())) {
+                    Log.d(TAG, "Settings changed - updating keyboard with ${newAvailableChars.size} characters")
+                    binding.morseKeyboard.setAvailableCharacters(newAvailableChars.toSet())
                     keyboardLevel = settings.currentLevel
                 }
                 
@@ -166,11 +170,12 @@ class TrainerFragment : Fragment() {
     
     private fun startTraining() {
         val settings = storeViewModel.settings.value
-        currentSequence = sequenceGenerator.generateSequence(
-            settings.sequenceLength,
-            settings.currentLevel
-        )
+        currentSequence = sequenceGenerator.generateGroupSequence(settings)
         
+        Log.d(TAG, "Starting training with sequence: '$currentSequence' (length: ${currentSequence.length})")
+        Log.d(TAG, "Settings: sequenceLength=${settings.sequenceLength}, currentLevel=${settings.currentLevel}")
+        
+        // Clear input only when starting a new sequence
         userInput = ""
         startTime = System.currentTimeMillis()
         
@@ -188,8 +193,8 @@ class TrainerFragment : Fragment() {
             try {
                 updateUIForState(TrainingState.PLAYING)
                 audioManager.playSequence(currentSequence, settings)
-                delay(500)
-                storeViewModel.dispatch(AppAction.UpdateUserInput(""))
+                delay(100) // Reduced delay for faster keyboard activation
+                // DON'T clear user input here - preserve what user typed during playback
                 updateUIForState(TrainingState.WAITING)
             } catch (e: Exception) {
                 showMessage("Audio playback error: ${e.message}")
@@ -222,70 +227,83 @@ class TrainerFragment : Fragment() {
         }
     }
     
-    private fun onCharacterSelected(char: Char) {
-        userInput += char
-        storeViewModel.dispatch(AppAction.UpdateUserInput(userInput))
-        updateInputDisplay()
+    private fun onCharacterSelected(character: Char) {
+        Log.d(TAG, "=== CHARACTER SELECTED START ===")
+        Log.d(TAG, "Character selected: $character, current userInput: '$userInput', currentSequence: '$currentSequence'")
         
-        // Check if this character is incorrect
-        val currentIndex = userInput.length - 1
-        if (currentIndex < currentSequence.length) {
-            val expectedChar = currentSequence[currentIndex]
-            if (char.uppercaseChar() != expectedChar.uppercaseChar()) {
-                // Show incorrect answer on keyboard
-                binding.morseKeyboard.showIncorrectAnswer(char, expectedChar)
-                
-                // First incorrect character - fail immediately
-                audioManager.stopPlayback()
-                
-                // Wait a moment to show the red character, then fail the sequence
-                lifecycleScope.launch {
-                    delay(500) // Let user see the red character
-                    failSequenceImmediately()
-                }
-                return
-            } else {
-                // Show correct answer on keyboard
-                binding.morseKeyboard.showCorrectAnswer(char)
-            }
+        // Count only actual morse characters (not spaces) for validation
+        val morseCharCount = currentSequence.count { it != ' ' }
+        Log.d(TAG, "Morse character count in sequence: $morseCharCount (from '$currentSequence')")
+        
+        // Don't allow typing more characters than the morse character count
+        if (userInput.length >= morseCharCount) {
+            Log.d(TAG, "Rejecting character: already at morse character limit ($morseCharCount)")
+            return
         }
         
-        // Auto-submit when user input matches the expected sequence length
-        if (userInput.length >= currentSequence.length) {
+        // Add character to user input
+        userInput += character
+        Log.d(TAG, "Updated userInput: '$userInput'")
+        
+        Log.d(TAG, "About to dispatch UpdateUserInput action...")
+        storeViewModel.dispatch(AppAction.UpdateUserInput(userInput))
+        Log.d(TAG, "UpdateUserInput action dispatched")
+        
+        Log.d(TAG, "About to call updateSequenceDisplayWithInput...")
+        updateSequenceDisplayWithInput()
+        Log.d(TAG, "updateSequenceDisplayWithInput completed")
+        
+        // Auto-submit when we have enough characters for the actual morse characters
+        Log.d(TAG, "Checking auto-submit: userInput.length (${userInput.length}) >= morseCharCount ($morseCharCount)")
+        if (userInput.length >= morseCharCount) {
+            Log.d(TAG, "Auto-submitting: userInput.length (${userInput.length}) >= morseCharCount ($morseCharCount)")
             lifecycleScope.launch {
-                delay(500) // Small delay for user to see the typed character
+                delay(100) // Small delay to let user see the typed character
                 submitAnswer()
             }
+        } else {
+            Log.d(TAG, "Not auto-submitting: ${userInput.length} < $morseCharCount")
         }
+        
+        Log.d(TAG, "=== CHARACTER SELECTED END ===")
     }
     
-    private fun failSequenceImmediately() {
-        val responseTime = System.currentTimeMillis() - startTime
-        val settings = storeViewModel.settings.value
-        
-        // Record failure for all characters in the sequence
-        currentSequence.forEachIndexed { index, char ->
-            val userChar = if (userInput.length > index) userInput[index] else null
-            val charCorrect = userChar?.uppercaseChar() == char.uppercaseChar()
-            progressTracker.recordAttempt(char, charCorrect, responseTime / currentSequence.length)
+    private fun updateSequenceDisplayWithInput() {
+        if (userInput.isEmpty()) {
+            binding.sequenceDisplay.text = "_"
+            return
         }
         
-        // Level changes are now handled automatically by the AppStore and settings observer
+        // Show the user input with color coding
+        val spannableString = SpannableString(userInput)
         
-        storeViewModel.dispatch(AppAction.SubmitAnswer(userInput))
-        
-        // Show failure animation and message with progress bar
-        showIncorrectAnswerAnimation()
-        showProgressMessage("❌ Incorrect! The answer was: $currentSequence", false)
-        
-        updateProgressDisplay()
-        
-        // Start new sequence after user-configured delay
-        lifecycleScope.launch {
-            delay(settings.sequenceDelayMs)
-            startTraining()
+        // Apply colors based on comparison with morse characters only (exclude spaces)
+        val morseCharsOnly = currentSequence.filter { it != ' ' }
+        if (morseCharsOnly.isNotEmpty()) {
+            userInput.forEachIndexed { index, userChar ->
+                if (index < morseCharsOnly.length) {
+                    val expectedChar = morseCharsOnly[index]
+                    val isCorrect = userChar.uppercaseChar() == expectedChar.uppercaseChar()
+                    val color = if (isCorrect) {
+                        ContextCompat.getColor(requireContext(), R.color.md_theme_light_primary)
+                    } else {
+                        ContextCompat.getColor(requireContext(), R.color.md_theme_light_error)
+                    }
+                    
+                    spannableString.setSpan(
+                        ForegroundColorSpan(color),
+                        index,
+                        index + 1,
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+                }
+            }
         }
+        
+        binding.sequenceDisplay.text = spannableString
     }
+    
+
     
     private fun submitAnswer() {
         if (userInput.isEmpty()) {
@@ -295,17 +313,26 @@ class TrainerFragment : Fragment() {
         
         val responseTime = System.currentTimeMillis() - startTime
         val settings = storeViewModel.settings.value
-        val isCorrect = userInput.uppercase() == currentSequence.uppercase()
         
-        // Record progress for each character
-        currentSequence.forEachIndexed { index, char ->
+        // Compare against morse characters only (exclude spaces)
+        val morseCharsOnly = currentSequence.filter { it != ' ' }
+        val isCorrect = userInput.uppercase() == morseCharsOnly.uppercase()
+        
+        Log.d(TAG, "Answer validation: userInput='$userInput', morseCharsOnly='$morseCharsOnly', isCorrect=$isCorrect")
+        
+        // Record progress for each morse character (excluding spaces)
+        morseCharsOnly.forEachIndexed { index, char ->
             val userChar = if (userInput.length > index) {
                 userInput[index]
             } else null
             
             val charCorrect = userChar?.uppercaseChar() == char.uppercaseChar()
-            progressTracker.recordAttempt(char, charCorrect, responseTime / currentSequence.length)
+            progressTracker.recordAttempt(char, charCorrect, responseTime / morseCharsOnly.length)
         }
+        
+        // CRITICAL: Also record the overall sequence result for proper streak tracking
+        // This ensures that if any character is wrong, the streak resets properly
+        progressTracker.recordSequenceAttempt(isCorrect, responseTime)
         
         // Level changes are now handled automatically by the AppStore and settings observer
         
@@ -317,11 +344,12 @@ class TrainerFragment : Fragment() {
             showProgressMessage("✅ Correct! Well done!", true)
         } else {
             showIncorrectAnswerAnimation()
-            showProgressMessage("❌ Incorrect! The answer was: $currentSequence", false)
+            showProgressMessage("❌ Incorrect! The answer was: $morseCharsOnly", false)
         }
         
         updateProgressDisplay()
         
+        // Automatically continue to next sequence after delay
         lifecycleScope.launch {
             delay(settings.sequenceDelayMs)
             startTraining()
@@ -329,6 +357,7 @@ class TrainerFragment : Fragment() {
     }
     
     private fun updateUIForTrainingState(state: TrainingStateData) {
+        Log.d(TAG, "updateUIForTrainingState called with state: ${state.state}, userInput: '${state.userInput}', currentSequence: '${state.currentSequence}'")
         updateUIForState(state.state)
         
         // Remove the old state-based messages since we now handle them in sequence completion
@@ -338,7 +367,8 @@ class TrainerFragment : Fragment() {
         Log.d(TAG, "Updating UI for state: $state")
         when (state) {
             TrainingState.READY -> {
-                binding.sequenceDisplay.text = "Ready to train"
+                Log.d(TAG, "READY state: disabling keyboard")
+                binding.sequenceDisplay.text = ""
                 binding.buttonStart.isEnabled = true
                 binding.buttonStart.visibility = View.VISIBLE
                 binding.buttonStop.isEnabled = false
@@ -348,10 +378,11 @@ class TrainerFragment : Fragment() {
                 binding.morseKeyboard.alpha = 0.5f
                 setKeyboardEnabled(false)
                 userInput = ""
-                // Don't reset keyboard state here - let explicit actions handle it
+                binding.morseKeyboard.resetState()
             }
             TrainingState.PLAYING -> {
-                binding.sequenceDisplay.text = "Listen..."
+                Log.d(TAG, "PLAYING state: enabling keyboard for concurrent input")
+                binding.sequenceDisplay.text = "🎵 Listen..."
                 binding.buttonStart.isEnabled = false
                 binding.buttonStart.visibility = View.GONE
                 binding.buttonStop.isEnabled = true
@@ -360,10 +391,12 @@ class TrainerFragment : Fragment() {
                 binding.buttonReplay.visibility = View.GONE
                 binding.morseKeyboard.alpha = 1.0f
                 setKeyboardEnabled(true)
+                // Don't clear userInput or reset keyboard state during playback
+                // Users should be able to type while listening
                 startSequenceAnimation()
             }
             TrainingState.WAITING -> {
-                binding.sequenceDisplay.text = "Type what you heard:\n$userInput"
+                Log.d(TAG, "WAITING state: enabling keyboard")
                 binding.buttonStart.isEnabled = false
                 binding.buttonStart.visibility = View.GONE
                 binding.buttonStop.isEnabled = true
@@ -372,10 +405,14 @@ class TrainerFragment : Fragment() {
                 binding.buttonReplay.visibility = View.VISIBLE
                 binding.morseKeyboard.alpha = 1.0f
                 setKeyboardEnabled(true)
-                // Remove the animateToInputMode() call that causes keyboard to disappear/reappear
+                // DON'T clear userInput here - preserve what user typed during playback
+                // Show current input or placeholder
+                updateSequenceDisplayWithInput()
                 // Do NOT reset keyboard state here - preserve selection during input
             }
             TrainingState.FINISHED -> {
+                Log.d(TAG, "FINISHED state: disabling keyboard")
+                binding.sequenceDisplay.text = "Sequence complete!"
                 binding.buttonStart.isEnabled = true
                 binding.buttonStart.visibility = View.VISIBLE
                 binding.buttonStop.isEnabled = false
@@ -384,15 +421,18 @@ class TrainerFragment : Fragment() {
                 binding.buttonReplay.visibility = View.VISIBLE
                 binding.morseKeyboard.alpha = 0.5f
                 setKeyboardEnabled(false)
+                userInput = ""
             }
             TrainingState.PAUSED -> {
-                binding.sequenceDisplay.text = "Training paused"
+                Log.d(TAG, "PAUSED state: enabling keyboard")
+                binding.sequenceDisplay.text = "Paused"
                 binding.buttonStart.isEnabled = true
                 binding.buttonStart.visibility = View.VISIBLE
                 binding.buttonStop.isEnabled = false
                 binding.buttonStop.visibility = View.GONE
                 binding.buttonReplay.isEnabled = true
                 binding.buttonReplay.visibility = View.VISIBLE
+                setKeyboardEnabled(true)
             }
         }
     }
@@ -401,45 +441,21 @@ class TrainerFragment : Fragment() {
         binding.morseKeyboard.isEnabled = enabled
     }
     
-    private fun updateInputDisplay() {
-        if (userInput.isEmpty()) {
-            binding.sequenceDisplay.text = "Type what you heard:"
-        } else {
-            // Create the full text with header
-            val headerText = "Type what you heard:\n"
-            val fullText = headerText + userInput
-            val spannableString = SpannableString(fullText)
-            
-            // Apply colors to the user input part only (after the header)
-            val inputStartIndex = headerText.length
-            userInput.forEachIndexed { index, userChar ->
-                if (index < currentSequence.length) {
-                    val expectedChar = currentSequence[index]
-                    val isCorrect = userChar.uppercaseChar() == expectedChar.uppercaseChar()
-                    val color = if (isCorrect) {
-                        ContextCompat.getColor(requireContext(), R.color.md_theme_light_primary)
-                    } else {
-                        ContextCompat.getColor(requireContext(), R.color.md_theme_light_error)
-                    }
-                    
-                    spannableString.setSpan(
-                        ForegroundColorSpan(color),
-                        inputStartIndex + index,
-                        inputStartIndex + index + 1,
-                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                    )
-                }
-            }
-            binding.sequenceDisplay.text = spannableString
-        }
-    }
+
     
     private fun updateProgressDisplay() {
         val level = storeViewModel.settings.value.currentLevel
         val progress = progressTracker.getCurrentLevelProgress()
-        val streak = maxOf(0, progressTracker.getCurrentStreak()) // Show only positive streaks
+        val streak = progressTracker.getCurrentStreak()
         
-        binding.progressIndicator.text = "Level $level - Progress: ${(progress * 100).toInt()}% - Streak: $streak"
+        // Show actual streak (can be negative) and progress percentage
+        val streakText = if (streak >= 0) "Streak: $streak" else "Streak: $streak"
+        val progressPercent = (progress * 100).toInt()
+        
+        binding.progressIndicator.text = "Level $level - Progress: ${progressPercent}% - $streakText"
+        
+        // Update the actual progress bar
+        binding.progressBar.progress = progressPercent
     }
     
     private fun setupAnimations() {

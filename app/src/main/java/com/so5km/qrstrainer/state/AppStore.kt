@@ -99,10 +99,10 @@ class AppStore private constructor() {
                 settings = TrainingSettings.validate(action.settings)
             )
             is AppAction.UpdateWpm -> state.copy(
-                settings = state.settings.copy(wpm = action.wpm)
+                settings = TrainingSettings.validate(state.settings.copy(wpm = action.wpm))
             )
             is AppAction.UpdateEffectiveWpm -> state.copy(
-                settings = state.settings.copy(effectiveWpm = action.effectiveWpm)
+                settings = TrainingSettings.validate(state.settings.copy(effectiveWpm = action.effectiveWpm))
             )
             is AppAction.ResetSettings -> state.copy(
                 settings = TrainingSettings.default()

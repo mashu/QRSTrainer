@@ -25,30 +25,36 @@ class MorseEncoder {
         val timings = calculateTimings(settings)
         
         sequence.forEachIndexed { index, char ->
-            val morsePattern = MorseCode.MORSE_MAP[char] ?: return@forEachIndexed
-            
-            // Add morse pattern for character
-            morsePattern.forEachIndexed { patternIndex, element ->
-                when (element) {
-                    '.' -> symbols.add(MorseSymbol(SymbolType.DIT, timings.ditMs))
-                    '-' -> symbols.add(MorseSymbol(SymbolType.DAH, timings.dahMs))
-                }
-                
-                // Add element space except after last element
-                if (patternIndex < morsePattern.length - 1) {
-                    symbols.add(MorseSymbol(SymbolType.ELEMENT_SPACE, timings.elementSpaceMs))
-                }
-            }
-            
-            // Add character or word space
-            if (index < sequence.length - 1) {
-                symbols.add(
-                    if (char == ' ') {
-                        MorseSymbol(SymbolType.WORD_SPACE, timings.wordSpaceMs)
-                    } else {
-                        MorseSymbol(SymbolType.CHARACTER_SPACE, timings.charSpaceMs)
+            when (char) {
+                ' ' -> {
+                    // Handle space as word separator
+                    if (index < sequence.length - 1) {
+                        symbols.add(MorseSymbol(SymbolType.WORD_SPACE, timings.wordSpaceMs))
                     }
-                )
+                }
+                else -> {
+                    val morsePattern = MorseCode.MORSE_MAP[char] 
+                    if (morsePattern != null) {
+                        // Add morse pattern for character
+                        morsePattern.forEachIndexed { patternIndex, element ->
+                            when (element) {
+                                '.' -> symbols.add(MorseSymbol(SymbolType.DIT, timings.ditMs))
+                                '-' -> symbols.add(MorseSymbol(SymbolType.DAH, timings.dahMs))
+                            }
+                            
+                            // Add element space except after last element
+                            if (patternIndex < morsePattern.length - 1) {
+                                symbols.add(MorseSymbol(SymbolType.ELEMENT_SPACE, timings.elementSpaceMs))
+                            }
+                        }
+                        
+                        // Add character space except after last character and before spaces
+                        if (index < sequence.length - 1 && sequence[index + 1] != ' ') {
+                            symbols.add(MorseSymbol(SymbolType.CHARACTER_SPACE, timings.charSpaceMs))
+                        }
+                    }
+                    // If character not in MORSE_MAP, skip it (don't add anything)
+                }
             }
         }
         

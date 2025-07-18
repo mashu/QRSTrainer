@@ -130,15 +130,24 @@ class MorseKeyboard @JvmOverloads constructor(
         android.util.Log.d("MorseKeyboard", "populateKeyboard() called - KEYBOARD WILL DISAPPEAR/REAPPEAR")
         chipGroup.removeAllViews()
         
-        // Get all morse code characters in order - using a simple character set for now
-        val allCharacters = ('A'..'Z').toList().filter { it in enabledCharacters }
+        // Organize characters by type for better layout
+        val letters = enabledCharacters.filter { it.isLetter() }.sorted()
+        val numbers = enabledCharacters.filter { it.isDigit() }.sorted()
+        val punctuation = enabledCharacters.filter { it in listOf('.', ',', '?', '/', '=', '+', '-') }.sorted()
+        val prosigns = enabledCharacters.filter { it in listOf('<', '>', '@') }.sorted()
+        val custom = enabledCharacters.filter { 
+            !it.isLetter() && !it.isDigit() && it !in listOf('.', ',', '?', '/', '=', '+', '-', '<', '>', '@') 
+        }.sorted()
         
-        // Create chips directly in the main ChipGroup - no nested groups needed
-        allCharacters.forEach { char ->
+        // Create chips in order: letters, numbers, punctuation, prosigns, custom
+        val allCharsInOrder = letters + numbers + punctuation + prosigns + custom
+        
+        allCharsInOrder.forEach { char ->
             val chip = createChip(char)
             chipGroup.addView(chip)
         }
-        android.util.Log.d("MorseKeyboard", "populateKeyboard() completed")
+        
+        android.util.Log.d("MorseKeyboard", "populateKeyboard() completed with ${allCharsInOrder.size} characters")
     }
 
 

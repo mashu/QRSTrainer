@@ -559,13 +559,23 @@ class SettingsFragment : Fragment() {
             textRepeatDelayValue.text = getString(R.string.value_seconds, settings.repeatDelayMs / 1000f)
             textGroupDelayValue.text = getString(R.string.value_seconds, settings.groupDelayMs / 1000f)
             
-            // Level settings
+            // Level settings - Dynamic max level based on available characters
+            val maxLevel = TrainingSettings.calculateMaxLevel(
+                useNumbers = settings.useNumbers,
+                usePunctuation = settings.usePunctuation,
+                useProsigns = settings.useProsigns,
+                customCharacterSet = settings.customCharacterSet
+            )
+            
+            // Update slider maximum to reflect actual available levels
+            sliderCurrentLevel.valueTo = maxLevel.toFloat()
             sliderCurrentLevel.value = settings.currentLevel.toFloat()
+            
             switchLockLevel.isChecked = settings.lockLevel
             sliderCorrectToLevelUp.value = settings.correctAnswersToLevelUp.toFloat()
             sliderIncorrectToDrop.value = settings.incorrectAnswersToDropLevel.toFloat()
             
-            textCurrentLevelValue.text = getString(R.string.value_level, settings.currentLevel)
+            textCurrentLevelValue.text = getString(R.string.value_level, settings.currentLevel) + " / $maxLevel"
             textCorrectToLevelUpValue.text = settings.correctAnswersToLevelUp.toString()
             textIncorrectToDropValue.text = settings.incorrectAnswersToDropLevel.toString()
             

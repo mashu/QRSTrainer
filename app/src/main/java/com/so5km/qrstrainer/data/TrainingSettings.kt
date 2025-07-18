@@ -68,77 +68,95 @@ data class TrainingSettings(
     val breakReminderMinutes: Int = 60        // remind for breaks
 ) {
     companion object {
-        fun default() = TrainingSettings()
+        /**
+         * Calculate the maximum valid level based on character settings
+         * Each level adds 2 characters from the base Koch method (26 letters total)
+         * Plus additional characters from enabled sets
+         */
+        fun calculateMaxLevel(
+            useNumbers: Boolean = false,
+            usePunctuation: Boolean = false,
+            useProsigns: Boolean = false,
+            customCharacterSet: String = ""
+        ): Int {
+            // Base Koch method: 26 letters across 13 levels (2 chars per level until level 10, then remaining)
+            var baseMaxLevel = 13 // All 26 letters of alphabet
+            
+            // Add extra levels for additional character sets
+            var extraChars = 0
+            if (useNumbers) extraChars += 10 // 0-9
+            if (usePunctuation) extraChars += 7 // . , ? / = + -
+            if (useProsigns) extraChars += 3 // < > @
+            extraChars += customCharacterSet.length
+            
+            // Add extra levels for additional characters (2 chars per level)
+            val extraLevels = (extraChars + 1) / 2 // Round up
+            
+            return baseMaxLevel + extraLevels
+        }
         
+        /**
+         * Validate and adjust settings to ensure consistency
+         * This is the centralized place for all validation logic
+         */
         fun validate(settings: TrainingSettings): TrainingSettings {
-            return TrainingSettings(
-                // Audio validation - increased max WPM for advanced training
-                wpm = settings.wpm.coerceIn(1, 100),
-                effectiveWpm = settings.effectiveWpm.coerceIn(1, settings.wpm),
-                frequency = settings.frequency.coerceIn(200, 2000),
-                volume = settings.volume.coerceIn(0f, 1f),
-                riseTimeMs = settings.riseTimeMs.coerceIn(1.0, 50.0),
-                
-                // Group validation
-                minGroupSize = settings.minGroupSize.coerceIn(1, 10),
-                maxGroupSize = settings.maxGroupSize.coerceIn(settings.minGroupSize, 20),
-                sequenceLength = settings.sequenceLength.coerceIn(1, 50),
-                
-                // Timing validation
-                sequenceDelayMs = settings.sequenceDelayMs.coerceIn(0, 10000),
-                repeatDelayMs = settings.repeatDelayMs.coerceIn(0, 5000),
-                groupDelayMs = settings.groupDelayMs.coerceIn(0, 10000),
-                numberOfRepeats = settings.numberOfRepeats.coerceIn(1, 10),
-                
-                // Level validation
-                currentLevel = settings.currentLevel.coerceIn(1, settings.maxLevel),
-                maxLevel = settings.maxLevel.coerceIn(1, 100),
-                correctAnswersToLevelUp = settings.correctAnswersToLevelUp.coerceIn(1, 50),
-                incorrectAnswersToDropLevel = settings.incorrectAnswersToDropLevel.coerceIn(1, 20),
-                
-                // Training dynamics - pass through as-is (booleans)
-                adaptiveSpeed = settings.adaptiveSpeed,
-                adaptiveGroupSize = settings.adaptiveGroupSize,
-                requirePerfectCopy = settings.requirePerfectCopy,
-                allowPartialCredit = settings.allowPartialCredit,
-                dynamicSpacing = settings.dynamicSpacing,
-                
-                // Character selection - pass through as-is
-                useProsigns = settings.useProsigns,
+            // Calculate the actual maximum level for current character settings
+            val actualMaxLevel = calculateMaxLevel(
                 useNumbers = settings.useNumbers,
                 usePunctuation = settings.usePunctuation,
-                customCharacterSet = settings.customCharacterSet,
-                
-                // Noise validation
-                noiseEnabled = settings.noiseEnabled,
-                noiseVolume = settings.noiseVolume.coerceIn(0f, 1f),
-                noiseBandwidthHz = settings.noiseBandwidthHz.coerceIn(100f, 5000f),
-                filterType = settings.filterType,
-                filterOrder = settings.filterOrder.coerceIn(2, 8),
-                qrmEnabled = settings.qrmEnabled,
-                qrmVolume = settings.qrmVolume.coerceIn(0f, 1f),
-                qsbEnabled = settings.qsbEnabled,
-                qsbRate = settings.qsbRate.coerceIn(0.01f, 2f),
-                
-                // Advanced audio validation
-                clicksEnabled = settings.clicksEnabled,
-                clickVolume = settings.clickVolume.coerceIn(0f, 0.5f),
-                bandwidthHz = settings.bandwidthHz.coerceIn(10f, 500f),
-                shapingEnabled = settings.shapingEnabled,
-                
-                // Appearance validation
-                themeMode = if (settings.themeMode in listOf("light", "dark", "system")) {
-                    settings.themeMode
-                } else {
-                    "light" // default to light if invalid
-                },
-                
-                // Progress validation
-                enableStatistics = settings.enableStatistics,
-                saveProgress = settings.saveProgress,
-                sessionTimeMinutes = settings.sessionTimeMinutes.coerceIn(1, 240),
-                breakReminderMinutes = settings.breakReminderMinutes.coerceIn(10, 300)
+                useProsigns = settings.useProsigns,
+                customCharacterSet = settings.customCharacterSet
             )
+            
+            // Ensure current level doesn't exceed what's available
+            val validCurrentLevel = settings.currentLevel.coerceIn(1, actualMaxLevel)
+            
+            // Ensure maxLevel setting reflects the actual maximum
+            val validMaxLevel = actualMaxLevel
+            
+            // Ensure group sizes are valid
+            val validMinGroupSize = settings.minGroupSize.coerceIn(1, 10)
+            val validMaxGroupSize = settings.maxGroupSize.coerceIn(validMinGroupSize, 20)
+            
+            // Ensure WPM values are valid
+            val validWpm = settings.wpm.coerceIn(5, 60)
+            val validEffectiveWpm = settings.effectiveWpm.coerceIn(5, validWpm)
+            
+            // Ensure other values are within reasonable bounds
+            val validFrequency = settings.frequency.coerceIn(300, 1000)
+            val validVolume = settings.volume.coerceIn(0f, 1f)
+            val validNoiseVolume = settings.noiseVolume.coerceIn(0f, 1f)
+            
+            // Ensure level progression values are reasonable
+            val validCorrectAnswersToLevelUp = settings.correctAnswersToLevelUp.coerceIn(3, 20)
+            val validIncorrectAnswersToDropLevel = settings.incorrectAnswersToDropLevel.coerceIn(2, 10)
+            
+            // Ensure theme mode is valid
+            val validThemeMode = if (settings.themeMode in listOf("light", "dark", "system")) {
+                settings.themeMode
+            } else {
+                "light"
+            }
+            
+            return settings.copy(
+                currentLevel = validCurrentLevel,
+                maxLevel = validMaxLevel,
+                minGroupSize = validMinGroupSize,
+                maxGroupSize = validMaxGroupSize,
+                wpm = validWpm,
+                effectiveWpm = validEffectiveWpm,
+                frequency = validFrequency,
+                volume = validVolume,
+                noiseVolume = validNoiseVolume,
+                correctAnswersToLevelUp = validCorrectAnswersToLevelUp,
+                incorrectAnswersToDropLevel = validIncorrectAnswersToDropLevel,
+                themeMode = validThemeMode
+            )
+        }
+        
+        fun default(): TrainingSettings {
+            val defaultSettings = TrainingSettings()
+            return validate(defaultSettings) // Ensure even defaults are validated
         }
     }
 }

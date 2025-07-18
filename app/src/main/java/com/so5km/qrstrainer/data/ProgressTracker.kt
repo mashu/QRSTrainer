@@ -45,7 +45,7 @@ class ProgressTracker(private val context: Context) {
     }
     
     /**
-     * Record a character attempt
+     * Record attempt for a specific character
      */
     fun recordAttempt(character: Char, wasCorrect: Boolean, responseTimeMs: Long) {
         val stats = characterStats.getOrPut(character.uppercaseChar()) { CharacterStats() }
@@ -55,14 +55,28 @@ class ProgressTracker(private val context: Context) {
         
         if (wasCorrect) {
             stats.correct++
-            // Positive streak for correct answers
+        }
+        
+        // Note: Individual character streak tracking is handled in recordSequenceAttempt
+        // to ensure overall sequence correctness determines streak
+        
+        saveProgress()
+    }
+    
+    /**
+     * Record attempt for overall sequence - this handles streak tracking
+     * This ensures that streaks are based on complete sequence accuracy, not individual characters
+     */
+    fun recordSequenceAttempt(wasCorrect: Boolean, responseTimeMs: Long) {
+        if (wasCorrect) {
+            // Positive streak for correct sequences
             if (_currentStreak.value < 0) {
                 _currentStreak.value = 1  // Reset to 1 if coming from negative streak
             } else {
                 _currentStreak.value = _currentStreak.value + 1
             }
         } else {
-            // Negative streak for wrong answers
+            // Negative streak for wrong sequences
             if (_currentStreak.value > 0) {
                 _currentStreak.value = -1  // Reset to -1 if coming from positive streak
             } else {
@@ -106,10 +120,16 @@ class ProgressTracker(private val context: Context) {
      */
     fun getCurrentLevelProgress(): Float {
         val requiredForNext = getRequiredForNextLevel()
-        val currentStreak = maxOf(0, getCurrentStreak()) // Only count positive streak toward progress
+        val currentStreak = getCurrentStreak()
+        
+        // If streak is negative (wrong answers), progress should reset to 0
+        if (currentStreak < 0) {
+            return 0.0f
+        }
+        
         return if (requiredForNext > 0) {
             minOf(1.0f, currentStreak.toFloat() / requiredForNext)
-        } else 1f
+        } else 1.0f
     }
     
     /**
@@ -121,22 +141,47 @@ class ProgressTracker(private val context: Context) {
     }
     
     /**
-     * Get characters for current level using Koch method
+     * Get characters for current level using progressive Koch method
+     * Level 1: 2 chars, Level 2: 4 chars, Level 3: 6 chars, etc.
+     * Characters are drawn from a master sequence based on enabled settings
      */
     fun getCharactersForLevel(level: Int): List<Char> {
-        return when (level) {
-            1 -> listOf('K', 'M')
-            2 -> listOf('K', 'M', 'U', 'R')
-            3 -> listOf('K', 'M', 'U', 'R', 'E', 'S')
-            4 -> listOf('K', 'M', 'U', 'R', 'E', 'S', 'N', 'A')
-            5 -> listOf('K', 'M', 'U', 'R', 'E', 'S', 'N', 'A', 'P', 'T')
-            6 -> listOf('K', 'M', 'U', 'R', 'E', 'S', 'N', 'A', 'P', 'T', 'L', 'W')
-            7 -> listOf('K', 'M', 'U', 'R', 'E', 'S', 'N', 'A', 'P', 'T', 'L', 'W', 'I', 'J')
-            8 -> listOf('K', 'M', 'U', 'R', 'E', 'S', 'N', 'A', 'P', 'T', 'L', 'W', 'I', 'J', 'Z', 'F')
-            9 -> listOf('K', 'M', 'U', 'R', 'E', 'S', 'N', 'A', 'P', 'T', 'L', 'W', 'I', 'J', 'Z', 'F', 'O', 'Y')
-            10 -> listOf('K', 'M', 'U', 'R', 'E', 'S', 'N', 'A', 'P', 'T', 'L', 'W', 'I', 'J', 'Z', 'F', 'O', 'Y', 'V', 'G')
-            else -> MorseCode.MORSE_MAP.keys.toList()
+        // Master Koch sequence in learning order (optimized for Morse code learning)
+        val masterKochSequence = listOf(
+            // Core letters (always available)
+            'K', 'M', 'U', 'R', 'E', 'S', 'N', 'A', 'P', 'T', 
+            'L', 'W', 'I', 'J', 'Z', 'F', 'O', 'Y', 'V', 'G',
+            'Q', 'H', 'C', 'X', 'B', 'D',
+            // Numbers (if enabled)
+            '5', '0', '9', '8', '7', '6', '4', '3', '2', '1',
+            // Punctuation (if enabled) 
+            '.', ',', '?', '/', '=', '+', '-',
+            // Prosigns (if enabled)
+            '<', '>', '@'  // Representing AR, SK, AS
+        )
+        
+        // Filter the master sequence based on current settings
+        val availableSequence = masterKochSequence.filter { char ->
+            when {
+                char.isLetter() -> true // Letters always available
+                char.isDigit() -> currentSettings.useNumbers
+                char in listOf('.', ',', '?', '/', '=', '+', '-') -> currentSettings.usePunctuation
+                char in listOf('<', '>', '@') -> currentSettings.useProsigns
+                else -> currentSettings.customCharacterSet.contains(char)
+            }
         }
+        
+        // Add custom characters at the end if enabled
+        val customChars = currentSettings.customCharacterSet.toList().filter { 
+            it !in masterKochSequence 
+        }
+        val finalSequence = availableSequence + customChars
+        
+        // Progressive character count: Level 1 = 2 chars, Level 2 = 4 chars, etc.
+        val characterCount = level * 2
+        
+        // Return the first N characters from the filtered sequence
+        return finalSequence.take(characterCount.coerceAtMost(finalSequence.size))
     }
     
     /**
