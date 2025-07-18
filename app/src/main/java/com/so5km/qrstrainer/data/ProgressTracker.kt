@@ -177,8 +177,9 @@ class ProgressTracker(private val context: Context) {
         }
         val finalSequence = availableSequence + customChars
         
-        // Progressive character count: Level 1 = 2 chars, Level 2 = 4 chars, etc.
-        val characterCount = level * 2
+        // Progressive character count: Level 1 = 2 chars, Level 2 = 3 chars, Level 3 = 4 chars, etc.
+        // Traditional Koch method: Start with 2 characters, then add 1 per level
+        val characterCount = level + 1
         
         // Return the first N characters from the filtered sequence
         return finalSequence.take(characterCount.coerceAtMost(finalSequence.size))

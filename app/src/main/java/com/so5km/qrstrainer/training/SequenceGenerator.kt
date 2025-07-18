@@ -34,6 +34,8 @@ class SequenceGenerator(private val progressTracker: ProgressTracker) {
         
         val groups = mutableListOf<String>()
         
+        android.util.Log.d("SequenceGenerator", "generateGroupSequence - minGroupSize: ${settings.minGroupSize}, maxGroupSize: ${settings.maxGroupSize}")
+        
         // Generate the specified number of groups
         repeat(settings.sequenceLength) {
             val groupSize = if (settings.minGroupSize == settings.maxGroupSize) {
@@ -42,14 +44,21 @@ class SequenceGenerator(private val progressTracker: ProgressTracker) {
                 Random.nextInt(settings.minGroupSize, settings.maxGroupSize + 1)
             }
             
+            android.util.Log.d("SequenceGenerator", "Generated group size: $groupSize (should be between ${settings.minGroupSize} and ${settings.maxGroupSize})")
+            
             val group = (1..groupSize).map {
                 selectWeightedRandomCharacter(availableChars, weightsBasedOnProgress)
             }.joinToString("")
             
+            android.util.Log.d("SequenceGenerator", "Generated group: '$group' (length: ${group.length})")
             groups.add(group)
         }
         
-        return groups.joinToString(" ")
+        val finalSequence = groups.joinToString(" ")
+        android.util.Log.d("SequenceGenerator", "Final sequence: '$finalSequence'")
+        android.util.Log.d("SequenceGenerator", "Group breakdown: ${groups.joinToString(", ") { "'$it' (${it.length})" }}")
+        
+        return finalSequence
     }
     
     /**
@@ -89,6 +98,8 @@ class SequenceGenerator(private val progressTracker: ProgressTracker) {
      * Generate a sequence with more difficult characters based on user performance
      */
     fun generateAdaptiveSequence(settings: TrainingSettings): String {
+        android.util.Log.d("SequenceGenerator", "generateAdaptiveSequence called - minGroupSize: ${settings.minGroupSize}, maxGroupSize: ${settings.maxGroupSize}")
+        
         val availableChars = getAvailableCharacters(settings)
         val stats = progressTracker.getAllCharacterStats()
         
@@ -111,13 +122,18 @@ class SequenceGenerator(private val progressTracker: ProgressTracker) {
                     stats[char]?.accuracy
                 }.average()
                 
-                when {
+                val adaptiveSize = when {
                     avgDifficulty < 0.5 -> settings.minGroupSize
                     avgDifficulty < 0.7 -> (settings.minGroupSize + settings.maxGroupSize) / 2
                     else -> settings.maxGroupSize
                 }
+                
+                android.util.Log.d("SequenceGenerator", "Adaptive group size: $adaptiveSize (avgDifficulty: $avgDifficulty)")
+                adaptiveSize
             } else {
-                Random.nextInt(settings.minGroupSize, settings.maxGroupSize + 1)
+                val randomSize = Random.nextInt(settings.minGroupSize, settings.maxGroupSize + 1)
+                android.util.Log.d("SequenceGenerator", "Random group size: $randomSize")
+                randomSize
             }
             
             val group = (1..groupSize).map {

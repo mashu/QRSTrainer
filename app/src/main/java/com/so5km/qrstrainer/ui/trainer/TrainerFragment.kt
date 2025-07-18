@@ -170,9 +170,16 @@ class TrainerFragment : Fragment() {
     
     private fun startTraining() {
         val settings = storeViewModel.settings.value
+        
+        Log.d(TAG, "=== SEQUENCE GENERATION DEBUG ===")
+        Log.d(TAG, "Settings: minGroupSize=${settings.minGroupSize}, maxGroupSize=${settings.maxGroupSize}")
+        Log.d(TAG, "Settings: adaptiveGroupSize=${settings.adaptiveGroupSize}, adaptiveSpeed=${settings.adaptiveSpeed}")
+        Log.d(TAG, "Settings: sequenceLength=${settings.sequenceLength}, currentLevel=${settings.currentLevel}")
+        
         currentSequence = sequenceGenerator.generateGroupSequence(settings)
         
         Log.d(TAG, "Starting training with sequence: '$currentSequence' (length: ${currentSequence.length})")
+        Log.d(TAG, "=== END SEQUENCE GENERATION DEBUG ===")
         Log.d(TAG, "Settings: sequenceLength=${settings.sequenceLength}, currentLevel=${settings.currentLevel}")
         
         // Clear input only when starting a new sequence

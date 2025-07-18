@@ -28,6 +28,7 @@ class MorseKeyboard @JvmOverloads constructor(
 
     init {
         orientation = VERTICAL
+        gravity = android.view.Gravity.CENTER_HORIZONTAL
         chipGroup = ChipGroup(context).apply {
             chipSpacingHorizontal = context.resources.getDimensionPixelSize(R.dimen.chip_spacing_horizontal)
             chipSpacingVertical = context.resources.getDimensionPixelSize(R.dimen.chip_spacing_vertical)
@@ -37,7 +38,16 @@ class MorseKeyboard @JvmOverloads constructor(
             setSingleLine(false)
             // ChipGroup automatically handles multi-line wrapping when setSingleLine(false)
         }
-        addView(chipGroup)
+        
+        // Create layout params for centering the ChipGroup
+        val layoutParams = LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        ).apply {
+            gravity = android.view.Gravity.CENTER_HORIZONTAL
+        }
+        
+        addView(chipGroup, layoutParams)
     }
 
     /**
