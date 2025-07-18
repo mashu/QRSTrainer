@@ -33,6 +33,9 @@ class MorseKeyboard @JvmOverloads constructor(
             chipSpacingVertical = context.resources.getDimensionPixelSize(R.dimen.chip_spacing_vertical)
             isSingleSelection = false
             isSelectionRequired = false
+            // Improved layout for larger alphabets
+            setSingleLine(false)
+            // ChipGroup automatically handles multi-line wrapping when setSingleLine(false)
         }
         addView(chipGroup)
     }
@@ -41,8 +44,22 @@ class MorseKeyboard @JvmOverloads constructor(
      * Set the characters available for selection
      */
     fun setAvailableCharacters(characters: Set<Char>) {
-        enabledCharacters = characters
-        populateKeyboard()
+        android.util.Log.d("MorseKeyboard", "setAvailableCharacters: new=$characters, current=$enabledCharacters")
+        // Only repopulate if characters actually changed
+        if (characters != enabledCharacters) {
+            android.util.Log.d("MorseKeyboard", "REBUILDING KEYBOARD: characters changed")
+            enabledCharacters = characters
+            populateKeyboard()
+        } else {
+            android.util.Log.d("MorseKeyboard", "Characters unchanged, keeping keyboard")
+        }
+    }
+    
+    /**
+     * Check if the keyboard has the given characters available
+     */
+    fun hasCharacters(characters: Set<Char>): Boolean {
+        return enabledCharacters == characters
     }
 
     /**
@@ -58,8 +75,8 @@ class MorseKeyboard @JvmOverloads constructor(
     fun showCorrectAnswer(character: Char) {
         chipGroup.children.forEach { view ->
             if (view is Chip && view.text == character.toString()) {
-                view.setChipBackgroundColorResource(R.color.success)
-                view.setTextColor(ContextCompat.getColor(context, R.color.on_success_container))
+                view.setChipBackgroundColorResource(R.color.md_theme_light_secondaryContainer)
+                view.setTextColor(ContextCompat.getColor(context, R.color.md_theme_light_onSecondaryContainer))
             }
         }
     }
@@ -76,8 +93,8 @@ class MorseKeyboard @JvmOverloads constructor(
                         view.setTextColor(ContextCompat.getColor(context, R.color.md_theme_light_onError))
                     }
                     correctChar -> {
-                        view.setChipBackgroundColorResource(R.color.success)
-                        view.setTextColor(ContextCompat.getColor(context, R.color.on_success_container))
+                        view.setChipBackgroundColorResource(R.color.md_theme_light_secondaryContainer)
+                        view.setTextColor(ContextCompat.getColor(context, R.color.md_theme_light_onSecondaryContainer))
                     }
                 }
             }
@@ -88,6 +105,7 @@ class MorseKeyboard @JvmOverloads constructor(
      * Reset all chips to default state
      */
     fun resetState() {
+        android.util.Log.d("MorseKeyboard", "resetState() called")
         selectedCharacter = null
         chipGroup.children.forEach { view ->
             if (view is Chip) {
@@ -95,6 +113,8 @@ class MorseKeyboard @JvmOverloads constructor(
             }
         }
     }
+
+
 
     /**
      * Enable or disable the keyboard
@@ -107,72 +127,32 @@ class MorseKeyboard @JvmOverloads constructor(
     }
 
     private fun populateKeyboard() {
+        android.util.Log.d("MorseKeyboard", "populateKeyboard() called - KEYBOARD WILL DISAPPEAR/REAPPEAR")
         chipGroup.removeAllViews()
         
         // Get all morse code characters in order - using a simple character set for now
         val allCharacters = ('A'..'Z').toList().filter { it in enabledCharacters }
         
-        // Group characters by rows for better layout
-        val characterRows = groupCharactersIntoRows(allCharacters)
-        
-        characterRows.forEach { rowCharacters ->
-            createRowOfChips(rowCharacters)
-        }
-    }
-
-    private fun groupCharactersIntoRows(characters: List<Char>): List<List<Char>> {
-        // Group characters in logical rows
-        val commonLetters = listOf('E', 'T', 'A', 'I', 'N', 'O', 'S', 'H', 'R')
-        val numbers = ('0'..'9').toList()
-        val otherLetters = ('A'..'Z').filter { it !in commonLetters }
-        
-        val rows = mutableListOf<List<Char>>()
-        
-        // Row 1: Most common letters
-        val row1 = characters.filter { it in commonLetters }.take(5)
-        if (row1.isNotEmpty()) rows.add(row1)
-        
-        // Row 2: Remaining common letters
-        val row2 = characters.filter { it in commonLetters }.drop(5)
-        if (row2.isNotEmpty()) rows.add(row2)
-        
-        // Row 3: Other letters
-        val row3 = characters.filter { it in otherLetters }.take(5)
-        if (row3.isNotEmpty()) rows.add(row3)
-        
-        // Row 4: More letters
-        val row4 = characters.filter { it in otherLetters }.drop(5)
-        if (row4.isNotEmpty()) rows.add(row4)
-        
-        // Row 5: Numbers
-        val numbersInSet = characters.filter { it in numbers }
-        if (numbersInSet.isNotEmpty()) rows.add(numbersInSet)
-        
-        return rows
-    }
-
-    private fun createRowOfChips(characters: List<Char>) {
-        val rowGroup = ChipGroup(context).apply {
-            chipSpacingHorizontal = context.resources.getDimensionPixelSize(R.dimen.chip_spacing_horizontal)
-            chipSpacingVertical = context.resources.getDimensionPixelSize(R.dimen.chip_spacing_vertical)
-            isSingleSelection = false
-        }
-
-        characters.forEach { char ->
+        // Create chips directly in the main ChipGroup - no nested groups needed
+        allCharacters.forEach { char ->
             val chip = createChip(char)
-            rowGroup.addView(chip)
+            chipGroup.addView(chip)
         }
-
-        chipGroup.addView(rowGroup)
+        android.util.Log.d("MorseKeyboard", "populateKeyboard() completed")
     }
+
+
 
     private fun createChip(character: Char): Chip {
         return Chip(context).apply {
             text = character.toString()
-            textSize = 16f
+            textSize = 14f  // Reduced from 16f for better space utilization
             isCheckable = false
             isClickable = true
             isFocusable = true
+            
+            // Make chips more compact
+            minHeight = context.resources.getDimensionPixelSize(R.dimen.chip_min_height)
             
             // Apply Material 3 styling
             setChipBackgroundColorResource(R.color.md_theme_light_surface)
@@ -187,18 +167,17 @@ class MorseKeyboard @JvmOverloads constructor(
     }
 
     private fun handleChipClick(character: Char) {
-        // Reset all chips to default state first
-        resetState()
-        
-        // Highlight selected chip
-        chipGroup.children.forEach { rowGroup ->
-            if (rowGroup is ChipGroup) {
-                rowGroup.children.forEach { view ->
-                    if (view is Chip && view.text == character.toString()) {
-                        view.setChipBackgroundColorResource(R.color.md_theme_light_primaryContainer)
-                        view.setTextColor(ContextCompat.getColor(context, R.color.md_theme_light_onPrimaryContainer))
-                        selectedCharacter = character
-                    }
+        // Reset all chips to default state first, then highlight selected chip
+        chipGroup.children.forEach { view ->
+            if (view is Chip) {
+                if (view.text == character.toString()) {
+                    // Highlight selected chip
+                    view.setChipBackgroundColorResource(R.color.md_theme_light_primaryContainer)
+                    view.setTextColor(ContextCompat.getColor(context, R.color.md_theme_light_onPrimaryContainer))
+                    selectedCharacter = character
+                } else {
+                    // Reset other chips to default
+                    resetChipToDefault(view)
                 }
             }
         }

@@ -46,6 +46,7 @@ class TrainerFragment : Fragment() {
     private var currentSequence = ""
     private var userInput = ""
     private var startTime: Long = 0
+    private var keyboardLevel = -1 // Track the level the keyboard was built for
     
     companion object {
         private const val TAG = "TrainerFragment"
@@ -115,8 +116,18 @@ class TrainerFragment : Fragment() {
     }
     
     private fun setupMorseKeyboard() {
-        // Initial keyboard setup will be handled by the currentLevel observer
-        // This ensures the keyboard is always in sync with the actual current level
+        binding.morseKeyboard.setOnCharacterClickListener { char ->
+            onCharacterSelected(char)
+        }
+        
+        // Initialize keyboard with current level characters from AppStore
+        val currentLevel = storeViewModel.settings.value.currentLevel
+        
+        Log.d(TAG, "Initializing keyboard with level $currentLevel")
+        
+        val levelChars = progressTracker.getCharactersForLevel(currentLevel)
+        binding.morseKeyboard.setAvailableCharacters(levelChars.toSet())
+        keyboardLevel = currentLevel // Track what level keyboard was built for
     }
     
     private fun observeState() {
@@ -140,14 +151,14 @@ class TrainerFragment : Fragment() {
             storeViewModel.settings.collect { settings ->
                 // Update progress tracker with new settings
                 progressTracker.updateSettings(settings)
-            }
-        }
-        
-        // Observe level changes and update keyboard accordingly
-        viewLifecycleOwner.lifecycleScope.launch {
-            progressTracker.currentLevel.collect { level ->
-                Log.d(TAG, "Level changed to: $level")
-                updateMorseKeyboardForLevel(level)
+                
+                // Update keyboard when level changes
+                if (settings.currentLevel != keyboardLevel) {
+                    Log.d(TAG, "Level changed from $keyboardLevel to ${settings.currentLevel} - updating keyboard")
+                    updateMorseKeyboardForLevel(settings.currentLevel)
+                    keyboardLevel = settings.currentLevel
+                }
+                
                 updateProgressDisplay()
             }
         }
@@ -157,11 +168,14 @@ class TrainerFragment : Fragment() {
         val settings = storeViewModel.settings.value
         currentSequence = sequenceGenerator.generateSequence(
             settings.sequenceLength,
-            progressTracker.getCurrentLevel()
+            settings.currentLevel
         )
         
         userInput = ""
         startTime = System.currentTimeMillis()
+        
+        // Reset keyboard state only when starting a new sequence
+        binding.morseKeyboard.resetState()
         
         storeViewModel.dispatch(AppAction.StartTraining(currentSequence))
         
@@ -188,6 +202,9 @@ class TrainerFragment : Fragment() {
         audioManager.stopPlayback()
         audioManager.stopContinuousNoise() // Stop background noise
         storeViewModel.dispatch(AppAction.StopTraining)
+        // Reset keyboard state only when manually stopping
+        binding.morseKeyboard.resetState()
+        // Don't reset keyboardLevel here - let it persist across training sessions
         updateUIForState(TrainingState.READY)
         updateProgressDisplay()
     }
@@ -215,6 +232,9 @@ class TrainerFragment : Fragment() {
         if (currentIndex < currentSequence.length) {
             val expectedChar = currentSequence[currentIndex]
             if (char.uppercaseChar() != expectedChar.uppercaseChar()) {
+                // Show incorrect answer on keyboard
+                binding.morseKeyboard.showIncorrectAnswer(char, expectedChar)
+                
                 // First incorrect character - fail immediately
                 audioManager.stopPlayback()
                 
@@ -224,6 +244,9 @@ class TrainerFragment : Fragment() {
                     failSequenceImmediately()
                 }
                 return
+            } else {
+                // Show correct answer on keyboard
+                binding.morseKeyboard.showCorrectAnswer(char)
             }
         }
         
@@ -246,6 +269,8 @@ class TrainerFragment : Fragment() {
             val charCorrect = userChar?.uppercaseChar() == char.uppercaseChar()
             progressTracker.recordAttempt(char, charCorrect, responseTime / currentSequence.length)
         }
+        
+        // Level changes are now handled automatically by the AppStore and settings observer
         
         storeViewModel.dispatch(AppAction.SubmitAnswer(userInput))
         
@@ -281,6 +306,8 @@ class TrainerFragment : Fragment() {
             val charCorrect = userChar?.uppercaseChar() == char.uppercaseChar()
             progressTracker.recordAttempt(char, charCorrect, responseTime / currentSequence.length)
         }
+        
+        // Level changes are now handled automatically by the AppStore and settings observer
         
         storeViewModel.dispatch(AppAction.SubmitAnswer(userInput))
         
@@ -321,6 +348,7 @@ class TrainerFragment : Fragment() {
                 binding.morseKeyboard.alpha = 0.5f
                 setKeyboardEnabled(false)
                 userInput = ""
+                // Don't reset keyboard state here - let explicit actions handle it
             }
             TrainingState.PLAYING -> {
                 binding.sequenceDisplay.text = "Listen..."
@@ -344,7 +372,8 @@ class TrainerFragment : Fragment() {
                 binding.buttonReplay.visibility = View.VISIBLE
                 binding.morseKeyboard.alpha = 1.0f
                 setKeyboardEnabled(true)
-                animateToInputMode()
+                // Remove the animateToInputMode() call that causes keyboard to disappear/reappear
+                // Do NOT reset keyboard state here - preserve selection during input
             }
             TrainingState.FINISHED -> {
                 binding.buttonStart.isEnabled = true
@@ -369,9 +398,7 @@ class TrainerFragment : Fragment() {
     }
     
     private fun setKeyboardEnabled(enabled: Boolean) {
-        for (i in 0 until binding.morseKeyboard.childCount) {
-            binding.morseKeyboard.getChildAt(i).isEnabled = enabled
-        }
+        binding.morseKeyboard.isEnabled = enabled
     }
     
     private fun updateInputDisplay() {
@@ -408,7 +435,7 @@ class TrainerFragment : Fragment() {
     }
     
     private fun updateProgressDisplay() {
-        val level = progressTracker.getCurrentLevel()
+        val level = storeViewModel.settings.value.currentLevel
         val progress = progressTracker.getCurrentLevelProgress()
         val streak = maxOf(0, progressTracker.getCurrentStreak()) // Show only positive streaks
         
@@ -461,16 +488,7 @@ class TrainerFragment : Fragment() {
         }
     }
     
-    private fun animateToInputMode() {
-        binding.morseKeyboard.let { keyboard ->
-            keyboard.translationY = 300f
-            keyboard.animate()
-                .translationY(0f)
-                .setDuration(300)
-                .setInterpolator(AccelerateDecelerateInterpolator())
-                .start()
-        }
-    }
+    // Removed animateToInputMode() method that was causing keyboard to disappear/reappear
     
     private fun showCorrectAnswerAnimation() {
         binding.sequenceDisplay.let { view ->
@@ -483,6 +501,8 @@ class TrainerFragment : Fragment() {
             }.start()
         }
     }
+    
+
     
     private fun showIncorrectAnswerAnimation() {
         binding.sequenceDisplay.let { view ->
@@ -522,39 +542,15 @@ class TrainerFragment : Fragment() {
     }
     
     private fun updateMorseKeyboardForLevel(level: Int) {
-        Log.d(TAG, "Updating morse keyboard for level: $level")
         val levelChars = progressTracker.getCharactersForLevel(level)
-        Log.d(TAG, "Level chars: $levelChars")
+        val charactersSet = levelChars.toSet()
         
-        binding.morseKeyboard.removeAllViews()
-        
-        levelChars.forEach { char ->
-            val chip = com.google.android.material.chip.Chip(requireContext()).apply {
-                text = char.toString()
-                textSize = 16f
-                isCheckable = false
-                isClickable = true
-                isFocusable = true
-                
-                // Apply Material 3 styling
-                setChipBackgroundColorResource(R.color.md_theme_light_surface)
-                setTextColor(androidx.core.content.ContextCompat.getColor(context, R.color.md_theme_light_onSurface))
-                chipStrokeWidth = resources.getDimensionPixelSize(R.dimen.chip_stroke_width).toFloat()
-                chipStrokeColor = androidx.core.content.ContextCompat.getColorStateList(context, R.color.md_theme_light_outline)
-                // chipCornerRadius removed - now handled by style
-                
-                setOnClickListener { onCharacterSelected(char) }
-            }
-            binding.morseKeyboard.addView(chip)
-        }
-        
-        addControlButtons()
+        // Update keyboard for new level (only called when level actually changes)
+        binding.morseKeyboard.setAvailableCharacters(charactersSet)
+        binding.morseKeyboard.resetState()
     }
     
-    private fun addControlButtons() {
-        // No control buttons needed - CLEAR button removed as it's redundant
-        // with real-time validation, early termination, and existing REPLAY/STOP buttons
-    }
+
     
     private fun showMessage(message: String) {
         Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT).show()

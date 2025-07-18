@@ -115,7 +115,7 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
         val settings = storeViewModel.settings.value
         currentSequence = sequenceGenerator.generateSequence(
             settings.sequenceLength,
-            progressTracker.getCurrentLevel()
+            settings.currentLevel
         )
         
         // Dispatch action to update state
@@ -255,7 +255,7 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
     }
     
     private fun updateProgress() {
-        val level = progressTracker.getCurrentLevel()
+        val level = storeViewModel.settings.value.currentLevel
         
         binding.textLevel.text = "Level: $level"
     }

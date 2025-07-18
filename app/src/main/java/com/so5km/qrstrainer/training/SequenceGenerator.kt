@@ -84,9 +84,9 @@ class SequenceGenerator(private val progressTracker: ProgressTracker) {
     /**
      * Generate a sequence with specific characters for focused training
      */
-    fun generateFocusedSequence(length: Int, focusChars: List<Char>): String {
+    fun generateFocusedSequence(length: Int, focusChars: List<Char>, level: Int = 1): String {
         if (focusChars.isEmpty()) {
-            return generateSequence(length, progressTracker.getCurrentLevel())
+            return generateSequence(length, level)
         }
         
         val weights = getCharacterWeights(focusChars)

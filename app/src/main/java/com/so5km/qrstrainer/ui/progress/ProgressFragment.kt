@@ -56,8 +56,8 @@ class ProgressFragment : Fragment() {
     
     private fun observeState() {
         viewLifecycleOwner.lifecycleScope.launch {
-            progressTracker.currentLevel.collect { level ->
-                updateLevelDisplay(level)
+            storeViewModel.settings.collect { settings ->
+                updateLevelDisplay(settings.currentLevel)
             }
         }
         
@@ -70,7 +70,7 @@ class ProgressFragment : Fragment() {
     
     private fun loadProgressData() {
         // Load all progress data
-        val currentLevel = progressTracker.getCurrentLevel()
+        val currentLevel = storeViewModel.settings.value.currentLevel
         val currentStreak = progressTracker.getCurrentStreak()
         val bestStreak = progressTracker.getBestStreak()
         val levelProgress = progressTracker.getCurrentLevelProgress()

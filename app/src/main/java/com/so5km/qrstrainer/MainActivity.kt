@@ -185,7 +185,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val subtitleText = headerView.findViewById<TextView>(R.id.nav_header_subtitle)
         
         // Update with current progress
-        val level = progressTracker.getCurrentLevel()
+        val level = storeViewModel.settings.value.currentLevel
         val streak = maxOf(0, progressTracker.getCurrentStreak()) // Show only positive streaks
         subtitleText?.text = "Level $level • Streak $streak"
     }
@@ -194,7 +194,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val headerView = navigationView.getHeaderView(0)
         val subtitleText = headerView.findViewById<TextView>(R.id.nav_header_subtitle)
         
-        val level = progressTracker.getCurrentLevel()
+        val level = storeViewModel.settings.value.currentLevel
         val streak = maxOf(0, progressTracker.getCurrentStreak()) // Show only positive streaks
         
         val stateText = when (trainingState) {

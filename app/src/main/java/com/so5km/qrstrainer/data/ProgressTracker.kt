@@ -3,6 +3,8 @@ package com.so5km.qrstrainer.data
 import android.content.Context
 import android.content.SharedPreferences
 import com.so5km.qrstrainer.data.ProgressData
+import com.so5km.qrstrainer.state.AppStore
+import com.so5km.qrstrainer.state.AppAction
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -12,9 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 class ProgressTracker(private val context: Context) {
     
     private val prefs: SharedPreferences = context.getSharedPreferences("progress", Context.MODE_PRIVATE)
-    
-    private val _currentLevel = MutableStateFlow(1)
-    val currentLevel: StateFlow<Int> = _currentLevel
+    private val store = AppStore.getInstance()
     
     private val _currentStreak = MutableStateFlow(0)
     val currentStreak: StateFlow<Int> = _currentStreak
@@ -76,9 +76,9 @@ class ProgressTracker(private val context: Context) {
     }
     
     /**
-     * Get current training level
+     * Get current training level from AppStore
      */
-    fun getCurrentLevel(): Int = _currentLevel.value
+    fun getCurrentLevel(): Int = store.state.value.settings.currentLevel
     
     /**
      * Get current streak
@@ -144,9 +144,13 @@ class ProgressTracker(private val context: Context) {
      */
     fun resetProgress() {
         characterStats.clear()
-        _currentLevel.value = 1
         _currentStreak.value = 0
         prefs.edit().clear().apply()
+        
+        // Reset level in AppStore
+        store.dispatch(AppAction.UpdateSettings(
+            store.state.value.settings.copy(currentLevel = 1)
+        ))
     }
     
     /**
@@ -174,8 +178,6 @@ class ProgressTracker(private val context: Context) {
      * Import progress data
      */
     fun importProgress(progressData: ProgressData) {
-        _currentLevel.value = progressData.currentLevel
-        
         characterStats.clear()
         progressData.characterStats.forEach { (char, statData) ->
             characterStats[char] = CharacterStats(
@@ -190,6 +192,11 @@ class ProgressTracker(private val context: Context) {
             .putLong("total_time", progressData.totalTime)
             .putInt("best_streak", progressData.bestStreak)
             .apply()
+        
+        // Update level in AppStore
+        store.dispatch(AppAction.UpdateSettings(
+            store.state.value.settings.copy(currentLevel = progressData.currentLevel)
+        ))
         
         saveProgress()
     }
@@ -212,15 +219,27 @@ class ProgressTracker(private val context: Context) {
         
         // Check for level up
         if (currentStreak >= currentSettings.correctAnswersToLevelUp && currentLevel < currentSettings.maxLevel) {
-            _currentLevel.value = currentLevel + 1
+            val newLevel = currentLevel + 1
             _currentStreak.value = 0 // Reset streak after level up
-            android.util.Log.d("ProgressTracker", "Level up! Now at level ${getCurrentLevel()}")
+            
+            // Update level in AppStore
+            store.dispatch(AppAction.UpdateSettings(
+                store.state.value.settings.copy(currentLevel = newLevel)
+            ))
+            
+            android.util.Log.d("ProgressTracker", "Level up! Now at level $newLevel")
         }
         // Check for level down (only if streak is negative, meaning consecutive wrong answers)
         else if (currentStreak <= -currentSettings.incorrectAnswersToDropLevel && currentLevel > 1) {
-            _currentLevel.value = currentLevel - 1
+            val newLevel = currentLevel - 1
             _currentStreak.value = 0 // Reset streak after level down
-            android.util.Log.d("ProgressTracker", "Level down. Now at level ${getCurrentLevel()}")
+            
+            // Update level in AppStore
+            store.dispatch(AppAction.UpdateSettings(
+                store.state.value.settings.copy(currentLevel = newLevel)
+            ))
+            
+            android.util.Log.d("ProgressTracker", "Level down. Now at level $newLevel")
         }
         
         // Update best streak (only for positive streaks)
@@ -232,7 +251,6 @@ class ProgressTracker(private val context: Context) {
     
     private fun saveProgress() {
         val editor = prefs.edit()
-        editor.putInt("current_level", getCurrentLevel())
         editor.putInt("current_streak", getCurrentStreak())
         
         // Save character stats
@@ -246,7 +264,6 @@ class ProgressTracker(private val context: Context) {
     }
     
     private fun loadProgress() {
-        _currentLevel.value = prefs.getInt("current_level", 1)
         _currentStreak.value = prefs.getInt("current_streak", 0)
         
         // Load character stats
@@ -260,5 +277,8 @@ class ProgressTracker(private val context: Context) {
                 )
             }
         }
+        
+        // Remove level loading since it's now managed by AppStore
+        // The level state is now the single source of truth in AppStore
     }
 }
