@@ -70,8 +70,9 @@ data class TrainingSettings(
     companion object {
         /**
          * Calculate the maximum valid level based on character settings
-         * Each level adds 1 character from the base Koch method (26 letters total)
+         * Each level adds 1 character from the available character set
          * Traditional Koch: Level 1 = 2 chars, Level 2 = 3 chars, etc.
+         * Max level = total available characters - 1 (since level + 1 = character count)
          */
         fun calculateMaxLevel(
             useNumbers: Boolean = false,
@@ -79,21 +80,17 @@ data class TrainingSettings(
             useProsigns: Boolean = false,
             customCharacterSet: String = ""
         ): Int {
-            // Base Koch method: 26 letters across 25 levels (level + 1 = character count)
-            // Level 25 = 26 characters (all letters)
-            var baseMaxLevel = 25 // All 26 letters of alphabet
+            // Count total available characters
+            var totalChars = 26 // Base alphabet (A-Z)
             
-            // Add extra levels for additional character sets
-            var extraChars = 0
-            if (useNumbers) extraChars += 10 // 0-9
-            if (usePunctuation) extraChars += 7 // . , ? / = + -
-            if (useProsigns) extraChars += 3 // < > @
-            extraChars += customCharacterSet.length
+            if (useNumbers) totalChars += 10 // 0-9
+            if (usePunctuation) totalChars += 7 // . , ? / = + -
+            if (useProsigns) totalChars += 3 // < > @
+            totalChars += customCharacterSet.length
             
-            // Add extra levels for additional characters (1 char per level)
-            val extraLevels = extraChars
-            
-            return baseMaxLevel + extraLevels
+            // Max level = total characters - 1 (since level + 1 = character count)
+            // This ensures we never exceed the available character set
+            return totalChars - 1
         }
         
         /**

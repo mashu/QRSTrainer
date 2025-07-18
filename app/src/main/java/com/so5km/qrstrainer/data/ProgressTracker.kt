@@ -146,16 +146,16 @@ class ProgressTracker(private val context: Context) {
      * Characters are drawn from a master sequence based on enabled settings
      */
     fun getCharactersForLevel(level: Int): List<Char> {
-        // Master Koch sequence in learning order (optimized for Morse code learning)
+        // Master Koch sequence in traditional learning order
+        // Based on the original Koch method with numbers and punctuation interspersed
         val masterKochSequence = listOf(
-            // Core letters (always available)
-            'K', 'M', 'U', 'R', 'E', 'S', 'N', 'A', 'P', 'T', 
-            'L', 'W', 'I', 'J', 'Z', 'F', 'O', 'Y', 'V', 'G',
-            'Q', 'H', 'C', 'X', 'B', 'D',
-            // Numbers (if enabled)
-            '5', '0', '9', '8', '7', '6', '4', '3', '2', '1',
-            // Punctuation (if enabled) 
-            '.', ',', '?', '/', '=', '+', '-',
+            // Traditional Koch sequence
+            'K', 'M', 'R', 'S', 'U', 'A', 'P', 'T', 'L', 'O', 
+            'W', 'I', '.', 'N', 'J', 'E', 'F', '0', 'Y', ',', 
+            'V', 'G', '5', '/', 'Q', '9', 'Z', 'H', '3', '8', 
+            'B', '?', '4', '2', '7', 'C', '1', 'D', '6', 'X',
+            // Additional characters for completeness
+            '=', '+', '-',
             // Prosigns (if enabled)
             '<', '>', '@'  // Representing AR, SK, AS
         )

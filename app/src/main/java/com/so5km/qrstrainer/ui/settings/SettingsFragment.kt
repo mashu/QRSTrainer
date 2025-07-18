@@ -356,7 +356,17 @@ class SettingsFragment : Fragment() {
         binding.sliderCurrentLevel.addOnChangeListener { _, value, fromUser ->
             if (fromUser) {
                 val level = value.toInt()
-                binding.textCurrentLevelValue.text = getString(R.string.value_level, level)
+                
+                // Calculate max level based on current character settings
+                val currentSettings = storeViewModel.settings.value
+                val maxLevel = TrainingSettings.calculateMaxLevel(
+                    useNumbers = currentSettings.useNumbers,
+                    usePunctuation = currentSettings.usePunctuation,
+                    useProsigns = currentSettings.useProsigns,
+                    customCharacterSet = currentSettings.customCharacterSet
+                )
+                
+                binding.textCurrentLevelValue.text = getString(R.string.value_level, level) + " / $maxLevel"
                 updateSettings { it.copy(currentLevel = level) }
             }
         }
@@ -389,16 +399,19 @@ class SettingsFragment : Fragment() {
         // Prosigns Switch
         binding.switchUseProsigns.setOnCheckedChangeListener { _, isChecked ->
             updateSettings { it.copy(useProsigns = isChecked) }
+            updateLevelSliderRange()
         }
         
         // Numbers Switch
         binding.switchUseNumbers.setOnCheckedChangeListener { _, isChecked ->
             updateSettings { it.copy(useNumbers = isChecked) }
+            updateLevelSliderRange()
         }
         
         // Punctuation Switch
         binding.switchUsePunctuation.setOnCheckedChangeListener { _, isChecked ->
             updateSettings { it.copy(usePunctuation = isChecked) }
+            updateLevelSliderRange()
         }
         
         // Custom Characters
@@ -406,8 +419,35 @@ class SettingsFragment : Fragment() {
             if (!hasFocus) {
                 val customChars = binding.editCustomCharacters.text?.toString() ?: ""
                 updateSettings { it.copy(customCharacterSet = customChars.uppercase()) }
+                updateLevelSliderRange()
             }
         }
+    }
+    
+    /**
+     * Update the level slider range when character settings change
+     */
+    private fun updateLevelSliderRange() {
+        val currentSettings = storeViewModel.settings.value
+        val maxLevel = TrainingSettings.calculateMaxLevel(
+            useNumbers = currentSettings.useNumbers,
+            usePunctuation = currentSettings.usePunctuation,
+            useProsigns = currentSettings.useProsigns,
+            customCharacterSet = currentSettings.customCharacterSet
+        )
+        
+        // Update slider maximum
+        binding.sliderCurrentLevel.valueTo = maxLevel.toFloat()
+        
+        // Ensure current level doesn't exceed new maximum
+        val currentLevel = currentSettings.currentLevel.coerceIn(1, maxLevel)
+        if (currentLevel != currentSettings.currentLevel) {
+            binding.sliderCurrentLevel.value = currentLevel.toFloat()
+            updateSettings { it.copy(currentLevel = currentLevel) }
+        }
+        
+        // Update the display text to show current range
+        binding.textCurrentLevelValue.text = getString(R.string.value_level, currentLevel) + " / $maxLevel"
     }
     
     private fun setupNoiseControls() {
