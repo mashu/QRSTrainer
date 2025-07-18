@@ -171,15 +171,12 @@ class SettingsFragment : Fragment() {
                     else -> "light"
                 }
                 
-                // Update settings
+                // Update settings - this will trigger MainActivity's observer to recreate
                 updateSettings { it.copy(themeMode = newThemeMode) }
                 
                 // Refresh visualization colors before activity recreates
                 binding.waveformVisualization.refreshThemeColors()
                 binding.filterResponseView.refreshThemeColors()
-                
-                // Update theme immediately via MainActivity
-                (requireActivity() as? com.so5km.qrstrainer.MainActivity)?.updateTheme(newThemeMode)
                 
                 dialog.dismiss()
             }

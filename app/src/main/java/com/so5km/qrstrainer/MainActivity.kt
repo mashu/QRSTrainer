@@ -50,10 +50,13 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Apply theme before super.onCreate()
-        applySelectedTheme()
-        
         super.onCreate(savedInstanceState)
+        
+        // Initialize AppStore first so we can load theme from it
+        com.so5km.qrstrainer.state.AppStore.getInstance().initialize(this)
+        
+        // Apply theme from AppStore
+        applySelectedTheme()
         
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -72,9 +75,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
     
     private fun applySelectedTheme() {
-        // Load theme preference from SharedPreferences
-        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val themeMode = prefs.getString("theme_mode", "light") ?: "light"
+        // Load theme preference from AppStore instead of SharedPreferences
+        val themeMode = com.so5km.qrstrainer.state.AppStore.getInstance().state.value.settings.themeMode
         
         val themeResId = when (themeMode) {
             "dark" -> R.style.AppTheme_Dark
@@ -87,9 +89,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
     
     private fun initializeComponents() {
-        // Initialize the AppStore with context for persistence
-        com.so5km.qrstrainer.state.AppStore.getInstance().initialize(this)
-        
+        // AppStore is already initialized in onCreate
         storeViewModel = ViewModelProvider(this)[StoreViewModel::class.java]
         audioManager = AudioManager(this)
         progressTracker = ProgressTracker(this)
@@ -152,14 +152,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         
         // Observe theme changes and recreate activity when theme changes
         lifecycleScope.launch {
+            var previousTheme = storeViewModel.settings.value.themeMode
             storeViewModel.settings.collect { settings ->
-                val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                val currentTheme = prefs.getString("theme_mode", "light") ?: "light"
-                
-                if (settings.themeMode != currentTheme) {
-                    // Save new theme preference
-                    prefs.edit().putString("theme_mode", settings.themeMode).apply()
-                    
+                if (settings.themeMode != previousTheme) {
+                    previousTheme = settings.themeMode
                     // Recreate activity to apply new theme
                     recreate()
                 }
@@ -171,12 +167,13 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
      * Update theme when called from settings
      */
     fun updateTheme(newThemeMode: String) {
-        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val currentTheme = prefs.getString("theme_mode", "light") ?: "light"
+        val currentTheme = storeViewModel.settings.value.themeMode
         
         if (newThemeMode != currentTheme) {
-            prefs.edit().putString("theme_mode", newThemeMode).apply()
-            recreate() // Recreate activity to apply new theme
+            // Update through AppStore - this will trigger the observer and recreate
+            storeViewModel.dispatch(AppAction.UpdateSettings(
+                storeViewModel.settings.value.copy(themeMode = newThemeMode)
+            ))
         }
     }
     

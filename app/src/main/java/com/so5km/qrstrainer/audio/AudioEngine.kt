@@ -5,8 +5,6 @@ import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioTrack
 import android.os.Build
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.LinkedBlockingQueue
@@ -25,8 +23,6 @@ class AudioEngine {
     
     private var morseAudioTrack: AudioTrack? = null
     private var noiseAudioTrack: AudioTrack? = null
-    private val _isPlaying = MutableStateFlow(false)
-    val isPlaying: StateFlow<Boolean> = _isPlaying
     private var isNoiseRunning = false
     
     // Streaming support
@@ -112,7 +108,6 @@ class AudioEngine {
                 if (track.state == AudioTrack.STATE_INITIALIZED) {
                     android.util.Log.d(TAG, "Starting streaming mode")
                     isStreaming.set(true)
-                    _isPlaying.value = true
                     
                     // Clear any existing audio data
                     audioQueue.clear()
@@ -146,7 +141,6 @@ class AudioEngine {
             
             android.util.Log.d(TAG, "Stopping streaming mode")
             isStreaming.set(false)
-            _isPlaying.value = false
             
             // Wake up the streaming thread if it's waiting
             audioQueue.offer(ShortArray(0)) // Empty array as stop signal
@@ -292,7 +286,6 @@ class AudioEngine {
         android.util.Log.d(TAG, "Stopping all audio")
         morseAudioTrack?.stop()
         stopNoise()
-        _isPlaying.value = false
     }
     
     fun pause() {
