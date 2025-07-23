@@ -26,6 +26,7 @@ sealed class AppAction {
     
     // Listen Mode Actions
     data class StartListening(val sequence: String) : AppAction()
+    object SetListeningWaiting : AppAction()
     object RevealSequence : AppAction()
     object NextSequence : AppAction()
 }

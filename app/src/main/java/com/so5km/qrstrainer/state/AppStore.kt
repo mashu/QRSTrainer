@@ -125,6 +125,11 @@ class AppStore private constructor() {
                     state = ListeningState.PLAYING
                 )
             )
+            is AppAction.SetListeningWaiting -> state.copy(
+                listenState = state.listenState.copy(
+                    state = ListeningState.WAITING
+                )
+            )
             is AppAction.RevealSequence -> state.copy(
                 listenState = state.listenState.copy(
                     isRevealed = true,

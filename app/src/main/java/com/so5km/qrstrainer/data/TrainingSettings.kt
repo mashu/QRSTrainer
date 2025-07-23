@@ -58,6 +58,16 @@ data class TrainingSettings(
     val bandwidthHz: Float = 50f,             // signal bandwidth
     val shapingEnabled: Boolean = true,       // waveform shaping
     
+    // Text-to-Speech Settings
+    val ttsVolume: Float = 0.8f,             // TTS volume (0.0 to 1.0)
+    val ttsSpeechRate: Float = 1.0f,         // TTS speech rate (0.1 to 3.0)
+    val ttsPitch: Float = 1.0f,              // TTS pitch (0.1 to 2.0)
+    val ttsDelayMs: Long = 1000L,            // Delay before speaking (0 to 5000ms)
+    val ttsSpeakInListenMode: Boolean = true, // Enable speaking in listen mode
+    
+    // Auto-Reveal Settings
+    val autoRevealDelayMs: Long = 3000L,     // Auto-reveal countdown delay (1000 to 10000ms)
+    
     // Appearance
     val themeMode: String = "light",          // "light", "dark", or "system"
     
@@ -125,6 +135,15 @@ data class TrainingSettings(
             val validVolume = settings.volume.coerceIn(0f, 1f)
             val validNoiseVolume = settings.noiseVolume.coerceIn(0f, 1f)
             
+            // Ensure TTS values are within reasonable bounds
+            val validTtsVolume = settings.ttsVolume.coerceIn(0f, 1f)
+            val validTtsSpeechRate = settings.ttsSpeechRate.coerceIn(0.1f, 3.0f)
+            val validTtsPitch = settings.ttsPitch.coerceIn(0.1f, 2.0f)
+            val validTtsDelayMs = settings.ttsDelayMs.coerceIn(0L, 5000L)
+            
+            // Ensure auto-reveal delay is within reasonable bounds
+            val validAutoRevealDelayMs = settings.autoRevealDelayMs.coerceIn(1000L, 10000L)
+            
             // Ensure level progression values are reasonable
             val validCorrectAnswersToLevelUp = settings.correctAnswersToLevelUp.coerceIn(3, 20)
             val validIncorrectAnswersToDropLevel = settings.incorrectAnswersToDropLevel.coerceIn(2, 10)
@@ -148,6 +167,11 @@ data class TrainingSettings(
                 noiseVolume = validNoiseVolume,
                 correctAnswersToLevelUp = validCorrectAnswersToLevelUp,
                 incorrectAnswersToDropLevel = validIncorrectAnswersToDropLevel,
+                ttsVolume = validTtsVolume,
+                ttsSpeechRate = validTtsSpeechRate,
+                ttsPitch = validTtsPitch,
+                ttsDelayMs = validTtsDelayMs,
+                autoRevealDelayMs = validAutoRevealDelayMs,
                 themeMode = validThemeMode
             )
         }
@@ -216,6 +240,16 @@ fun TrainingSettings.toJson(): String {
     json.put("clickVolume", clickVolume.toDouble())
     json.put("bandwidthHz", bandwidthHz.toDouble())
     json.put("shapingEnabled", shapingEnabled)
+    
+    // Text-to-Speech Settings
+    json.put("ttsVolume", ttsVolume.toDouble())
+    json.put("ttsSpeechRate", ttsSpeechRate.toDouble())
+    json.put("ttsPitch", ttsPitch.toDouble())
+    json.put("ttsDelayMs", ttsDelayMs)
+    json.put("ttsSpeakInListenMode", ttsSpeakInListenMode)
+    
+    // Auto-Reveal Settings
+    json.put("autoRevealDelayMs", autoRevealDelayMs)
     
     // Appearance
     json.put("themeMode", themeMode)
@@ -295,6 +329,16 @@ fun TrainingSettings.Companion.fromJson(json: String): TrainingSettings {
         clickVolume = getFloatOrDefault("clickVolume", 0.1f),
         bandwidthHz = getFloatOrDefault("bandwidthHz", 50f),
         shapingEnabled = getBooleanOrDefault("shapingEnabled", true),
+        
+        // Text-to-Speech Settings
+        ttsVolume = getFloatOrDefault("ttsVolume", 0.8f),
+        ttsSpeechRate = getFloatOrDefault("ttsSpeechRate", 1.0f),
+        ttsPitch = getFloatOrDefault("ttsPitch", 1.0f),
+        ttsDelayMs = getLongOrDefault("ttsDelayMs", 1000L),
+        ttsSpeakInListenMode = getBooleanOrDefault("ttsSpeakInListenMode", true),
+        
+        // Auto-Reveal Settings
+        autoRevealDelayMs = getLongOrDefault("autoRevealDelayMs", 3000L),
         
         // Appearance
         themeMode = getStringOrDefault("themeMode", "light"),

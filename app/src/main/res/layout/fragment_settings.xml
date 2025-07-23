@@ -840,6 +840,258 @@
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
+        <!-- Text-to-Speech Settings Card -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/card_tts_settings"
+            style="@style/Widget.App.CardView.Light"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="8dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:id="@+id/text_tts_title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:drawableEnd="@drawable/ic_volume_up"
+                    android:gravity="center_vertical"
+                    android:text="Text-to-Speech Settings"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:id="@+id/layout_tts_settings"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+
+
+                    <!-- TTS Volume -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="TTS Volume"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_tts_volume"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:valueFrom="0"
+                            android:valueTo="100"
+                            android:value="80" />
+
+                        <TextView
+                            android:id="@+id/text_tts_volume_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:minWidth="60dp"
+                            android:text="80%"
+                            android:textAlignment="center" />
+                    </LinearLayout>
+
+                    <!-- TTS Speech Rate -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Speech Rate"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_tts_speech_rate"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:valueFrom="0.1"
+                            android:valueTo="3.0"
+                            android:value="1.0" />
+
+                        <TextView
+                            android:id="@+id/text_tts_speech_rate_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:minWidth="60dp"
+                            android:text="1.0x"
+                            android:textAlignment="center" />
+                    </LinearLayout>
+
+                    <!-- TTS Pitch -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Speech Pitch"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_tts_pitch"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:valueFrom="0.1"
+                            android:valueTo="2.0"
+                            android:value="1.0" />
+
+                        <TextView
+                            android:id="@+id/text_tts_pitch_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:minWidth="60dp"
+                            android:text="1.0x"
+                            android:textAlignment="center" />
+                    </LinearLayout>
+
+                    <!-- TTS Delay -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Speech Delay"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_tts_delay"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:stepSize="100"
+                            android:valueFrom="0"
+                            android:valueTo="5000"
+                            android:value="1000" />
+
+                        <TextView
+                            android:id="@+id/text_tts_delay_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:minWidth="60dp"
+                            android:text="1.0s"
+                            android:textAlignment="center" />
+                    </LinearLayout>
+
+                </LinearLayout>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Auto-Reveal Settings Card -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/card_autoreveal_settings"
+            style="@style/Widget.App.CardView.Light"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="8dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:id="@+id/text_autoreveal_title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:drawableEnd="@drawable/ic_replay"
+                    android:gravity="center_vertical"
+                    android:text="Auto-Reveal Settings"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:id="@+id/layout_autoreveal_settings"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <!-- Auto-Reveal Delay -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Auto-reveal countdown delay"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="Time before sequence is automatically revealed in listen mode"
+                        android:textSize="12sp"
+                        android:textColor="@android:color/darker_gray" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_auto_reveal_delay"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:stepSize="500"
+                            android:valueFrom="1000"
+                            android:valueTo="10000"
+                            android:value="3000" />
+
+                        <TextView
+                            android:id="@+id/text_auto_reveal_delay_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:minWidth="60dp"
+                            android:text="3.0s"
+                            android:textAlignment="center" />
+                    </LinearLayout>
+
+                </LinearLayout>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
         <!-- Noise Settings Card -->
         <androidx.cardview.widget.CardView
             android:id="@+id/card_noise_settings"

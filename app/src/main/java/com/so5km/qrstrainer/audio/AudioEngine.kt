@@ -61,36 +61,41 @@ class AudioEngine {
     }
     
     private fun createAudioTrack(bufferSize: Int): AudioTrack? {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            android.util.Log.d(TAG, "Creating AudioTrack using new API")
-            AudioTrack.Builder()
-                .setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_MEDIA)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                        .build()
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                android.util.Log.d(TAG, "Creating AudioTrack using new API")
+                AudioTrack.Builder()
+                    .setAudioAttributes(
+                        AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_MEDIA)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                            .build()
+                    )
+                    .setAudioFormat(
+                        AudioFormat.Builder()
+                            .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                            .setSampleRate(SAMPLE_RATE)
+                            .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                            .build()
+                    )
+                    .setBufferSizeInBytes(bufferSize)
+                    .setTransferMode(AudioTrack.MODE_STREAM)
+                    .build()
+            } else {
+                android.util.Log.d(TAG, "Creating AudioTrack using legacy API")
+                @Suppress("DEPRECATION")
+                AudioTrack(
+                    AudioManager.STREAM_MUSIC,
+                    SAMPLE_RATE,
+                    AudioFormat.CHANNEL_OUT_MONO,
+                    AudioFormat.ENCODING_PCM_16BIT,
+                    bufferSize,
+                    AudioTrack.MODE_STREAM
                 )
-                .setAudioFormat(
-                    AudioFormat.Builder()
-                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                        .setSampleRate(SAMPLE_RATE)
-                        .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-                        .build()
-                )
-                .setBufferSizeInBytes(bufferSize)
-                .setTransferMode(AudioTrack.MODE_STREAM)
-                .build()
-        } else {
-            android.util.Log.d(TAG, "Creating AudioTrack using legacy API")
-            @Suppress("DEPRECATION")
-            AudioTrack(
-                AudioManager.STREAM_MUSIC,
-                SAMPLE_RATE,
-                AudioFormat.CHANNEL_OUT_MONO,
-                AudioFormat.ENCODING_PCM_16BIT,
-                bufferSize,
-                AudioTrack.MODE_STREAM
-            )
+            }
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "Failed to create AudioTrack", e)
+            null
         }
     }
     

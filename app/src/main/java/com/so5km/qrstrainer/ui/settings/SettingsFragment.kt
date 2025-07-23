@@ -63,6 +63,8 @@ class SettingsFragment : Fragment() {
         setupTimingSliders()
         setupLevelSliders()
         setupCharacterSwitches()
+        setupTtsControls()
+        setupAutoRevealControls()
         setupNoiseControls()
         setupButtons()
         observeSettings()
@@ -77,6 +79,7 @@ class SettingsFragment : Fragment() {
         setupTimingSliders()
         setupLevelSliders()
         setupCharacterSwitches()
+        setupTtsControls()
         setupNoiseControls()
         setupButtons()
         observeSettings()
@@ -107,6 +110,16 @@ class SettingsFragment : Fragment() {
         // Character Settings Section
         binding.cardCharacterSettings.setOnClickListener {
             toggleSection(binding.layoutCharacterSettings)
+        }
+        
+        // TTS Settings Section
+        binding.cardTtsSettings.setOnClickListener {
+            toggleSection(binding.layoutTtsSettings)
+        }
+        
+        // Auto-Reveal Settings Section
+        binding.cardAutorevealSettings.setOnClickListener {
+            toggleSection(binding.layoutAutorevealSettings)
         }
         
         // Noise Settings Section
@@ -450,6 +463,55 @@ class SettingsFragment : Fragment() {
         binding.textCurrentLevelValue.text = getString(R.string.value_level, currentLevel) + " / $maxLevel"
     }
     
+    private fun setupTtsControls() {
+        // TTS settings are now controlled only from the Listen tab
+        
+        // TTS Volume Slider
+        binding.sliderTtsVolume.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                val volume = value / 100f
+                binding.textTtsVolumeValue.text = getString(R.string.value_percent, value.toInt())
+                updateSettings { it.copy(ttsVolume = volume) }
+            }
+        }
+        
+        // TTS Speech Rate Slider
+        binding.sliderTtsSpeechRate.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                binding.textTtsSpeechRateValue.text = "${String.format("%.1f", value)}x"
+                updateSettings { it.copy(ttsSpeechRate = value) }
+            }
+        }
+        
+        // TTS Pitch Slider
+        binding.sliderTtsPitch.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                binding.textTtsPitchValue.text = "${String.format("%.1f", value)}x"
+                updateSettings { it.copy(ttsPitch = value) }
+            }
+        }
+        
+        // TTS Delay Slider
+        binding.sliderTtsDelay.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                val delaySeconds = value / 1000f
+                binding.textTtsDelayValue.text = "${String.format("%.1f", delaySeconds)}s"
+                updateSettings { it.copy(ttsDelayMs = value.toLong()) }
+            }
+        }
+    }
+    
+    private fun setupAutoRevealControls() {
+        // Auto-Reveal Delay Slider
+        binding.sliderAutoRevealDelay.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                val delaySeconds = value / 1000f
+                binding.textAutoRevealDelayValue.text = "${String.format("%.1f", delaySeconds)}s"
+                updateSettings { it.copy(autoRevealDelayMs = value.toLong()) }
+            }
+        }
+    }
+    
     private fun setupNoiseControls() {
         // Noise Settings
         binding.switchNoise.setOnCheckedChangeListener { _, isChecked ->
@@ -624,6 +686,21 @@ class SettingsFragment : Fragment() {
             switchUseNumbers.isChecked = settings.useNumbers
             switchUsePunctuation.isChecked = settings.usePunctuation
             editCustomCharacters.setText(settings.customCharacterSet)
+            
+            // TTS settings (speak toggle is now in Listen tab only)
+            sliderTtsVolume.value = (settings.ttsVolume * 100)
+            sliderTtsSpeechRate.value = settings.ttsSpeechRate
+            sliderTtsPitch.value = settings.ttsPitch
+            sliderTtsDelay.value = settings.ttsDelayMs.toFloat()
+            
+            textTtsVolumeValue.text = getString(R.string.value_percent, (settings.ttsVolume * 100).toInt())
+            textTtsSpeechRateValue.text = "${String.format("%.1f", settings.ttsSpeechRate)}x"
+            textTtsPitchValue.text = "${String.format("%.1f", settings.ttsPitch)}x"
+            textTtsDelayValue.text = "${String.format("%.1f", settings.ttsDelayMs / 1000f)}s"
+            
+            // Auto-Reveal settings
+            sliderAutoRevealDelay.value = settings.autoRevealDelayMs.toFloat()
+            textAutoRevealDelayValue.text = "${String.format("%.1f", settings.autoRevealDelayMs / 1000f)}s"
             
             // Noise settings
             switchNoise.isChecked = settings.noiseEnabled
@@ -816,6 +893,7 @@ class SettingsFragment : Fragment() {
             binding.cardTimingSettings,
             binding.cardLevelSettings,
             binding.cardCharacterSettings,
+            binding.cardTtsSettings,
             binding.cardNoiseSettings
         )
         
@@ -853,6 +931,11 @@ class SettingsFragment : Fragment() {
             binding.sliderCurrentLevel,
             binding.sliderCorrectToLevelUp,
             binding.sliderIncorrectToDrop,
+            // TTS sliders
+            binding.sliderTtsVolume,
+            binding.sliderTtsSpeechRate,
+            binding.sliderTtsPitch,
+            binding.sliderTtsDelay,
             // Noise sliders
             binding.sliderNoiseVolume,
             binding.sliderNoiseBandwidth
