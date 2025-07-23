@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="?attr/colorSurface"
-    android:padding="4dp"
+    android:padding="2dp"
     tools:context=".ui.trainer.TrainerFragment">
 
     <!-- Progress Card - Minimal padding -->
@@ -14,7 +14,7 @@
         style="@style/Widget.App.CardView"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="4dp"
+        android:layout_marginBottom="2dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -23,7 +23,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="6dp">
+            android:padding="3dp">
 
             <TextView
                 android:id="@+id/progress_indicator"
@@ -39,7 +39,7 @@
                 style="@style/Widget.App.LinearProgressIndicator"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
+                android:layout_marginTop="1dp"
                 android:progress="75" />
 
         </LinearLayout>
@@ -52,7 +52,7 @@
         style="@style/Widget.App.CardView"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginBottom="4dp"
+        android:layout_marginBottom="2dp"
         android:clipChildren="false"
         android:clipToPadding="false"
         app:cardBackgroundColor="?attr/colorSurfaceVariant"
@@ -66,7 +66,7 @@
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:padding="8dp"
+            android:padding="4dp"
             android:clipChildren="false"
             android:clipToPadding="false">
 
@@ -130,7 +130,7 @@
         style="@style/Widget.App.CardView"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="4dp"
+        android:layout_marginBottom="2dp"
         app:layout_constraintBottom_toTopOf="@+id/keyboard_card"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
@@ -140,7 +140,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:padding="4dp"
+            android:padding="2dp"
             android:gravity="center">
 
             <com.google.android.material.button.MaterialButton
@@ -149,7 +149,7 @@
                 android:layout_width="0dp"
                 android:layout_height="40dp"
                 android:layout_weight="1"
-                android:layout_marginEnd="2dp"
+                android:layout_marginEnd="1dp"
                 android:text="@string/button_start"
                 android:textSize="11sp" />
 
@@ -159,8 +159,8 @@
                 android:layout_width="0dp"
                 android:layout_height="40dp"
                 android:layout_weight="1"
-                android:layout_marginStart="1dp"
-                android:layout_marginEnd="1dp"
+                android:layout_marginStart="0dp"
+                android:layout_marginEnd="0dp"
                 android:text="@string/button_stop"
                 android:textSize="11sp" />
 
@@ -170,7 +170,7 @@
                 android:layout_width="0dp"
                 android:layout_height="40dp"
                 android:layout_weight="1"
-                android:layout_marginStart="2dp"
+                android:layout_marginStart="1dp"
                 android:text="@string/button_replay"
                 android:textSize="11sp" />
 
@@ -184,6 +184,7 @@
         style="@style/Widget.App.CardView"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
@@ -192,13 +193,15 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="4dp">
+            android:padding="2dp"
+            android:paddingBottom="4dp">
 
             <!-- Morse keyboard using proper MorseKeyboard component -->
             <com.so5km.qrstrainer.ui.components.trainer.MorseKeyboard
                 android:id="@+id/morse_keyboard"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="0dp" />
 
         </LinearLayout>
 

@@ -165,13 +165,19 @@ class MorseKeyboard @JvmOverloads constructor(
     private fun createChip(character: Char): Chip {
         return Chip(context).apply {
             text = character.toString()
-            textSize = 14f  // Reduced from 16f for better space utilization
+            textSize = 14f  // Larger text for better readability
             isCheckable = false
             isClickable = true
             isFocusable = true
             
-            // Make chips more compact
+            // Make text bold for better readability
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            
+            // Let chips auto-size but make them compact
             minHeight = context.resources.getDimensionPixelSize(R.dimen.chip_min_height)
+            
+            // More compact padding for better space utilization
+            setPadding(4, 2, 4, 2)
             
             // Apply Material 3 styling
             setChipBackgroundColorResource(R.color.md_theme_light_surface)
