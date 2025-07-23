@@ -1135,7 +1135,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="4dp"
                         android:layout_marginBottom="8dp"
-                        android:text="Time before sequence is automatically revealed in listen mode"
+                        android:text="Time before sequence is automatically revealed (0 = instant)"
                         android:textSize="12sp"
                         android:textColor="@android:color/darker_gray" />
 
@@ -1149,8 +1149,8 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:stepSize="500"
-                            android:valueFrom="1000"
+                            android:stepSize="250"
+                            android:valueFrom="0"
                             android:valueTo="10000"
                             android:value="3000" />
 
@@ -1161,6 +1161,412 @@
                             android:layout_marginStart="8dp"
                             android:minWidth="60dp"
                             android:text="3.0s"
+                            android:textAlignment="center" />
+                    </LinearLayout>
+                    
+                    <!-- Post-Reveal Delay -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="Post-reveal delay"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="Delay after reveal before auto-advancing to next sequence"
+                        android:textSize="12sp"
+                        android:textColor="@android:color/darker_gray" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_post_reveal_delay"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:stepSize="250"
+                            android:valueFrom="0"
+                            android:valueTo="5000"
+                            android:value="2000" />
+
+                        <TextView
+                            android:id="@+id/text_post_reveal_delay_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:minWidth="60dp"
+                            android:text="2.0s"
+                            android:textAlignment="center" />
+                    </LinearLayout>
+                    
+                    <!-- Listen Mode Settings -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="20dp"
+                        android:text="Listen Mode Settings"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="?attr/colorPrimary" />
+
+                    <!-- Listen WPM Settings -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="Character Speed (WPM)"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="Speed of morse characters in listen mode"
+                        android:textSize="12sp"
+                        android:textColor="@android:color/darker_gray" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="16dp">
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_listen_wpm"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:stepSize="1"
+                            android:valueFrom="5"
+                            android:valueTo="60"
+                            android:value="20" />
+
+                        <TextView
+                            android:id="@+id/text_listen_wpm_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:minWidth="60dp"
+                            android:text="20 WPM"
+                            android:textAlignment="center" />
+                    </LinearLayout>
+
+                    <!-- Listen Effective WPM -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Effective Speed (Farnsworth)"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="Speed of overall spacing in listen mode"
+                        android:textSize="12sp"
+                        android:textColor="@android:color/darker_gray" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="16dp">
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_listen_effective_wpm"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:stepSize="1"
+                            android:valueFrom="5"
+                            android:valueTo="60"
+                            android:value="20" />
+
+                        <TextView
+                            android:id="@+id/text_listen_effective_wpm_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:minWidth="60dp"
+                            android:text="20 WPM"
+                            android:textAlignment="center" />
+                    </LinearLayout>
+
+                    <!-- Listen Group Size -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="Group size range"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="Min and max characters per group in listen mode"
+                        android:textSize="12sp"
+                        android:textColor="@android:color/darker_gray" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="8dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Min:"
+                            android:textSize="12sp"
+                            android:layout_gravity="center_vertical" />
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_listen_min_group_size"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginEnd="8dp"
+                            android:stepSize="1"
+                            android:valueFrom="1"
+                            android:valueTo="10"
+                            android:value="1" />
+
+                        <TextView
+                            android:id="@+id/text_listen_min_group_size_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:minWidth="30dp"
+                            android:text="1"
+                            android:textAlignment="center" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="16dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Max:"
+                            android:textSize="12sp"
+                            android:layout_gravity="center_vertical" />
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_listen_max_group_size"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="8dp" 
+                            android:layout_marginEnd="8dp"
+                            android:stepSize="1"
+                            android:valueFrom="1"
+                            android:valueTo="10"
+                            android:value="5" />
+
+                        <TextView
+                            android:id="@+id/text_listen_max_group_size_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:minWidth="30dp"
+                            android:text="5"
+                            android:textAlignment="center" />
+                    </LinearLayout>
+
+                    <!-- Listen Sequence Length -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Groups per sequence"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="Number of character groups per sequence"
+                        android:textSize="12sp"
+                        android:textColor="@android:color/darker_gray" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="16dp">
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_listen_sequence_length"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:stepSize="1"
+                            android:valueFrom="1"
+                            android:valueTo="15"
+                            android:value="5" />
+
+                        <TextView
+                            android:id="@+id/text_listen_sequence_length_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:minWidth="60dp"
+                            android:text="5"
+                            android:textAlignment="center" />
+                    </LinearLayout>
+
+                    <!-- Listen Number of Repeats -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Number of repeats"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="How many times to repeat each sequence"
+                        android:textSize="12sp"
+                        android:textColor="@android:color/darker_gray" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="16dp">
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_listen_number_of_repeats"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:stepSize="1"
+                            android:valueFrom="1"
+                            android:valueTo="5"
+                            android:value="1" />
+
+                        <TextView
+                            android:id="@+id/text_listen_number_of_repeats_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:minWidth="60dp"
+                            android:text="1"
+                            android:textAlignment="center" />
+                    </LinearLayout>
+
+                    <!-- Listen Timing Settings -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Timing Settings"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <!-- Group Delay -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Group delay"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="Delay between character groups"
+                        android:textSize="12sp"
+                        android:textColor="@android:color/darker_gray" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="12dp">
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_listen_group_delay"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:stepSize="250"
+                            android:valueFrom="0"
+                            android:valueTo="5000"
+                            android:value="1000" />
+
+                        <TextView
+                            android:id="@+id/text_listen_group_delay_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:minWidth="60dp"
+                            android:text="1.0s"
+                            android:textAlignment="center" />
+                    </LinearLayout>
+
+                    <!-- Repeat Delay -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Repeat delay"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="Delay between repeats of same sequence"
+                        android:textSize="12sp"
+                        android:textColor="@android:color/darker_gray" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_listen_repeat_delay"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:stepSize="100"
+                            android:valueFrom="0"
+                            android:valueTo="2000"
+                            android:value="300" />
+
+                        <TextView
+                            android:id="@+id/text_listen_repeat_delay_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:minWidth="60dp"
+                            android:text="0.3s"
                             android:textAlignment="center" />
                     </LinearLayout>
 

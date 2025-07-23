@@ -67,7 +67,20 @@ data class TrainingSettings(
     
     // Auto-Reveal Settings
     val autoRevealEnabled: Boolean = true,   // Enable auto-reveal in listen mode
-    val autoRevealDelayMs: Long = 3000L,     // Auto-reveal countdown delay (1000 to 10000ms)
+    val autoRevealDelayMs: Long = 3000L,     // Auto-reveal countdown delay (0 to 10000ms)
+    val postRevealDelayMs: Long = 2000L,     // Delay after reveal before auto-advance (0 to 5000ms)
+    
+    // Listen Mode Settings (separate from trainer)
+    val listenWpm: Int = 20,                 // Listen mode character speed (5-60)
+    val listenEffectiveWpm: Int = 20,        // Listen mode effective speed/Farnsworth (5-60)
+    val listenMinGroupSize: Int = 1,         // Minimum characters per group (1-10)
+    val listenMaxGroupSize: Int = 5,         // Maximum characters per group (1-10)
+    val listenSequenceLength: Int = 5,       // Number of groups per sequence (1-15)
+    val listenNumberOfRepeats: Int = 1,      // How many times to repeat each sequence (1-5)
+    val listenSequenceDelayMs: Long = 500,   // Delay after sequence playback completes (0-3000ms)
+    val listenRepeatDelayMs: Long = 300,     // Delay between repeats of same sequence (0-2000ms)
+    val listenGroupDelayMs: Long = 1000,     // Delay between character groups (0-5000ms)
+    val listenNextDelayMs: Long = 300,       // Delay before auto-starting next sequence (0-2000ms)
     
     // Appearance
     val themeMode: String = "light",          // "light", "dark", or "system"
@@ -252,6 +265,19 @@ fun TrainingSettings.toJson(): String {
     // Auto-Reveal Settings
     json.put("autoRevealEnabled", autoRevealEnabled)
     json.put("autoRevealDelayMs", autoRevealDelayMs)
+    json.put("postRevealDelayMs", postRevealDelayMs)
+    
+    // Listen Mode Settings
+    json.put("listenWpm", listenWpm)
+    json.put("listenEffectiveWpm", listenEffectiveWpm)
+    json.put("listenMinGroupSize", listenMinGroupSize)
+    json.put("listenMaxGroupSize", listenMaxGroupSize)
+    json.put("listenSequenceLength", listenSequenceLength)
+    json.put("listenNumberOfRepeats", listenNumberOfRepeats)
+    json.put("listenSequenceDelayMs", listenSequenceDelayMs)
+    json.put("listenRepeatDelayMs", listenRepeatDelayMs)
+    json.put("listenGroupDelayMs", listenGroupDelayMs)
+    json.put("listenNextDelayMs", listenNextDelayMs)
     
     // Appearance
     json.put("themeMode", themeMode)
@@ -342,6 +368,19 @@ fun TrainingSettings.Companion.fromJson(json: String): TrainingSettings {
         // Auto-Reveal Settings
         autoRevealEnabled = getBooleanOrDefault("autoRevealEnabled", true),
         autoRevealDelayMs = getLongOrDefault("autoRevealDelayMs", 3000L),
+        postRevealDelayMs = getLongOrDefault("postRevealDelayMs", 2000L),
+        
+        // Listen Mode Settings
+        listenWpm = getIntOrDefault("listenWpm", 20),
+        listenEffectiveWpm = getIntOrDefault("listenEffectiveWpm", 20),
+        listenMinGroupSize = getIntOrDefault("listenMinGroupSize", 1),
+        listenMaxGroupSize = getIntOrDefault("listenMaxGroupSize", 5),
+        listenSequenceLength = getIntOrDefault("listenSequenceLength", 5),
+        listenNumberOfRepeats = getIntOrDefault("listenNumberOfRepeats", 1),
+        listenSequenceDelayMs = getLongOrDefault("listenSequenceDelayMs", 500L),
+        listenRepeatDelayMs = getLongOrDefault("listenRepeatDelayMs", 300L),
+        listenGroupDelayMs = getLongOrDefault("listenGroupDelayMs", 1000L),
+        listenNextDelayMs = getLongOrDefault("listenNextDelayMs", 300L),
         
         // Appearance
         themeMode = getStringOrDefault("themeMode", "light"),

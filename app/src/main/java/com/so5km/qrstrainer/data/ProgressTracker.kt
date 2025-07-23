@@ -84,6 +84,17 @@ class ProgressTracker(private val context: Context) {
             }
         }
         
+        // Track overall sequence performance for statistics
+        val totalAttempts = prefs.getInt("total_sequence_attempts", 0) + 1
+        val totalCorrect = prefs.getInt("total_sequence_correct", 0) + if (wasCorrect) 1 else 0
+        val totalResponseTime = prefs.getLong("total_sequence_response_time", 0L) + responseTimeMs
+        
+        prefs.edit()
+            .putInt("total_sequence_attempts", totalAttempts)
+            .putInt("total_sequence_correct", totalCorrect)
+            .putLong("total_sequence_response_time", totalResponseTime)
+            .apply()
+        
         // Check for level progression using current settings
         checkLevelProgression()
         saveProgress()
@@ -103,6 +114,29 @@ class ProgressTracker(private val context: Context) {
      * Get best streak achieved
      */
     fun getBestStreak(): Int = prefs.getInt("best_streak", 0)
+    
+    /**
+     * Get overall sequence statistics
+     */
+    fun getSequenceStats(): SequenceStats {
+        val attempts = prefs.getInt("total_sequence_attempts", 0)
+        val correct = prefs.getInt("total_sequence_correct", 0)
+        val totalTime = prefs.getLong("total_sequence_response_time", 0L)
+        
+        return SequenceStats(
+            attempts = attempts,
+            correct = correct,
+            accuracy = if (attempts > 0) correct.toFloat() / attempts else 0f,
+            averageResponseTime = if (attempts > 0) totalTime / attempts else 0L
+        )
+    }
+    
+    data class SequenceStats(
+        val attempts: Int,
+        val correct: Int,
+        val accuracy: Float,
+        val averageResponseTime: Long
+    )
     
     /**
      * Get all character statistics

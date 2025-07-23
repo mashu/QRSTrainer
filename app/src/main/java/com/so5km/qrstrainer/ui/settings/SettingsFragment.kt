@@ -127,8 +127,8 @@ class SettingsFragment : Fragment() {
             toggleSection(binding.layoutNoiseSettings)
         }
         
-        // Start with audio section expanded
-        binding.layoutAudioSettings.visibility = View.VISIBLE
+        // Restore last opened section or default to audio
+        restoreLastOpenedSection()
     }
     
     private fun toggleSection(layout: View?) {
@@ -146,6 +146,9 @@ class SettingsFragment : Fragment() {
                     }
                     .start()
             } else {
+                // Collapse all other sections first
+                collapseAllSections()
+                
                 // Expand with animation
                 view.alpha = 0f
                 view.translationY = -20f
@@ -155,8 +158,68 @@ class SettingsFragment : Fragment() {
                     .translationY(0f)
                     .setDuration(200)
                     .start()
+                
+                // Save the opened section
+                saveLastOpenedSection(view)
             }
         }
+    }
+    
+    private fun collapseAllSections() {
+        val sections = listOf(
+            binding.layoutAudioSettings,
+            binding.layoutGroupSettings,
+            binding.layoutTimingSettings,
+            binding.layoutLevelSettings,
+            binding.layoutCharacterSettings,
+            binding.layoutTtsSettings,
+            binding.layoutAutorevealSettings,
+            binding.layoutNoiseSettings
+        )
+        
+        sections.forEach { section ->
+            if (section.visibility == View.VISIBLE) {
+                section.visibility = View.GONE
+            }
+        }
+    }
+    
+    private fun saveLastOpenedSection(layout: View) {
+        val sectionName = when (layout) {
+            binding.layoutAudioSettings -> "audio"
+            binding.layoutGroupSettings -> "group"
+            binding.layoutTimingSettings -> "timing"
+            binding.layoutLevelSettings -> "level"
+            binding.layoutCharacterSettings -> "character"
+            binding.layoutTtsSettings -> "tts"
+            binding.layoutAutorevealSettings -> "autoreveal"
+            binding.layoutNoiseSettings -> "noise"
+            else -> "audio"
+        }
+        
+        requireContext().getSharedPreferences("settings_ui", android.content.Context.MODE_PRIVATE)
+            .edit()
+            .putString("last_opened_section", sectionName)
+            .apply()
+    }
+    
+    private fun restoreLastOpenedSection() {
+        val prefs = requireContext().getSharedPreferences("settings_ui", android.content.Context.MODE_PRIVATE)
+        val lastSection = prefs.getString("last_opened_section", "audio")
+        
+        val sectionToOpen = when (lastSection) {
+            "audio" -> binding.layoutAudioSettings
+            "group" -> binding.layoutGroupSettings
+            "timing" -> binding.layoutTimingSettings
+            "level" -> binding.layoutLevelSettings
+            "character" -> binding.layoutCharacterSettings
+            "tts" -> binding.layoutTtsSettings
+            "autoreveal" -> binding.layoutAutorevealSettings
+            "noise" -> binding.layoutNoiseSettings
+            else -> binding.layoutAudioSettings
+        }
+        
+        sectionToOpen.visibility = View.VISIBLE
     }
     
     private fun setupThemeControls() {
@@ -516,8 +579,105 @@ class SettingsFragment : Fragment() {
         binding.sliderAutoRevealDelay.addOnChangeListener { _, value, fromUser ->
             if (fromUser) {
                 val delaySeconds = value / 1000f
-                binding.textAutoRevealDelayValue.text = "${String.format("%.1f", delaySeconds)}s"
+                binding.textAutoRevealDelayValue.text = if (value == 0f) "0s" else "${String.format("%.1f", delaySeconds)}s"
                 updateSettings { it.copy(autoRevealDelayMs = value.toLong()) }
+            }
+        }
+        
+        // Post-Reveal Delay Slider
+        binding.sliderPostRevealDelay.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                val delaySeconds = value / 1000f
+                binding.textPostRevealDelayValue.text = if (value == 0f) "0s" else "${String.format("%.1f", delaySeconds)}s"
+                updateSettings { it.copy(postRevealDelayMs = value.toLong()) }
+            }
+        }
+        
+        // Listen WPM Sliders
+        binding.sliderListenWpm.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                val wpm = value.toInt()
+                binding.textListenWpmValue.text = "$wpm WPM"
+                updateSettings { it.copy(listenWpm = wpm) }
+                
+                // Ensure effective WPM doesn't exceed character WPM
+                if (binding.sliderListenEffectiveWpm.value > value) {
+                    binding.sliderListenEffectiveWpm.value = value
+                    binding.textListenEffectiveWpmValue.text = "${value.toInt()} WPM"
+                    updateSettings { it.copy(listenEffectiveWpm = value.toInt()) }
+                }
+            }
+        }
+        
+        binding.sliderListenEffectiveWpm.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                val effectiveWpm = value.toInt()
+                binding.textListenEffectiveWpmValue.text = "$effectiveWpm WPM"
+                updateSettings { it.copy(listenEffectiveWpm = effectiveWpm) }
+                
+                // Ensure effective WPM doesn't exceed character WPM
+                if (value > binding.sliderListenWpm.value) {
+                    binding.sliderListenWpm.value = value
+                    binding.textListenWpmValue.text = "${value.toInt()} WPM"
+                    updateSettings { it.copy(listenWpm = value.toInt()) }
+                }
+            }
+        }
+        
+        // Listen Group Size Sliders  
+        binding.sliderListenMinGroupSize.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                binding.textListenMinGroupSizeValue.text = value.toInt().toString()
+                // Ensure max is not less than min
+                if (binding.sliderListenMaxGroupSize.value < value) {
+                    binding.sliderListenMaxGroupSize.value = value
+                }
+                updateSettings { it.copy(listenMinGroupSize = value.toInt()) }
+            }
+        }
+        
+        binding.sliderListenMaxGroupSize.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                binding.textListenMaxGroupSizeValue.text = value.toInt().toString()
+                // Ensure min is not greater than max
+                if (binding.sliderListenMinGroupSize.value > value) {
+                    binding.sliderListenMinGroupSize.value = value
+                }
+                updateSettings { it.copy(listenMaxGroupSize = value.toInt()) }
+            }
+        }
+        
+        // Listen Sequence Length Slider
+        binding.sliderListenSequenceLength.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                binding.textListenSequenceLengthValue.text = value.toInt().toString()
+                updateSettings { it.copy(listenSequenceLength = value.toInt()) }
+            }
+        }
+        
+        // Listen Number of Repeats Slider
+        binding.sliderListenNumberOfRepeats.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                binding.textListenNumberOfRepeatsValue.text = value.toInt().toString()
+                updateSettings { it.copy(listenNumberOfRepeats = value.toInt()) }
+            }
+        }
+        
+        // Listen Group Delay Slider
+        binding.sliderListenGroupDelay.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                val delaySeconds = value / 1000f
+                binding.textListenGroupDelayValue.text = if (value == 0f) "0s" else "${String.format("%.1f", delaySeconds)}s"
+                updateSettings { it.copy(listenGroupDelayMs = value.toLong()) }
+            }
+        }
+        
+        // Listen Repeat Delay Slider
+        binding.sliderListenRepeatDelay.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                val delaySeconds = value / 1000f
+                binding.textListenRepeatDelayValue.text = if (value == 0f) "0s" else "${String.format("%.1f", delaySeconds)}s"
+                updateSettings { it.copy(listenRepeatDelayMs = value.toLong()) }
             }
         }
     }
@@ -712,7 +872,35 @@ class SettingsFragment : Fragment() {
             switchAutoRevealEnabled.isChecked = settings.autoRevealEnabled
             switchSpeakAnswer.isChecked = settings.ttsSpeakInListenMode
             sliderAutoRevealDelay.value = settings.autoRevealDelayMs.toFloat()
-            textAutoRevealDelayValue.text = "${String.format("%.1f", settings.autoRevealDelayMs / 1000f)}s"
+            textAutoRevealDelayValue.text = if (settings.autoRevealDelayMs == 0L) "0s" else "${String.format("%.1f", settings.autoRevealDelayMs / 1000f)}s"
+            
+            sliderPostRevealDelay.value = settings.postRevealDelayMs.toFloat()
+            textPostRevealDelayValue.text = if (settings.postRevealDelayMs == 0L) "0s" else "${String.format("%.1f", settings.postRevealDelayMs / 1000f)}s"
+            
+            // Listen Mode Settings
+            sliderListenWpm.value = settings.listenWpm.toFloat()
+            textListenWpmValue.text = "${settings.listenWpm} WPM"
+            
+            sliderListenEffectiveWpm.value = settings.listenEffectiveWpm.toFloat()
+            textListenEffectiveWpmValue.text = "${settings.listenEffectiveWpm} WPM"
+            
+            sliderListenMinGroupSize.value = settings.listenMinGroupSize.toFloat()
+            textListenMinGroupSizeValue.text = settings.listenMinGroupSize.toString()
+            
+            sliderListenMaxGroupSize.value = settings.listenMaxGroupSize.toFloat()
+            textListenMaxGroupSizeValue.text = settings.listenMaxGroupSize.toString()
+            
+            sliderListenSequenceLength.value = settings.listenSequenceLength.toFloat()
+            textListenSequenceLengthValue.text = settings.listenSequenceLength.toString()
+            
+            sliderListenNumberOfRepeats.value = settings.listenNumberOfRepeats.toFloat()
+            textListenNumberOfRepeatsValue.text = settings.listenNumberOfRepeats.toString()
+            
+            sliderListenGroupDelay.value = settings.listenGroupDelayMs.toFloat()
+            textListenGroupDelayValue.text = if (settings.listenGroupDelayMs == 0L) "0s" else "${String.format("%.1f", settings.listenGroupDelayMs / 1000f)}s"
+            
+            sliderListenRepeatDelay.value = settings.listenRepeatDelayMs.toFloat()
+            textListenRepeatDelayValue.text = if (settings.listenRepeatDelayMs == 0L) "0s" else "${String.format("%.1f", settings.listenRepeatDelayMs / 1000f)}s"
             
             // Noise settings
             switchNoise.isChecked = settings.noiseEnabled
