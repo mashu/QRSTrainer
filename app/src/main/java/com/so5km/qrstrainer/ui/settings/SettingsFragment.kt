@@ -127,6 +127,21 @@ class SettingsFragment : Fragment() {
             toggleSection(binding.layoutNoiseSettings)
         }
         
+        // Trainer Audio Settings Section
+        binding.cardTrainerAudioSettings.setOnClickListener {
+            toggleSection(binding.layoutTrainerAudioSettings)
+        }
+        
+        // Listen Audio Settings Section
+        binding.cardListenAudioSettings.setOnClickListener {
+            toggleSection(binding.layoutListenAudioSettings)
+        }
+        
+        // Listen Groups Settings Section
+        binding.cardListenGroupsSettings.setOnClickListener {
+            toggleSection(binding.layoutListenGroupsSettings)
+        }
+        
         // Restore last opened section or default to audio
         restoreLastOpenedSection()
     }
@@ -174,7 +189,10 @@ class SettingsFragment : Fragment() {
             binding.layoutCharacterSettings,
             binding.layoutTtsSettings,
             binding.layoutAutorevealSettings,
-            binding.layoutNoiseSettings
+            binding.layoutNoiseSettings,
+            binding.layoutTrainerAudioSettings,
+            binding.layoutListenAudioSettings,
+            binding.layoutListenGroupsSettings
         )
         
         sections.forEach { section ->
@@ -194,6 +212,9 @@ class SettingsFragment : Fragment() {
             binding.layoutTtsSettings -> "tts"
             binding.layoutAutorevealSettings -> "autoreveal"
             binding.layoutNoiseSettings -> "noise"
+            binding.layoutTrainerAudioSettings -> "trainer_audio"
+            binding.layoutListenAudioSettings -> "listen_audio"
+            binding.layoutListenGroupsSettings -> "listen_groups"
             else -> "audio"
         }
         
@@ -216,6 +237,9 @@ class SettingsFragment : Fragment() {
             "tts" -> binding.layoutTtsSettings
             "autoreveal" -> binding.layoutAutorevealSettings
             "noise" -> binding.layoutNoiseSettings
+            "trainer_audio" -> binding.layoutTrainerAudioSettings
+            "listen_audio" -> binding.layoutListenAudioSettings
+            "listen_groups" -> binding.layoutListenGroupsSettings
             else -> binding.layoutAudioSettings
         }
         

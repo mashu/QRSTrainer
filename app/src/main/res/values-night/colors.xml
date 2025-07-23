@@ -1,8 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Dark Theme Visualization Background Colors -->
-    <color name="visualization_background_light">#2D2D2D</color>
-    <color name="visualization_background_dark">#404040</color>
-    <color name="visualization_text_light">#E0E0E0</color>
-    <color name="visualization_text_dark">#FFFFFF</color>
+    <!-- Surface and background colors for dark theme -->
+    <color name="surface_light">@color/md_theme_dark_surface</color>
+    <color name="surface_dark">@color/md_theme_dark_surface</color>
+    <color name="border_light">@color/md_theme_dark_outline</color>
+    
+    <!-- Visualization Background Colors for dark theme -->
+    <color name="visualization_background_light">#2A2A2A</color>
+    <color name="visualization_background_dark">#1F1F1F</color>
+    <color name="visualization_text_light">#E5E5E5</color>
+    <color name="visualization_text_dark">#F0F0F0</color>
+    
+    <!-- Settings Organization Colors for dark theme -->
+    <color name="settings_shared_background">@color/md_theme_dark_surface</color>
+    <color name="settings_trainer_background">#2A2832</color>
+    <color name="settings_listen_background">#282A32</color>
 </resources> 

@@ -92,4 +92,17 @@
     <color name="visualization_background_dark">#F5F5F5</color>
     <color name="visualization_text_light">#2E2E2E</color>
     <color name="visualization_text_dark">#1A1A1A</color>
+    
+    <!-- Settings Organization Colors -->
+    <color name="settings_shared_background">@color/md_theme_light_surface</color>
+    <color name="settings_trainer_background">#F8F6FF</color>
+    <color name="settings_listen_background">#F6F8FF</color>
+    
+    <!-- Dark theme variants -->
+    <color name="settings_shared_background_dark">@color/md_theme_dark_surface</color>
+    <color name="settings_trainer_background_dark">#2A2832</color>
+    <color name="settings_listen_background_dark">#282A32</color>
+    
+    <!-- App Launcher Icon Colors -->
+    <color name="ic_launcher_background">#6750A4</color>
 </resources>

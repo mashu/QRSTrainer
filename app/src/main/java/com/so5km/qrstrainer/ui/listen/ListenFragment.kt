@@ -36,6 +36,8 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
     private var sequenceCount = 0
     private var audioPlaybackJob: Job? = null
     private var autoRevealJob: Job? = null
+    private var ttsJob: Job? = null
+    private var isTtsSpeaking = false // Tracks TTS state to coordinate with audio playback
     
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -93,6 +95,38 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
     }
     
     private fun startListening() {
+        // Don't start new audio while TTS is speaking - wait for it to finish
+        if (isTtsSpeaking) {
+            android.util.Log.d("ListenFragment", "TTS is speaking - waiting for completion before starting audio")
+            
+            // Show user feedback that we're waiting for TTS
+            binding.textSequence.text = "🗣️ Waiting for speech to finish..."
+            
+            // Wait for TTS to complete, then start listening
+            lifecycleScope.launch {
+                var waitTime = 0L
+                val maxWaitTime = 15000L // 15 second timeout
+                
+                while (isTtsSpeaking && waitTime < maxWaitTime) {
+                    delay(200)
+                    waitTime += 200
+                }
+                
+                if (isTtsSpeaking) {
+                    android.util.Log.w("ListenFragment", "TTS timeout - proceeding with audio")
+                    isTtsSpeaking = false
+                }
+                
+                // Now start listening after TTS completed
+                startListeningInternal()
+            }
+            return
+        }
+        
+        startListeningInternal()
+    }
+    
+    private fun startListeningInternal() {
         try {
             val settings = storeViewModel.settings.value
             // Create listen-specific settings for sequence generation
@@ -167,11 +201,16 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
             audioPlaybackJob?.cancel()
             audioPlaybackJob = null
             
+            // Cancel any ongoing TTS coordination
+            ttsJob?.cancel()
+            ttsJob = null
+            
             // Stop audio manager and TTS
             audioManager.stopPlayback()
             audioManager.stopContinuousNoise()
             if (::textToSpeech.isInitialized) {
                 textToSpeech.stop()
+                isTtsSpeaking = false
             }
             
             // Reset state
@@ -191,6 +230,10 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
         try {
             android.util.Log.d("ListenFragment", "Revealing sequence: '$currentSequence'")
             
+            // Cancel any previous TTS job
+            ttsJob?.cancel()
+            ttsJob = null
+            
             storeViewModel.dispatch(AppAction.RevealSequence)
             audioManager.stopContinuousNoise() // Stop background noise when revealing
             
@@ -201,54 +244,24 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
             val settings = storeViewModel.settings.value
             android.util.Log.d("ListenFragment", "Checking TTS settings - speakInListen: ${settings.ttsSpeakInListenMode}, delay: ${settings.ttsDelayMs}ms")
             
-            lifecycleScope.launch {
-                var totalTtsTime = 0L
+            // Handle TTS if enabled
+            if (settings.ttsSpeakInListenMode) {
+                android.util.Log.d("ListenFragment", "TTS enabled - will speak sequence '$currentSequence' after ${settings.ttsDelayMs}ms delay")
                 
-                // Handle TTS if enabled
-                if (settings.ttsSpeakInListenMode) {
-                    android.util.Log.d("ListenFragment", "TTS enabled - will speak sequence '$currentSequence' after ${settings.ttsDelayMs}ms delay")
-                    
-                    // Wait for TTS delay
+                ttsJob = lifecycleScope.launch {
                     delay(settings.ttsDelayMs)
-                    totalTtsTime += settings.ttsDelayMs
                     
-                    // Check if we're still in revealed state after delay
+                    // Check if we're still in revealed state
                     val currentState = storeViewModel.state.value.listenState.state
-                    android.util.Log.d("ListenFragment", "Current state after TTS delay: $currentState")
-                    
                     if (currentState == ListeningState.REVEALED) {
-                        android.util.Log.d("ListenFragment", "State is still REVEALED - starting TTS speech for sequence: '$currentSequence'")
+                        android.util.Log.d("ListenFragment", "Starting TTS speech for sequence: '$currentSequence'")
                         speakSequence(currentSequence, settings)
-                        
-                        // Estimate TTS speaking time (roughly 200ms per character including pauses)
-                        val estimatedSpeakingTime = (currentSequence.replace(" ", "").length * 200L / settings.ttsSpeechRate).toLong()
-                        android.util.Log.d("ListenFragment", "Estimated TTS speaking time: ${estimatedSpeakingTime}ms")
-                        
-                        delay(estimatedSpeakingTime)
-                        totalTtsTime += estimatedSpeakingTime
-                    } else {
-                        android.util.Log.d("ListenFragment", "Skipping TTS - state changed to $currentState during delay")
-                    }
-                } else {
-                    android.util.Log.d("ListenFragment", "TTS disabled")
-                }
-                
-                // Auto-advance to next sequence after TTS completes
-                val currentSettings = storeViewModel.settings.value
-                if (currentSettings.autoRevealEnabled && currentSettings.postRevealDelayMs > 0) {
-                    // Wait for the remaining post-reveal delay (if any)
-                    val remainingDelay = maxOf(0L, currentSettings.postRevealDelayMs - totalTtsTime)
-                    android.util.Log.d("ListenFragment", "Waiting additional ${remainingDelay}ms before auto-advance (total TTS time was ${totalTtsTime}ms)")
-                    
-                    delay(remainingDelay)
-                    
-                    // Check if we're still in revealed state (user didn't manually advance)
-                    val currentState = storeViewModel.state.value.listenState.state
-                    if (currentState == ListeningState.REVEALED) {
-                        android.util.Log.d("ListenFragment", "Auto-advancing to next sequence")
-                        nextSequence()
+                        // Auto-advance will be triggered by TTS completion callback
                     }
                 }
+            } else {
+                android.util.Log.d("ListenFragment", "TTS disabled - proceeding with auto-advance")
+                scheduleAutoAdvance()
             }
         } catch (e: Exception) {
             android.util.Log.e("ListenFragment", "Error revealing sequence", e)
@@ -257,6 +270,13 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
     }
     
     private fun nextSequence() {
+        // Allow next sequence even during TTS - user wants to move on
+        if (isTtsSpeaking && ::textToSpeech.isInitialized) {
+            android.util.Log.d("ListenFragment", "User requested next sequence - stopping TTS")
+            textToSpeech.stop()
+            isTtsSpeaking = false
+        }
+        
         try {
             android.util.Log.d("ListenFragment", "Moving to next sequence")
             
@@ -280,6 +300,38 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
     }
     
     private fun replaySequence() {
+        // Don't replay while TTS is speaking - wait for it to finish
+        if (isTtsSpeaking) {
+            android.util.Log.d("ListenFragment", "TTS is speaking - waiting for completion before replaying")
+            
+            // Show user feedback
+            binding.textSequence.text = "🗣️ Waiting for speech to finish..."
+            
+            // Wait for TTS to complete, then replay
+            lifecycleScope.launch {
+                var waitTime = 0L
+                val maxWaitTime = 15000L // 15 second timeout
+                
+                while (isTtsSpeaking && waitTime < maxWaitTime) {
+                    delay(200)
+                    waitTime += 200
+                }
+                
+                if (isTtsSpeaking) {
+                    android.util.Log.w("ListenFragment", "TTS timeout - proceeding with replay")
+                    isTtsSpeaking = false
+                }
+                
+                // Now replay after TTS completed
+                replaySequenceInternal()
+            }
+            return
+        }
+        
+        replaySequenceInternal()
+    }
+    
+    private fun replaySequenceInternal() {
         if (currentSequence.isNotEmpty()) {
             try {
                 val settings = storeViewModel.settings.value
@@ -352,7 +404,12 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
                 // Auto-reveal countdown will start if enabled
             }
             ListeningState.REVEALED -> {
-                binding.textSequence.text = "$currentSequence"
+                // Show different text if TTS is speaking
+                if (isTtsSpeaking) {
+                    binding.textSequence.text = "🗣️ $currentSequence"
+                } else {
+                    binding.textSequence.text = "$currentSequence"
+                }
                 binding.progressDelay.alpha = 0.0f
             }
             ListeningState.PAUSED -> {
@@ -368,8 +425,10 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
             return
         }
         
-        // Cancel any existing countdown
+        // Cancel any existing countdown and TTS coordination
         autoRevealJob?.cancel()
+        ttsJob?.cancel()
+        ttsJob = null
         
         android.util.Log.d("ListenFragment", "Starting auto-reveal countdown")
         binding.progressDelay.alpha = 1.0f
@@ -413,6 +472,24 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
         val level = storeViewModel.settings.value.currentLevel
         
         binding.textLevel.text = "Level: $level"
+    }
+    
+    private fun scheduleAutoAdvance() {
+        val settings = storeViewModel.settings.value
+        if (settings.autoRevealEnabled && settings.postRevealDelayMs > 0) {
+            android.util.Log.d("ListenFragment", "Scheduling auto-advance after ${settings.postRevealDelayMs}ms")
+            
+            lifecycleScope.launch {
+                delay(settings.postRevealDelayMs)
+                
+                // Check if we're still in revealed state (user didn't manually advance)
+                val currentState = storeViewModel.state.value.listenState.state
+                if (currentState == ListeningState.REVEALED) {
+                    android.util.Log.d("ListenFragment", "Auto-advancing to next sequence")
+                    nextSequence()
+                }
+            }
+        }
     }
     
     private fun setupAnimations() {
@@ -470,17 +547,90 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
             textToSpeech.setSpeechRate(settings.ttsSpeechRate)
             textToSpeech.setPitch(settings.ttsPitch)
             
-            // Speak each character with pauses - simpler approach without Bundle
+            // Set up TTS completion listener using modern API
+            textToSpeech.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
+                override fun onStart(utteranceId: String?) {
+                    android.util.Log.d("ListenFragment", "TTS started speaking for utterance: $utteranceId")
+                    isTtsSpeaking = true
+                    
+                    // Update UI to show TTS is speaking
+                    lifecycleScope.launch {
+                        val currentState = storeViewModel.state.value.listenState.state
+                        if (currentState == ListeningState.REVEALED) {
+                            binding.textSequence.text = "🗣️ $currentSequence"
+                        }
+                    }
+                }
+                
+                override fun onDone(utteranceId: String?) {
+                    android.util.Log.d("ListenFragment", "TTS finished speaking for utterance: $utteranceId")
+                    isTtsSpeaking = false
+                    
+                    // Update UI to remove TTS indicator
+                    lifecycleScope.launch {
+                        val currentState = storeViewModel.state.value.listenState.state
+                        if (currentState == ListeningState.REVEALED) {
+                            binding.textSequence.text = "$currentSequence"
+                        }
+                    }
+                    
+                    // TTS is complete - now schedule auto-advance
+                    android.util.Log.d("ListenFragment", "TTS complete - scheduling auto-advance")
+                    scheduleAutoAdvance()
+                }
+                
+                override fun onError(utteranceId: String?) {
+                    android.util.Log.e("ListenFragment", "TTS error occurred for utterance: $utteranceId")
+                    isTtsSpeaking = false
+                    
+                    // Update UI to remove TTS indicator
+                    lifecycleScope.launch {
+                        val currentState = storeViewModel.state.value.listenState.state
+                        if (currentState == ListeningState.REVEALED) {
+                            binding.textSequence.text = "$currentSequence"
+                        }
+                    }
+                    
+                    // TTS failed - still schedule auto-advance to avoid getting stuck
+                    android.util.Log.d("ListenFragment", "TTS error - scheduling auto-advance anyway")
+                    scheduleAutoAdvance()
+                }
+                
+                override fun onStop(utteranceId: String?, interrupted: Boolean) {
+                    android.util.Log.d("ListenFragment", "TTS stopped for utterance: $utteranceId, interrupted: $interrupted")
+                    isTtsSpeaking = false
+                    
+                    // Update UI to remove TTS indicator
+                    lifecycleScope.launch {
+                        val currentState = storeViewModel.state.value.listenState.state
+                        if (currentState == ListeningState.REVEALED) {
+                            binding.textSequence.text = "$currentSequence"
+                        }
+                    }
+                    
+                    // Only schedule auto-advance if not interrupted by user action
+                    if (!interrupted) {
+                        android.util.Log.d("ListenFragment", "TTS stopped naturally - scheduling auto-advance")
+                        scheduleAutoAdvance()
+                    } else {
+                        android.util.Log.d("ListenFragment", "TTS stopped by user - not scheduling auto-advance")
+                    }
+                }
+            })
+            
+            // Speak each character with pauses - use modern Bundle API
             val spokenText = sequence.toCharArray().joinToString(", ")
             android.util.Log.d("ListenFragment", "About to speak TTS text: '$spokenText'")
             
-            // Use deprecated API for better compatibility and simpler volume control
-            @Suppress("DEPRECATION")
-            val result = textToSpeech.speak(spokenText, TextToSpeech.QUEUE_FLUSH, null)
+            val params = android.os.Bundle()
+            val utteranceId = "listen_sequence_${System.currentTimeMillis()}"
+            
+            val result = textToSpeech.speak(spokenText, TextToSpeech.QUEUE_FLUSH, params, utteranceId)
             
             android.util.Log.d("ListenFragment", "TTS speak() call result: $result")
             if (result == TextToSpeech.ERROR) {
                 android.util.Log.e("ListenFragment", "TTS speak() returned ERROR")
+                isTtsSpeaking = false
             } else {
                 android.util.Log.d("ListenFragment", "TTS speak() called successfully, should be speaking now")
             }
@@ -493,18 +643,23 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
     override fun onDestroyView() {
         super.onDestroyView()
         
-        // Cancel any ongoing audio playback
-        audioPlaybackJob?.cancel()
-        audioPlaybackJob = null
-        
-        // Cancel any ongoing auto-reveal countdown
-        autoRevealJob?.cancel()
-        autoRevealJob = null
+                    // Cancel any ongoing audio playback
+            audioPlaybackJob?.cancel()
+            audioPlaybackJob = null
+            
+            // Cancel any ongoing auto-reveal countdown
+            autoRevealJob?.cancel()
+            autoRevealJob = null
+            
+            // Cancel any ongoing TTS job
+            ttsJob?.cancel()
+            ttsJob = null
         
         // Clean up TTS
         if (::textToSpeech.isInitialized) {
             textToSpeech.stop()
             textToSpeech.shutdown()
+            isTtsSpeaking = false
         }
         
         // Clean up audio manager
