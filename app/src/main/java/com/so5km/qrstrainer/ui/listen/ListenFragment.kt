@@ -33,7 +33,6 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
     private lateinit var textToSpeech: TextToSpeech
     
     private var currentSequence = ""
-    private var isAutoRevealEnabled = true
     private var sequenceCount = 0
     private var audioPlaybackJob: Job? = null
     private var autoRevealJob: Job? = null
@@ -74,27 +73,7 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
             onReplayClick = { replaySequence() }
         }
         
-        // Setup switches
-        binding.switchAutoReveal.apply {
-            isChecked = isAutoRevealEnabled
-            setOnCheckedChangeListener { _, isChecked ->
-                isAutoRevealEnabled = isChecked
-                android.util.Log.d("ListenFragment", "Auto-reveal toggled: $isChecked")
-            }
-        }
-        
-        binding.switchSpeak.apply {
-            // Initialize from settings
-            val settings = storeViewModel.settings.value
-            isChecked = settings.ttsSpeakInListenMode
-            setOnCheckedChangeListener { _, isChecked ->
-                // Update the settings when toggled
-                storeViewModel.dispatch(AppAction.UpdateSettings(
-                    settings.copy(ttsSpeakInListenMode = isChecked)
-                ))
-                android.util.Log.d("ListenFragment", "Speak toggled: $isChecked (saved to settings)")
-            }
-        }
+
         
         // Initial state
         updateUIForState(ListeningState.READY)
@@ -110,12 +89,7 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
             }
         }
         
-        // Also observe settings changes to update speak switch
-        viewLifecycleOwner.lifecycleScope.launch {
-            storeViewModel.settings.collect { settings ->
-                binding.switchSpeak.isChecked = settings.ttsSpeakInListenMode
-            }
-        }
+
     }
     
     private fun startListening() {
@@ -139,7 +113,7 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
             }
             
             // Update UI
-            binding.textSequence.text = "🎵 Listen to the sequence..."
+            binding.textSequence.text = "🎵 Listening..."
             updateUIForState(ListeningState.PLAYING)
             
             // Play the sequence
@@ -157,7 +131,8 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
                     updateUIForState(ListeningState.WAITING)
                     
                     // Start auto-reveal countdown if enabled
-                    if (isAutoRevealEnabled) {
+                    val settings = storeViewModel.settings.value
+                    if (settings.autoRevealEnabled) {
                         android.util.Log.d("ListenFragment", "Starting auto-reveal countdown")
                         startAutoRevealCountdown()
                     } else {
@@ -190,13 +165,13 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
             // Reset state
             storeViewModel.dispatch(AppAction.NextSequence)
             updateUIForState(ListeningState.READY)
-            binding.textSequence.text = "Ready to listen..."
+            binding.textSequence.text = "Ready"
             
             android.util.Log.d("ListenFragment", "Listen mode stopped successfully")
         } catch (e: Exception) {
             android.util.Log.e("ListenFragment", "Error stopping listen mode", e)
             updateUIForState(ListeningState.READY)
-            binding.textSequence.text = "Ready to listen..."
+            binding.textSequence.text = "Ready"
         }
     }
     
@@ -207,7 +182,7 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
             storeViewModel.dispatch(AppAction.RevealSequence)
             audioManager.stopContinuousNoise() // Stop background noise when revealing
             
-            binding.textSequence.text = "Sequence: $currentSequence"
+            binding.textSequence.text = "$currentSequence"
             updateUIForState(ListeningState.REVEALED)
             
             // Speak the sequence if enabled
@@ -237,7 +212,8 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
             }
             
             // Auto-advance to next sequence after a delay if auto-reveal is enabled
-            if (isAutoRevealEnabled) {
+            val currentSettings = storeViewModel.settings.value
+            if (currentSettings.autoRevealEnabled) {
                 lifecycleScope.launch {
                     delay(3000) // Wait 3 seconds after reveal
                     
@@ -273,7 +249,7 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
         } catch (e: Exception) {
             android.util.Log.e("ListenFragment", "Error moving to next sequence", e)
             updateUIForState(ListeningState.READY)
-            binding.textSequence.text = "Ready to listen..."
+            binding.textSequence.text = "Ready"
         }
     }
     
@@ -283,7 +259,7 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
                 val settings = storeViewModel.settings.value
                 android.util.Log.d("ListenFragment", "Replaying sequence: '$currentSequence'")
                 
-                binding.textSequence.text = "🎵 Listen to the sequence..."
+                binding.textSequence.text = "🎵 Replaying..."
                 updateUIForState(ListeningState.PLAYING)
                 
                 audioPlaybackJob?.cancel() // Cancel any ongoing playback
@@ -297,7 +273,7 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
                         val currentState = storeViewModel.state.value.listenState
                         if (currentState.isRevealed) {
                             updateUIForState(ListeningState.REVEALED)
-                            binding.textSequence.text = "Sequence: $currentSequence"
+                            binding.textSequence.text = "$currentSequence"
                         } else {
                             updateUIForState(ListeningState.WAITING)
                             binding.textSequence.text = "What did you hear?"
@@ -326,29 +302,30 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
     private fun updateUIForState(state: ListeningState) {
         when (state) {
             ListeningState.READY -> {
-                binding.textSequence.text = "Ready to listen..."
-                binding.progressDelay.visibility = View.GONE
+                binding.textSequence.text = "Ready"
+                binding.progressDelay.alpha = 0.0f
             }
             ListeningState.PLAYING -> {
-                binding.textSequence.text = "🎵 Listen to the sequence..."
-                binding.progressDelay.visibility = View.GONE
+                binding.textSequence.text = "🎵 Listening..."
+                binding.progressDelay.alpha = 0.0f
             }
             ListeningState.WAITING -> {
                 binding.textSequence.text = "What did you hear?"
                 // Auto-reveal countdown will start if enabled
             }
             ListeningState.REVEALED -> {
-                binding.textSequence.text = "Sequence: $currentSequence"
-                binding.progressDelay.visibility = View.GONE
+                binding.textSequence.text = "$currentSequence"
+                binding.progressDelay.alpha = 0.0f
             }
             ListeningState.PAUSED -> {
-                binding.progressDelay.visibility = View.GONE
+                binding.progressDelay.alpha = 0.0f
             }
         }
     }
     
     private fun startAutoRevealCountdown() {
-        if (!isAutoRevealEnabled) {
+        val settings = storeViewModel.settings.value
+        if (!settings.autoRevealEnabled) {
             android.util.Log.d("ListenFragment", "Auto-reveal disabled, not starting countdown")
             return
         }
@@ -357,12 +334,11 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
         autoRevealJob?.cancel()
         
         android.util.Log.d("ListenFragment", "Starting auto-reveal countdown")
-        binding.progressDelay.visibility = View.VISIBLE
+        binding.progressDelay.alpha = 1.0f
         binding.progressDelay.max = 100
         
         autoRevealJob = lifecycleScope.launch {
             try {
-                val settings = storeViewModel.settings.value
                 val delayMs = settings.autoRevealDelayMs
                 val steps = 60  // More steps for smoother animation
                 val stepDelay = delayMs / steps
@@ -390,7 +366,7 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
             } catch (e: Exception) {
                 android.util.Log.e("ListenFragment", "Error in auto-reveal countdown", e)
             } finally {
-                binding.progressDelay.visibility = View.GONE
+                binding.progressDelay.alpha = 0.0f
             }
         }
     }
@@ -426,17 +402,13 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
         if (status == TextToSpeech.SUCCESS) {
             val result = textToSpeech.setLanguage(Locale.US)
             if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                // Language not supported, disable speak feature
+                // Language not supported
                 android.util.Log.w("ListenFragment", "TTS language not supported")
-                binding.switchSpeak.isEnabled = false
-                binding.switchSpeak.alpha = 0.5f
             } else {
                 android.util.Log.d("ListenFragment", "TTS initialized successfully")
             }
         } else {
             android.util.Log.e("ListenFragment", "TTS initialization failed with status: $status")
-            binding.switchSpeak.isEnabled = false
-            binding.switchSpeak.alpha = 0.5f
         }
     }
     

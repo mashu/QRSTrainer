@@ -502,6 +502,16 @@ class SettingsFragment : Fragment() {
     }
     
     private fun setupAutoRevealControls() {
+        // Auto-Reveal Enable Switch
+        binding.switchAutoRevealEnabled.setOnCheckedChangeListener { _, isChecked ->
+            updateSettings { it.copy(autoRevealEnabled = isChecked) }
+        }
+        
+        // Speak Answer Switch 
+        binding.switchSpeakAnswer.setOnCheckedChangeListener { _, isChecked ->
+            updateSettings { it.copy(ttsSpeakInListenMode = isChecked) }
+        }
+        
         // Auto-Reveal Delay Slider
         binding.sliderAutoRevealDelay.addOnChangeListener { _, value, fromUser ->
             if (fromUser) {
@@ -699,6 +709,8 @@ class SettingsFragment : Fragment() {
             textTtsDelayValue.text = "${String.format("%.1f", settings.ttsDelayMs / 1000f)}s"
             
             // Auto-Reveal settings
+            switchAutoRevealEnabled.isChecked = settings.autoRevealEnabled
+            switchSpeakAnswer.isChecked = settings.ttsSpeakInListenMode
             sliderAutoRevealDelay.value = settings.autoRevealDelayMs.toFloat()
             textAutoRevealDelayValue.text = "${String.format("%.1f", settings.autoRevealDelayMs / 1000f)}s"
             

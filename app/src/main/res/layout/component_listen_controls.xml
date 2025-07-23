@@ -6,15 +6,17 @@
     android:layout_height="wrap_content"
     android:padding="16dp">
 
+    <!-- Row 1: Start and Stop buttons (two columns) -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/button_start"
         style="@style/Widget.App.Button.Filled"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
         android:text="Start"
-        android:textSize="18sp"
+        android:textSize="16sp"
         app:icon="@drawable/ic_play_arrow"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/button_stop"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -23,54 +25,54 @@
         style="@style/Widget.App.Button.Outlined"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
         android:text="Stop"
-        android:textSize="18sp"
-        android:visibility="gone"
+        android:textSize="16sp"
         app:icon="@drawable/ic_stop"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/button_start"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <!-- Row 2: Reveal and Replay buttons (two columns) -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/button_reveal"
         style="@style/Widget.App.Button.Text"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
         android:layout_marginEnd="8dp"
         android:text="Reveal"
-        android:textSize="18sp"
-        android:visibility="gone"
+        android:textSize="16sp"
         app:icon="@drawable/ic_lightbulb"
-        app:layout_constraintEnd_toStartOf="@+id/button_next"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/button_next"
-        style="@style/Widget.App.Button.Filled"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="4dp"
-        android:layout_marginEnd="4dp"
-        android:text="Next"
-        android:textSize="18sp"
-        android:visibility="gone"
         app:layout_constraintEnd_toStartOf="@+id/button_replay"
-        app:layout_constraintStart_toEndOf="@+id/button_reveal"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/button_start" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/button_replay"
         style="@style/Widget.App.Button.Outlined"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
         android:layout_marginStart="8dp"
         android:text="Replay"
-        android:textSize="18sp"
-        android:visibility="gone"
+        android:textSize="16sp"
         app:icon="@drawable/ic_replay"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/button_next"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintStart_toEndOf="@+id/button_reveal"
+        app:layout_constraintTop_toBottomOf="@+id/button_start" />
+
+    <!-- Row 3: Next button (full width spanning both columns) -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/button_next"
+        style="@style/Widget.App.Button.Filled"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="Next"
+        android:textSize="16sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/button_reveal" />
 
 </androidx.constraintlayout.widget.ConstraintLayout> 

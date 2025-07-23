@@ -39,39 +39,89 @@ class ListenControls @JvmOverloads constructor(
     fun updateState(state: ListeningState, isSequenceRevealed: Boolean) {
         when (state) {
             ListeningState.READY -> {
-                binding.buttonStart.visibility = VISIBLE
-                binding.buttonStop.visibility = GONE
-                binding.buttonReveal.visibility = GONE
-                binding.buttonNext.visibility = GONE
-                binding.buttonReplay.visibility = GONE
+                // Show only start button, others disabled and dimmed
+                binding.buttonStart.isEnabled = true
+                binding.buttonStart.alpha = 1.0f
+                
+                binding.buttonStop.isEnabled = false
+                binding.buttonStop.alpha = 0.3f
+                
+                binding.buttonReveal.isEnabled = false
+                binding.buttonReveal.alpha = 0.3f
+                
+                binding.buttonNext.isEnabled = false
+                binding.buttonNext.alpha = 0.3f
+                
+                binding.buttonReplay.isEnabled = false
+                binding.buttonReplay.alpha = 0.3f
             }
             ListeningState.PLAYING -> {
-                binding.buttonStart.visibility = GONE
-                binding.buttonStop.visibility = VISIBLE
-                binding.buttonReveal.visibility = GONE
-                binding.buttonNext.visibility = GONE
-                binding.buttonReplay.visibility = GONE
+                // Only stop button active
+                binding.buttonStart.isEnabled = false
+                binding.buttonStart.alpha = 0.3f
+                
+                binding.buttonStop.isEnabled = true
+                binding.buttonStop.alpha = 1.0f
+                
+                binding.buttonReveal.isEnabled = false
+                binding.buttonReveal.alpha = 0.3f
+                
+                binding.buttonNext.isEnabled = false
+                binding.buttonNext.alpha = 0.3f
+                
+                binding.buttonReplay.isEnabled = false
+                binding.buttonReplay.alpha = 0.3f
             }
             ListeningState.WAITING -> {
-                binding.buttonStart.visibility = GONE
-                binding.buttonStop.visibility = GONE
-                binding.buttonReveal.visibility = if (!isSequenceRevealed) VISIBLE else GONE
-                binding.buttonNext.visibility = if (isSequenceRevealed) VISIBLE else GONE
-                binding.buttonReplay.visibility = VISIBLE
+                // Stop, reveal (if not revealed), and replay active
+                binding.buttonStart.isEnabled = false
+                binding.buttonStart.alpha = 0.3f
+                
+                binding.buttonStop.isEnabled = true
+                binding.buttonStop.alpha = 1.0f
+                
+                binding.buttonReveal.isEnabled = !isSequenceRevealed
+                binding.buttonReveal.alpha = if (!isSequenceRevealed) 1.0f else 0.3f
+                
+                binding.buttonNext.isEnabled = isSequenceRevealed
+                binding.buttonNext.alpha = if (isSequenceRevealed) 1.0f else 0.3f
+                
+                binding.buttonReplay.isEnabled = true
+                binding.buttonReplay.alpha = 1.0f
             }
             ListeningState.REVEALED -> {
-                binding.buttonStart.visibility = GONE
-                binding.buttonStop.visibility = GONE
-                binding.buttonReveal.visibility = GONE
-                binding.buttonNext.visibility = VISIBLE
-                binding.buttonReplay.visibility = VISIBLE
+                // Stop, next, and replay active
+                binding.buttonStart.isEnabled = false
+                binding.buttonStart.alpha = 0.3f
+                
+                binding.buttonStop.isEnabled = true
+                binding.buttonStop.alpha = 1.0f
+                
+                binding.buttonReveal.isEnabled = false
+                binding.buttonReveal.alpha = 0.3f
+                
+                binding.buttonNext.isEnabled = true
+                binding.buttonNext.alpha = 1.0f
+                
+                binding.buttonReplay.isEnabled = true
+                binding.buttonReplay.alpha = 1.0f
             }
             ListeningState.PAUSED -> {
-                binding.buttonStart.visibility = GONE
-                binding.buttonStop.visibility = GONE
-                binding.buttonReveal.visibility = GONE
-                binding.buttonNext.visibility = GONE
-                binding.buttonReplay.visibility = GONE
+                // Only stop button active during pause
+                binding.buttonStart.isEnabled = false
+                binding.buttonStart.alpha = 0.3f
+                
+                binding.buttonStop.isEnabled = true
+                binding.buttonStop.alpha = 1.0f
+                
+                binding.buttonReveal.isEnabled = false
+                binding.buttonReveal.alpha = 0.3f
+                
+                binding.buttonNext.isEnabled = false
+                binding.buttonNext.alpha = 0.3f
+                
+                binding.buttonReplay.isEnabled = false
+                binding.buttonReplay.alpha = 0.3f
             }
         }
     }

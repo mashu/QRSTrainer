@@ -66,6 +66,7 @@ data class TrainingSettings(
     val ttsSpeakInListenMode: Boolean = true, // Enable speaking in listen mode
     
     // Auto-Reveal Settings
+    val autoRevealEnabled: Boolean = true,   // Enable auto-reveal in listen mode
     val autoRevealDelayMs: Long = 3000L,     // Auto-reveal countdown delay (1000 to 10000ms)
     
     // Appearance
@@ -249,6 +250,7 @@ fun TrainingSettings.toJson(): String {
     json.put("ttsSpeakInListenMode", ttsSpeakInListenMode)
     
     // Auto-Reveal Settings
+    json.put("autoRevealEnabled", autoRevealEnabled)
     json.put("autoRevealDelayMs", autoRevealDelayMs)
     
     // Appearance
@@ -338,6 +340,7 @@ fun TrainingSettings.Companion.fromJson(json: String): TrainingSettings {
         ttsSpeakInListenMode = getBooleanOrDefault("ttsSpeakInListenMode", true),
         
         // Auto-Reveal Settings
+        autoRevealEnabled = getBooleanOrDefault("autoRevealEnabled", true),
         autoRevealDelayMs = getLongOrDefault("autoRevealDelayMs", 3000L),
         
         // Appearance
