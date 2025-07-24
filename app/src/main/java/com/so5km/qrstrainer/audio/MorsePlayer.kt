@@ -26,7 +26,7 @@ class MorsePlayer(
             return
         }
         
-        android.util.Log.d("MorsePlayer", "Playing sequence: $sequence")
+        android.util.Log.d("MorsePlayer", "Playing sequence: $sequence with ${settings.numberOfRepeats} repeat(s)")
         val symbols = morseEncoder.encodeSequence(sequence, settings)
         android.util.Log.d("MorsePlayer", "Encoded ${symbols.size} symbols")
         
@@ -41,24 +41,52 @@ class MorsePlayer(
             // Start streaming mode for smooth playback
             audioEngine.startStreaming()
             
-            // Generate and queue all audio data
-            generateAndQueueSequence(symbols, settings)
-            
-            // Calculate total duration and wait for completion
-            val totalDurationMs = symbols.sumOf { it.durationMs }
-            android.util.Log.d("MorsePlayer", "Total sequence duration: ${totalDurationMs}ms")
-            
-            // Wait for sequence to complete with small chunks to allow cancellation
-            var remainingMs = totalDurationMs
-            val checkIntervalMs = 100L
-            
-            while (remainingMs > 0 && isSequencePlaying) {
-                val sleepTime = minOf(checkIntervalMs, remainingMs.toLong())
-                delay(sleepTime)
-                remainingMs -= sleepTime.toInt()
+            // Play the sequence the specified number of times
+            for (repeatNum in 1..settings.numberOfRepeats) {
+                if (!isSequencePlaying) {
+                    android.util.Log.d("MorsePlayer", "Sequence cancelled during repeat $repeatNum")
+                    break
+                }
                 
-                // Allow other coroutines to run
-                yield()
+                android.util.Log.d("MorsePlayer", "Playing repeat $repeatNum of ${settings.numberOfRepeats}")
+                
+                // Generate and queue all audio data for this repeat
+                generateAndQueueSequence(symbols, settings)
+                
+                // Calculate total duration and wait for completion
+                val totalDurationMs = symbols.sumOf { it.durationMs }
+                android.util.Log.d("MorsePlayer", "Total sequence duration: ${totalDurationMs}ms")
+                
+                // Wait for sequence to complete with small chunks to allow cancellation
+                var remainingMs = totalDurationMs
+                val checkIntervalMs = 100L
+                
+                while (remainingMs > 0 && isSequencePlaying) {
+                    val sleepTime = minOf(checkIntervalMs, remainingMs.toLong())
+                    delay(sleepTime)
+                    remainingMs -= sleepTime.toInt()
+                    
+                    // Allow other coroutines to run
+                    yield()
+                }
+                
+                // Add delay between repeats (except after the last repeat)
+                if (repeatNum < settings.numberOfRepeats && isSequencePlaying && settings.repeatDelayMs > 0) {
+                    android.util.Log.d("MorsePlayer", "Adding repeat delay of ${settings.repeatDelayMs}ms")
+                    
+                    // Generate silence for the repeat delay
+                    val silenceData = generateSilence(settings.repeatDelayMs.toInt())
+                    audioEngine.queueAudio(silenceData)
+                    
+                    // Wait for the delay
+                    var delayRemaining = settings.repeatDelayMs
+                    while (delayRemaining > 0 && isSequencePlaying) {
+                        val sleepTime = minOf(100L, delayRemaining)
+                        delay(sleepTime)
+                        delayRemaining -= sleepTime
+                        yield()
+                    }
+                }
             }
             
         } finally {
