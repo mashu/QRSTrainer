@@ -136,6 +136,8 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
                 minGroupSize = settings.listenMinGroupSize,
                 maxGroupSize = settings.listenMaxGroupSize,
                 sequenceLength = settings.listenSequenceLength,
+                listenMinSequenceLength = settings.listenMinSequenceLength,
+                listenMaxSequenceLength = settings.listenMaxSequenceLength,
                 numberOfRepeats = settings.listenNumberOfRepeats,
                 groupDelayMs = settings.listenGroupDelayMs,
                 repeatDelayMs = settings.listenRepeatDelayMs
@@ -342,6 +344,8 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
                     minGroupSize = settings.listenMinGroupSize,
                     maxGroupSize = settings.listenMaxGroupSize,
                     sequenceLength = settings.listenSequenceLength,
+                    listenMinSequenceLength = settings.listenMinSequenceLength,
+                    listenMaxSequenceLength = settings.listenMaxSequenceLength,
                     numberOfRepeats = settings.listenNumberOfRepeats,
                     groupDelayMs = settings.listenGroupDelayMs,
                     repeatDelayMs = settings.listenRepeatDelayMs

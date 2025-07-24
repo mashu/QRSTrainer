@@ -671,7 +671,36 @@ class SettingsFragment : Fragment() {
             }
         }
         
-        // Listen Sequence Length Slider
+        // Listen Sequence Length Sliders (Min/Max)
+        binding.sliderListenMinSequenceLength.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                binding.textListenMinSequenceLengthValue.text = value.toInt().toString()
+                // Ensure max is not less than min
+                if (binding.sliderListenMaxSequenceLength.value < value) {
+                    binding.sliderListenMaxSequenceLength.value = value
+                    binding.textListenMaxSequenceLengthValue.text = value.toInt().toString()
+                    updateSettings { it.copy(listenMinSequenceLength = value.toInt(), listenMaxSequenceLength = value.toInt()) }
+                } else {
+                    updateSettings { it.copy(listenMinSequenceLength = value.toInt()) }
+                }
+            }
+        }
+        
+        binding.sliderListenMaxSequenceLength.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                binding.textListenMaxSequenceLengthValue.text = value.toInt().toString()
+                // Ensure min is not greater than max
+                if (binding.sliderListenMinSequenceLength.value > value) {
+                    binding.sliderListenMinSequenceLength.value = value
+                    binding.textListenMinSequenceLengthValue.text = value.toInt().toString()
+                    updateSettings { it.copy(listenMinSequenceLength = value.toInt(), listenMaxSequenceLength = value.toInt()) }
+                } else {
+                    updateSettings { it.copy(listenMaxSequenceLength = value.toInt()) }
+                }
+            }
+        }
+        
+        // Keep old sequence length slider for backward compatibility (hidden or deprecated)
         binding.sliderListenSequenceLength.addOnChangeListener { _, value, fromUser ->
             if (fromUser) {
                 binding.textListenSequenceLengthValue.text = value.toInt().toString()
@@ -916,6 +945,12 @@ class SettingsFragment : Fragment() {
             
             sliderListenSequenceLength.value = settings.listenSequenceLength.toFloat()
             textListenSequenceLengthValue.text = settings.listenSequenceLength.toString()
+            
+            sliderListenMinSequenceLength.value = settings.listenMinSequenceLength.toFloat()
+            textListenMinSequenceLengthValue.text = settings.listenMinSequenceLength.toString()
+            
+            sliderListenMaxSequenceLength.value = settings.listenMaxSequenceLength.toFloat()
+            textListenMaxSequenceLengthValue.text = settings.listenMaxSequenceLength.toString()
             
             sliderListenNumberOfRepeats.value = settings.listenNumberOfRepeats.toFloat()
             textListenNumberOfRepeatsValue.text = settings.listenNumberOfRepeats.toString()

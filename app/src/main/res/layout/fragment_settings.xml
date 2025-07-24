@@ -1628,11 +1628,11 @@
                             android:textAlignment="center" />
                     </LinearLayout>
 
-                    <!-- Listen Sequence Length -->
+                    <!-- Listen Sequence Length Range -->
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Groups per sequence"
+                        android:text="Groups per sequence range"
                         android:textSize="14sp"
                         android:textStyle="bold" />
 
@@ -1641,7 +1641,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="4dp"
                         android:layout_marginBottom="8dp"
-                        android:text="Number of character groups per sequence"
+                        android:text="Min and max number of character groups per sequence"
                         android:textSize="12sp"
                         android:textColor="@android:color/darker_gray" />
 
@@ -1649,27 +1649,87 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:layout_marginBottom="16dp">
+                        android:layout_marginBottom="8dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Min:"
+                            android:textSize="12sp"
+                            android:layout_gravity="center_vertical" />
 
                         <com.google.android.material.slider.Slider
-                            android:id="@+id/slider_listen_sequence_length"
+                            android:id="@+id/slider_listen_min_sequence_length"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginEnd="8dp"
                             android:stepSize="1"
                             android:valueFrom="1"
                             android:valueTo="15"
-                            android:value="5" />
+                            android:value="3" />
 
                         <TextView
-                            android:id="@+id/text_listen_sequence_length_value"
+                            android:id="@+id/text_listen_min_sequence_length_value"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:minWidth="60dp"
-                            android:text="5"
+                            android:minWidth="30dp"
+                            android:text="3"
                             android:textAlignment="center" />
                     </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="16dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Max:"
+                            android:textSize="12sp"
+                            android:layout_gravity="center_vertical" />
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_listen_max_sequence_length"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginEnd="8dp"
+                            android:stepSize="1"
+                            android:valueFrom="1"
+                            android:valueTo="15"
+                            android:value="7" />
+
+                        <TextView
+                            android:id="@+id/text_listen_max_sequence_length_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:minWidth="30dp"
+                            android:text="7"
+                            android:textAlignment="center" />
+                    </LinearLayout>
+
+                    <!-- Keep old single slider hidden for backward compatibility -->
+                    <com.google.android.material.slider.Slider
+                        android:id="@+id/slider_listen_sequence_length"
+                        android:layout_width="0dp"
+                        android:layout_height="0dp"
+                        android:visibility="gone"
+                        android:stepSize="1"
+                        android:valueFrom="1"
+                        android:valueTo="15"
+                        android:value="5" />
+
+                    <TextView
+                        android:id="@+id/text_listen_sequence_length_value"
+                        android:layout_width="0dp"
+                        android:layout_height="0dp"
+                        android:visibility="gone"
+                        android:text="5" />
 
                     <!-- Listen Number of Repeats -->
                     <TextView

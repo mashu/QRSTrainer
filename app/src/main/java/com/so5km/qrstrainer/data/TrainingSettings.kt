@@ -75,7 +75,9 @@ data class TrainingSettings(
     val listenEffectiveWpm: Int = 20,        // Listen mode effective speed/Farnsworth (5-60)
     val listenMinGroupSize: Int = 1,         // Minimum characters per group (1-10)
     val listenMaxGroupSize: Int = 5,         // Maximum characters per group (1-10)
-    val listenSequenceLength: Int = 5,       // Number of groups per sequence (1-15)
+    val listenSequenceLength: Int = 5,       // Number of groups per sequence (1-15) - kept for compatibility
+    val listenMinSequenceLength: Int = 3,    // Minimum number of groups per sequence (1-15)
+    val listenMaxSequenceLength: Int = 7,    // Maximum number of groups per sequence (1-15)
     val listenNumberOfRepeats: Int = 1,      // How many times to repeat each sequence (1-5)
     val listenSequenceDelayMs: Long = 500,   // Delay after sequence playback completes (0-3000ms)
     val listenRepeatDelayMs: Long = 300,     // Delay between repeats of same sequence (0-2000ms)
@@ -140,6 +142,10 @@ data class TrainingSettings(
             val validMinGroupSize = settings.minGroupSize.coerceIn(1, 10)
             val validMaxGroupSize = settings.maxGroupSize.coerceIn(validMinGroupSize, 20)
             
+            // Ensure listen sequence lengths are valid
+            val validListenMinSequenceLength = settings.listenMinSequenceLength.coerceIn(1, 15)
+            val validListenMaxSequenceLength = settings.listenMaxSequenceLength.coerceIn(validListenMinSequenceLength, 15)
+            
             // Ensure WPM values are valid
             val validWpm = settings.wpm.coerceIn(5, 60)
             val validEffectiveWpm = settings.effectiveWpm.coerceIn(5, validWpm)
@@ -174,6 +180,8 @@ data class TrainingSettings(
                 maxLevel = validMaxLevel,
                 minGroupSize = validMinGroupSize,
                 maxGroupSize = validMaxGroupSize,
+                listenMinSequenceLength = validListenMinSequenceLength,
+                listenMaxSequenceLength = validListenMaxSequenceLength,
                 wpm = validWpm,
                 effectiveWpm = validEffectiveWpm,
                 frequency = validFrequency,
@@ -273,6 +281,8 @@ fun TrainingSettings.toJson(): String {
     json.put("listenMinGroupSize", listenMinGroupSize)
     json.put("listenMaxGroupSize", listenMaxGroupSize)
     json.put("listenSequenceLength", listenSequenceLength)
+    json.put("listenMinSequenceLength", listenMinSequenceLength)
+    json.put("listenMaxSequenceLength", listenMaxSequenceLength)
     json.put("listenNumberOfRepeats", listenNumberOfRepeats)
     json.put("listenSequenceDelayMs", listenSequenceDelayMs)
     json.put("listenRepeatDelayMs", listenRepeatDelayMs)
@@ -376,6 +386,8 @@ fun TrainingSettings.Companion.fromJson(json: String): TrainingSettings {
         listenMinGroupSize = getIntOrDefault("listenMinGroupSize", 1),
         listenMaxGroupSize = getIntOrDefault("listenMaxGroupSize", 5),
         listenSequenceLength = getIntOrDefault("listenSequenceLength", 5),
+        listenMinSequenceLength = getIntOrDefault("listenMinSequenceLength", 3),
+        listenMaxSequenceLength = getIntOrDefault("listenMaxSequenceLength", 7),
         listenNumberOfRepeats = getIntOrDefault("listenNumberOfRepeats", 1),
         listenSequenceDelayMs = getLongOrDefault("listenSequenceDelayMs", 500L),
         listenRepeatDelayMs = getLongOrDefault("listenRepeatDelayMs", 300L),

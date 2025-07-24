@@ -34,10 +34,24 @@ class SequenceGenerator(private val progressTracker: ProgressTracker) {
         
         val groups = mutableListOf<String>()
         
-        android.util.Log.d("SequenceGenerator", "generateGroupSequence - minGroupSize: ${settings.minGroupSize}, maxGroupSize: ${settings.maxGroupSize}")
+        // Determine sequence length (number of groups)
+        val sequenceLength = if (settings.listenMinSequenceLength != 0 && settings.listenMaxSequenceLength != 0) {
+            // Use variable sequence length for listen mode
+            if (settings.listenMinSequenceLength == settings.listenMaxSequenceLength) {
+                settings.listenMinSequenceLength
+            } else {
+                Random.nextInt(settings.listenMinSequenceLength, settings.listenMaxSequenceLength + 1)
+            }
+        } else {
+            // Fall back to fixed sequence length for backward compatibility
+            settings.sequenceLength
+        }
         
-        // Generate the specified number of groups
-        repeat(settings.sequenceLength) {
+        android.util.Log.d("SequenceGenerator", "generateGroupSequence - minGroupSize: ${settings.minGroupSize}, maxGroupSize: ${settings.maxGroupSize}")
+        android.util.Log.d("SequenceGenerator", "generateGroupSequence - sequenceLength: $sequenceLength (range: ${settings.listenMinSequenceLength}-${settings.listenMaxSequenceLength})")
+        
+        // Generate the determined number of groups
+        repeat(sequenceLength) {
             val groupSize = if (settings.minGroupSize == settings.maxGroupSize) {
                 settings.minGroupSize
             } else {
@@ -55,7 +69,7 @@ class SequenceGenerator(private val progressTracker: ProgressTracker) {
         }
         
         val finalSequence = groups.joinToString(" ")
-        android.util.Log.d("SequenceGenerator", "Final sequence: '$finalSequence'")
+        android.util.Log.d("SequenceGenerator", "Final sequence: '$finalSequence' with ${groups.size} groups")
         android.util.Log.d("SequenceGenerator", "Group breakdown: ${groups.joinToString(", ") { "'$it' (${it.length})" }}")
         
         return finalSequence
