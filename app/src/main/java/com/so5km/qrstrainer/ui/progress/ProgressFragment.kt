@@ -52,6 +52,11 @@ class ProgressFragment : Fragment() {
             layoutManager = LinearLayoutManager(context)
             adapter = characterStatsAdapter
         }
+        
+        // Setup reset button
+        binding.buttonResetProgress.setOnClickListener {
+            showResetConfirmationDialog()
+        }
     }
     
     private fun observeState() {
@@ -164,6 +169,25 @@ class ProgressFragment : Fragment() {
         loadProgressData()
     }
     
+    private fun showResetConfirmationDialog() {
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Reset Progress")
+            .setMessage("Are you sure you want to reset all progress? This action cannot be undone.")
+            .setPositiveButton("Reset") { _, _ ->
+                progressTracker.resetProgress()
+                loadProgressData()
+                androidx.core.content.ContextCompat.getMainExecutor(requireContext()).execute {
+                    com.google.android.material.snackbar.Snackbar.make(
+                        binding.root,
+                        "Progress has been reset",
+                        com.google.android.material.snackbar.Snackbar.LENGTH_SHORT
+                    ).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+    
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
@@ -214,7 +238,7 @@ class CharacterStatsAdapter : androidx.recyclerview.widget.RecyclerView.Adapter<
             accuracyText.text = String.format("%.1f%%", item.accuracy * 100)
             attemptsText.text = "Attempts: ${item.attempts}"
             correctText.text = "Correct: ${item.correct}"
-            avgTimeText.text = "Avg: ${item.averageTime / 1000.0}s"
+            avgTimeText.text = "${item.averageTime / 1000.0}s"
             
             // Color code accuracy indicator
             val context = itemView.context

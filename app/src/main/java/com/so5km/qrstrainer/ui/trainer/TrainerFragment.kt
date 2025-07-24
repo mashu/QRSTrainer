@@ -47,9 +47,17 @@ class TrainerFragment : Fragment() {
     private var userInput = ""
     private var startTime: Long = 0
     private var keyboardLevel = -1 // Track the level the keyboard was built for
+    private val characterHistory = mutableListOf<CharacterAttempt>() // Store recent attempts
+    
+    data class CharacterAttempt(
+        val userInput: Char,
+        val correctChar: Char,
+        val wasCorrect: Boolean
+    )
     
     companion object {
         private const val TAG = "TrainerFragment"
+        private const val MAX_HISTORY_SIZE = 10 // Keep last 10 attempts
     }
     
     override fun onCreateView(
@@ -345,6 +353,22 @@ class TrainerFragment : Fragment() {
         
         storeViewModel.dispatch(AppAction.SubmitAnswer(userInput))
         
+        // Record character attempts for history
+        if (!isCorrect) {
+            morseCharsOnly.forEachIndexed { index, correctChar ->
+                val userChar = if (userInput.length > index) userInput[index] else '?'
+                val charCorrect = userChar.uppercaseChar() == correctChar.uppercaseChar()
+                
+                characterHistory.add(CharacterAttempt(userChar, correctChar, charCorrect))
+                
+                // Keep only recent history
+                if (characterHistory.size > MAX_HISTORY_SIZE) {
+                    characterHistory.removeAt(0)
+                }
+            }
+            updateCharacterHistoryDisplay()
+        }
+        
         // Show completion feedback with progress bar
         if (isCorrect) {
             showCorrectAnswerAnimation()
@@ -376,6 +400,7 @@ class TrainerFragment : Fragment() {
             TrainingState.READY -> {
                 Log.d(TAG, "READY state: disabling keyboard")
                 binding.sequenceDisplay.text = ""
+                binding.characterHistory.visibility = View.GONE
                 binding.buttonStart.isEnabled = true
                 binding.buttonStart.visibility = View.VISIBLE
                 binding.buttonStop.isEnabled = false
@@ -655,6 +680,33 @@ class TrainerFragment : Fragment() {
         })
         
         animator.start()
+    }
+    
+    private fun updateCharacterHistoryDisplay() {
+        if (characterHistory.isEmpty()) {
+            binding.characterHistory.visibility = View.GONE
+            return
+        }
+        
+        // Show only the most recent incorrect attempts
+        val recentAttempts = characterHistory.takeLast(5)
+        val historyText = recentAttempts.joinToString(" | ") { attempt ->
+            val style = if (attempt.wasCorrect) "✓" else "✗"
+            "$style ${attempt.userInput}→${attempt.correctChar}"
+        }
+        
+        binding.characterHistory.text = "Recent: $historyText"
+        binding.characterHistory.visibility = View.VISIBLE
+        
+        // Auto-hide after a delay
+        binding.characterHistory.postDelayed({
+            if (binding.characterHistory.visibility == View.VISIBLE) {
+                binding.characterHistory.animate()
+                    .alpha(0.3f)
+                    .setDuration(2000)
+                    .start()
+            }
+        }, 3000)
     }
     
     override fun onDestroyView() {

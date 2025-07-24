@@ -82,6 +82,21 @@
                 android:fontFamily="monospace"
                 android:lineSpacingExtra="2dp" />
 
+            <!-- Character history display -->
+            <TextView
+                android:id="@+id/character_history"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/sequence_display"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:text=""
+                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:fontFamily="monospace"
+                android:visibility="gone"
+                android:alpha="0.7" />
+
             <!-- Audio visualization indicator -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/audio_visualization"
