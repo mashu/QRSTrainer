@@ -63,7 +63,9 @@ class SettingsFragment : Fragment() {
         setupTimingSliders()
         setupLevelSliders()
         setupCharacterSwitches()
+        setupTrainerBehaviorSwitches()
         setupTtsControls()
+        setupListenLevelControls()
         setupAutoRevealControls()
         setupNoiseControls()
         setupButtons()
@@ -79,7 +81,9 @@ class SettingsFragment : Fragment() {
         setupTimingSliders()
         setupLevelSliders()
         setupCharacterSwitches()
+        setupTrainerBehaviorSwitches()
         setupTtsControls()
+        setupListenLevelControls()
         setupNoiseControls()
         setupButtons()
         observeSettings()
@@ -132,6 +136,11 @@ class SettingsFragment : Fragment() {
             toggleSection(binding.layoutTrainerAudioSettings)
         }
         
+        // Trainer Behavior Settings Section
+        binding.cardTrainerBehaviorSettings.setOnClickListener {
+            toggleSection(binding.layoutTrainerBehaviorSettings)
+        }
+        
         // Listen Audio Settings Section
         binding.cardListenAudioSettings.setOnClickListener {
             toggleSection(binding.layoutListenAudioSettings)
@@ -140,6 +149,11 @@ class SettingsFragment : Fragment() {
         // Listen Groups Settings Section
         binding.cardListenGroupsSettings.setOnClickListener {
             toggleSection(binding.layoutListenGroupsSettings)
+        }
+        
+        // Listen Level Settings Section
+        binding.cardListenLevelSettings.setOnClickListener {
+            toggleSection(binding.layoutListenLevelSettings)
         }
         
         // Restore last opened section or default to audio
@@ -580,8 +594,15 @@ class SettingsFragment : Fragment() {
         binding.textCurrentLevelValue.text = getString(R.string.value_level, currentLevel) + " / $maxLevel"
     }
     
+    private fun setupTrainerBehaviorSwitches() {
+        // Fail on First Incorrect Switch
+        binding.switchFailOnFirstIncorrect.setOnCheckedChangeListener { _, isChecked ->
+            updateSettings { it.copy(failOnFirstIncorrect = isChecked) }
+        }
+    }
+    
     private fun setupTtsControls() {
-        // TTS settings are now controlled only from the Listen tab
+        // TTS settings are now located in the Listen Mode section (used only by listen mode)
         
         // TTS Volume Slider
         binding.sliderTtsVolume.addOnChangeListener { _, value, fromUser ->
@@ -614,6 +635,26 @@ class SettingsFragment : Fragment() {
                 val delaySeconds = value / 1000f
                 binding.textTtsDelayValue.text = "${String.format("%.1f", delaySeconds)}s"
                 updateSettings { it.copy(ttsDelayMs = value.toLong()) }
+            }
+        }
+    }
+    
+    private fun setupListenLevelControls() {
+        // Listen Current Level Slider
+        binding.sliderListenCurrentLevel.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                val level = value.toInt()
+                binding.textListenCurrentLevelValue.text = "Level $level"
+                updateSettings { it.copy(listenCurrentLevel = level) }
+            }
+        }
+        
+        // Listen Sequences to Level Up Slider
+        binding.sliderListenSequencesToLevelUp.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                val sequences = value.toInt()
+                binding.textListenSequencesToLevelUpValue.text = if (sequences == 0) "Manual" else "$sequences seq"
+                updateSettings { it.copy(listenSequencesToLevelUp = sequences) }
             }
         }
     }
@@ -944,6 +985,9 @@ class SettingsFragment : Fragment() {
             switchUsePunctuation.isChecked = settings.usePunctuation
             editCustomCharacters.setText(settings.customCharacterSet)
             
+            // Trainer Behavior settings
+            switchFailOnFirstIncorrect.isChecked = settings.failOnFirstIncorrect
+            
             // TTS settings (speak toggle is now in Listen tab only)
             sliderTtsVolume.value = (settings.ttsVolume * 100)
             sliderTtsSpeechRate.value = settings.ttsSpeechRate
@@ -954,6 +998,13 @@ class SettingsFragment : Fragment() {
             textTtsSpeechRateValue.text = "${String.format("%.1f", settings.ttsSpeechRate)}x"
             textTtsPitchValue.text = "${String.format("%.1f", settings.ttsPitch)}x"
             textTtsDelayValue.text = "${String.format("%.1f", settings.ttsDelayMs / 1000f)}s"
+            
+            // Listen Level settings
+            sliderListenCurrentLevel.value = settings.listenCurrentLevel.toFloat()
+            textListenCurrentLevelValue.text = "Level ${settings.listenCurrentLevel}"
+            
+            sliderListenSequencesToLevelUp.value = settings.listenSequencesToLevelUp.toFloat()
+            textListenSequencesToLevelUpValue.text = if (settings.listenSequencesToLevelUp == 0) "Manual" else "${settings.listenSequencesToLevelUp} seq"
             
             // Auto-Reveal settings
             switchAutoRevealEnabled.isChecked = settings.autoRevealEnabled

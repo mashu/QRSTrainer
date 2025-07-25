@@ -126,6 +126,7 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
             val settings = storeViewModel.settings.value
             // Create listen-specific settings for sequence generation
             val listenSettings = settings.copy(
+                currentLevel = settings.listenCurrentLevel,  // Use listen-specific level!
                 wpm = settings.listenWpm,
                 effectiveWpm = settings.listenEffectiveWpm,
                 minGroupSize = settings.listenMinGroupSize,
@@ -297,6 +298,21 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
             storeViewModel.dispatch(AppAction.NextSequence)
             audioManager.stopContinuousNoise() // Stop background noise when moving to next
             sequenceCount++
+            
+            // Check for auto-leveling in listen mode
+            val currentSettings = storeViewModel.settings.value
+            if (currentSettings.listenSequencesToLevelUp > 0 && 
+                sequenceCount % currentSettings.listenSequencesToLevelUp == 0) {
+                
+                val newLevel = minOf(currentSettings.listenCurrentLevel + 1, 40) // Max level 40
+                android.util.Log.d("ListenFragment", "Auto-leveling: sequenceCount=$sequenceCount, threshold=${currentSettings.listenSequencesToLevelUp}, advancing from level ${currentSettings.listenCurrentLevel} to $newLevel")
+                
+                if (newLevel > currentSettings.listenCurrentLevel) {
+                    val updatedSettings = currentSettings.copy(listenCurrentLevel = newLevel)
+                    storeViewModel.dispatch(AppAction.UpdateSettings(updatedSettings))
+                }
+            }
+            
             updateProgress()
             
             // Auto-start next sequence after configurable delay
@@ -336,6 +352,7 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
                 val settings = storeViewModel.settings.value
                 // Create listen-specific settings for replay
                 val listenSettings = settings.copy(
+                    currentLevel = settings.listenCurrentLevel,  // Use listen-specific level!
                     wpm = settings.listenWpm,
                     effectiveWpm = settings.listenEffectiveWpm,
                     minGroupSize = settings.listenMinGroupSize,
@@ -443,9 +460,9 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
     // Auto-reveal countdown removed - coordinator handles all timing
     
     private fun updateProgress() {
-        val level = storeViewModel.settings.value.currentLevel
+        val level = storeViewModel.settings.value.listenCurrentLevel
         
-        binding.textLevel.text = "Level: $level"
+        binding.textLevel.text = "Listen Level: $level"
     }
     
     // scheduleAutoAdvance is now handled by ListenSequenceCoordinator
@@ -492,7 +509,6 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
             if (!::textToSpeech.isInitialized) {
                 android.util.Log.e("ListenFragment", "TTS not initialized - cannot speak")
                 // Notify coordinator that TTS failed so sequence can continue
-                val settings = storeViewModel.settings.value
                 sequenceCoordinator.onTTSComplete(settings)
                 return
             }
@@ -536,12 +552,16 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
                     }
                     
                     // Notify coordinator that TTS is complete
-                    val settings = storeViewModel.settings.value
                     sequenceCoordinator.onTTSComplete(settings)
                 }
                 
                 override fun onError(utteranceId: String?) {
-                    android.util.Log.e("ListenFragment", "TTS error occurred for utterance: $utteranceId")
+                    // Deprecated method - delegate to modern method
+                    onError(utteranceId, -1)
+                }
+                
+                override fun onError(utteranceId: String?, errorCode: Int) {
+                    android.util.Log.e("ListenFragment", "TTS error occurred for utterance: $utteranceId, errorCode: $errorCode")
                     isTtsSpeaking = false
                     
                     // Update UI to remove TTS indicator
@@ -554,7 +574,6 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
                     
                     // TTS failed - notify coordinator to continue sequence
                     android.util.Log.d("ListenFragment", "TTS error - notifying coordinator to continue")
-                    val settings = storeViewModel.settings.value
                     sequenceCoordinator.onTTSComplete(settings)
                 }
                 
@@ -573,7 +592,6 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
                     // Only notify coordinator if TTS stopped naturally (not interrupted by user)
                     if (!interrupted) {
                         android.util.Log.d("ListenFragment", "TTS stopped naturally - notifying coordinator")
-                        val settings = storeViewModel.settings.value  
                         sequenceCoordinator.onTTSComplete(settings)
                     } else {
                         android.util.Log.d("ListenFragment", "TTS stopped by user - not continuing sequence")
@@ -595,7 +613,6 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
                 android.util.Log.e("ListenFragment", "TTS speak() returned ERROR")
                 isTtsSpeaking = false
                 // Notify coordinator that TTS failed so sequence can continue
-                val settings = storeViewModel.settings.value
                 sequenceCoordinator.onTTSComplete(settings)
             } else {
                 android.util.Log.d("ListenFragment", "TTS speak() called successfully, should be speaking now")

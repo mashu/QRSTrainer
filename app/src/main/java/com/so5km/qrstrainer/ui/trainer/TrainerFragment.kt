@@ -209,8 +209,10 @@ class TrainerFragment : Fragment() {
             try {
                 updateUIForState(TrainingState.PLAYING)
                 audioManager.playSequence(currentSequence, settings)
-                // Audio now uses event-driven callbacks - no blocking or delays needed
-                // User can type immediately during playback
+                
+                // Wait for audio to complete, then transition to WAITING
+                // Auto-advance is handled by character input logic in onCharacterSelected()
+                delay(50) // Minimal delay - allow typing during playback
                 updateUIForState(TrainingState.WAITING)
             } catch (e: Exception) {
                 showMessage("Audio playback error: ${e.message}")
@@ -247,14 +249,40 @@ class TrainerFragment : Fragment() {
         Log.d(TAG, "=== CHARACTER SELECTED START ===")
         Log.d(TAG, "Character selected: $character, current userInput: '$userInput', currentSequence: '$currentSequence'")
         
+        val settings = storeViewModel.settings.value
+        
         // Count only actual morse characters (not spaces) for validation
         val morseCharCount = currentSequence.count { it != ' ' }
+        val morseCharsOnly = currentSequence.filter { it != ' ' }
         Log.d(TAG, "Morse character count in sequence: $morseCharCount (from '$currentSequence')")
         
         // Don't allow typing more characters than the morse character count
         if (userInput.length >= morseCharCount) {
             Log.d(TAG, "Rejecting character: already at morse character limit ($morseCharCount)")
             return
+        }
+        
+        // Check for fail-on-first-incorrect BEFORE adding the character
+        if (settings.failOnFirstIncorrect && userInput.length < morseCharsOnly.length) {
+            val expectedChar = morseCharsOnly[userInput.length].uppercaseChar()
+            val inputChar = character.uppercaseChar()
+            
+            if (inputChar != expectedChar) {
+                Log.d(TAG, "Fail on first incorrect: expected '$expectedChar', got '$inputChar' - failing immediately")
+                
+                // Add the incorrect character first so user can see what they typed wrong
+                userInput += character
+                storeViewModel.dispatch(AppAction.UpdateUserInput(userInput))
+                updateSequenceDisplayWithInput()
+                
+                // Fail immediately after a short delay to show the mistake
+                lifecycleScope.launch {
+                    delay(200) // Short delay to let user see the wrong character
+                    submitAnswer() // This will mark the sequence as failed
+                }
+                Log.d(TAG, "=== CHARACTER SELECTED END (FAILED ON FIRST INCORRECT) ===")
+                return
+            }
         }
         
         // Add character to user input

@@ -23,7 +23,7 @@ data class TrainingSettings(
     val groupDelayMs: Long = 2000,    // delay between character groups
     val numberOfRepeats: Int = 2,     // how many times to repeat each sequence
     
-    // Level Management
+    // Level Management (Trainer)
     val currentLevel: Int = 1,
     val maxLevel: Int = 40,
     val lockLevel: Boolean = false,           // prevents automatic level changes
@@ -36,6 +36,7 @@ data class TrainingSettings(
     val requirePerfectCopy: Boolean = false,  // must get every character right
     val allowPartialCredit: Boolean = true,   // partial points for partially correct
     val dynamicSpacing: Boolean = true,       // adjust spacing based on performance
+    val failOnFirstIncorrect: Boolean = false, // fail sequence immediately on first wrong character
     
     // Character Selection
     val useProsigns: Boolean = false,
@@ -85,6 +86,10 @@ data class TrainingSettings(
     val listenRepeatDelayMs: Long = 300,     // Delay between repeats of same sequence (0-2000ms)
     val listenGroupDelayMs: Long = 1000,     // Delay between character groups (0-5000ms)
     val listenNextDelayMs: Long = 300,       // Delay before auto-starting next sequence (0-2000ms)
+    
+    // Listen Mode Level Management (separate from trainer)
+    val listenCurrentLevel: Int = 1,         // Current level for listen mode
+    val listenSequencesToLevelUp: Int = 0,   // Auto-advance after X sequences (0 = manual only)
     
     // Appearance
     val themeMode: String = "light",          // "light", "dark", or "system"
@@ -249,6 +254,7 @@ fun TrainingSettings.toJson(): String {
     json.put("requirePerfectCopy", requirePerfectCopy)
     json.put("allowPartialCredit", allowPartialCredit)
     json.put("dynamicSpacing", dynamicSpacing)
+    json.put("failOnFirstIncorrect", failOnFirstIncorrect)
     
     // Character Selection
     json.put("useProsigns", useProsigns)
@@ -298,6 +304,10 @@ fun TrainingSettings.toJson(): String {
     json.put("listenRepeatDelayMs", listenRepeatDelayMs)
     json.put("listenGroupDelayMs", listenGroupDelayMs)
     json.put("listenNextDelayMs", listenNextDelayMs)
+    
+    // Listen Mode Level Management
+    json.put("listenCurrentLevel", listenCurrentLevel)
+    json.put("listenSequencesToLevelUp", listenSequencesToLevelUp)
     
     // Appearance
     json.put("themeMode", themeMode)
@@ -356,6 +366,7 @@ fun TrainingSettings.Companion.fromJson(json: String): TrainingSettings {
         requirePerfectCopy = getBooleanOrDefault("requirePerfectCopy", false),
         allowPartialCredit = getBooleanOrDefault("allowPartialCredit", true),
         dynamicSpacing = getBooleanOrDefault("dynamicSpacing", true),
+        failOnFirstIncorrect = getBooleanOrDefault("failOnFirstIncorrect", false),
         
         // Character Selection
         useProsigns = getBooleanOrDefault("useProsigns", false),
@@ -405,6 +416,10 @@ fun TrainingSettings.Companion.fromJson(json: String): TrainingSettings {
         listenRepeatDelayMs = getLongOrDefault("listenRepeatDelayMs", 300L),
         listenGroupDelayMs = getLongOrDefault("listenGroupDelayMs", 1000L),
         listenNextDelayMs = getLongOrDefault("listenNextDelayMs", 300L),
+        
+        // Listen Mode Level Management
+        listenCurrentLevel = getIntOrDefault("listenCurrentLevel", 1),
+        listenSequencesToLevelUp = getIntOrDefault("listenSequencesToLevelUp", 0),
         
         // Appearance
         themeMode = getStringOrDefault("themeMode", "light"),
