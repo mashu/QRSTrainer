@@ -93,6 +93,14 @@ class AppStore private constructor() {
             is AppAction.UpdateAudioSource -> state.copy(
                 audioState = state.audioState.copy(currentSource = action.source)
             )
+            is AppAction.AudioSequenceCompleted -> state.copy(
+                audioState = state.audioState.copy(isPlaying = false),
+                trainingState = if (state.trainingState.state == TrainingState.PLAYING) {
+                    state.trainingState.copy(state = TrainingState.WAITING)
+                } else {
+                    state.trainingState
+                }
+            )
             
             // Settings Actions
             is AppAction.UpdateSettings -> state.copy(

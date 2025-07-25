@@ -314,15 +314,32 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         super.onResume()
         storeViewModel.dispatch(AppAction.SetAppInForeground(true))
         updateNavigationHeader()
+        
+        // Resume audio if it was playing
+        if (storeViewModel.audioState.value.isPlaying) {
+            audioManager.resume()
+        }
+        
+        // Restart continuous noise if training is active and noise is enabled
+        val trainingState = storeViewModel.trainingState.value
+        val settings = storeViewModel.settings.value
+        if (trainingState.isActive && settings.noiseEnabled && !storeViewModel.audioState.value.isNoiseRunning) {
+            audioManager.startContinuousNoise(settings)
+        }
     }
     
     override fun onPause() {
         super.onPause()
         storeViewModel.dispatch(AppAction.SetAppInForeground(false))
         
-        // Pause audio when app goes to background
+        // Stop all audio when app goes to background to prevent scratching sounds
         if (storeViewModel.audioState.value.isPlaying) {
             audioManager.pause()
+        }
+        
+        // Always stop continuous noise when going to background
+        if (storeViewModel.audioState.value.isNoiseRunning) {
+            audioManager.stopContinuousNoise()
         }
     }
     

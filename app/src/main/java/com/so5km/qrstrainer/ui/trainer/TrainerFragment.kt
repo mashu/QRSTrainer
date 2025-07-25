@@ -48,7 +48,13 @@ class TrainerFragment : Fragment() {
     private var userInput = ""
     private var startTime: Long = 0
     private var keyboardLevel = -1 // Track the level the keyboard was built for
-    private val characterHistory = mutableListOf<CharacterAttempt>() // Store recent attempts
+    
+    // Audio coordination state
+    private var shouldAdvanceAfterAudio = false
+    private var pendingAdvanceAction: (() -> Unit)? = null
+    
+    // Character attempt history for UI feedback
+    private val characterHistory = mutableListOf<CharacterAttempt>()
     
     data class CharacterAttempt(
         val userInput: Char,
@@ -58,7 +64,7 @@ class TrainerFragment : Fragment() {
     
     companion object {
         private const val TAG = "TrainerFragment"
-        private const val MAX_HISTORY_SIZE = 10 // Keep last 10 attempts
+        private const val MAX_HISTORY_SIZE = 20
     }
     
     override fun onCreateView(
@@ -198,6 +204,10 @@ class TrainerFragment : Fragment() {
         // Reset keyboard state only when starting a new sequence
         binding.morseKeyboard.resetState()
         
+        // Reset audio coordination state
+        shouldAdvanceAfterAudio = false
+        pendingAdvanceAction = null
+        
         storeViewModel.dispatch(AppAction.StartTraining(currentSequence))
         
         // Start continuous noise if enabled
@@ -208,12 +218,44 @@ class TrainerFragment : Fragment() {
         lifecycleScope.launch {
             try {
                 updateUIForState(TrainingState.PLAYING)
+                
+                // Set up simple audio completion listener that just dispatches actions
+                val audioCompletionListener = object : com.so5km.qrstrainer.audio.AudioCompletionListener {
+                    override fun onSequenceCompleted() {
+                        Log.d(TAG, "Audio sequence completed - dispatching AudioSequenceCompleted action")
+                        storeViewModel.dispatch(AppAction.AudioSequenceCompleted)
+                        
+                        // If there's a pending advance action (user typed quickly), execute it now
+                        if (shouldAdvanceAfterAudio && pendingAdvanceAction != null) {
+                            Log.d(TAG, "Executing pending advance action after audio completion")
+                            pendingAdvanceAction?.invoke()
+                            shouldAdvanceAfterAudio = false
+                            pendingAdvanceAction = null
+                        }
+                    }
+                    
+                    override fun onPlaybackStopped() {
+                        Log.d(TAG, "Audio playback stopped - setting audio not playing")
+                        storeViewModel.dispatch(AppAction.SetAudioPlaying(false))
+                    }
+                    
+                    override fun onPlaybackError(error: Exception) {
+                        Log.e(TAG, "Audio playback error", error)
+                        storeViewModel.dispatch(AppAction.SetAudioPlaying(false))
+                        
+                        // Show error message needs main thread - dispatch to lifecycle scope
+                        lifecycleScope.launch {
+                            showMessage("Audio playback error: ${error.message}")
+                            stopTraining()
+                        }
+                    }
+                }
+                
+                audioManager.setAudioCompletionListener(audioCompletionListener)
                 audioManager.playSequence(currentSequence, settings)
                 
-                // Wait for audio to complete, then transition to WAITING
-                // Auto-advance is handled by character input logic in onCharacterSelected()
-                delay(50) // Minimal delay - allow typing during playback
-                updateUIForState(TrainingState.WAITING)
+                // State transition to WAITING will be handled by AudioSequenceCompleted action
+                
             } catch (e: Exception) {
                 showMessage("Audio playback error: ${e.message}")
                 stopTraining()
@@ -224,6 +266,11 @@ class TrainerFragment : Fragment() {
     private fun stopTraining() {
         audioManager.stopPlayback()
         audioManager.stopContinuousNoise() // Stop background noise
+        
+        // Clear audio coordination state
+        shouldAdvanceAfterAudio = false
+        pendingAdvanceAction = null
+        
         storeViewModel.dispatch(AppAction.StopTraining)
         // Reset keyboard state only when manually stopping
         binding.morseKeyboard.resetState()
@@ -301,6 +348,14 @@ class TrainerFragment : Fragment() {
         Log.d(TAG, "Checking auto-submit: userInput.length (${userInput.length}) >= morseCharCount ($morseCharCount)")
         if (userInput.length >= morseCharCount) {
             Log.d(TAG, "Auto-submitting: userInput.length (${userInput.length}) >= morseCharCount ($morseCharCount)")
+            
+            // Provide feedback if audio is still playing
+            if (storeViewModel.audioState.value.isPlaying) {
+                // Show temporary message that we're waiting for audio to complete
+                binding.sequenceDisplay.text = "🎵 Waiting for audio to complete..."
+                Log.d(TAG, "Audio still playing during auto-submit - user will see feedback")
+            }
+            
             lifecycleScope.launch {
                 delay(100) // Small delay to let user see the typed character
                 submitAnswer()
@@ -444,10 +499,23 @@ class TrainerFragment : Fragment() {
         
         updateProgressDisplay()
         
-        // Automatically continue to next sequence after delay
-        lifecycleScope.launch {
-            delay(settings.sequenceDelayMs)
-            startTraining()
+        // Automatically continue to next sequence after delay, but coordinate with audio
+        val advanceAction: () -> Unit = {
+            lifecycleScope.launch {
+                delay(settings.sequenceDelayMs)
+                startTraining()
+            }
+        }
+        
+        if (storeViewModel.audioState.value.isPlaying) {
+            // Audio still playing - defer advancement until audio completes
+            Log.d(TAG, "Audio still playing - deferring sequence advancement")
+            shouldAdvanceAfterAudio = true
+            pendingAdvanceAction = advanceAction
+        } else {
+            // Audio finished - advance immediately
+            Log.d(TAG, "Audio completed - advancing to next sequence")
+            advanceAction()
         }
     }
     

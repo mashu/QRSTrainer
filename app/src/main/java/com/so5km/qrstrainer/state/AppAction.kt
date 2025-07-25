@@ -13,6 +13,7 @@ sealed class AppAction {
     data class SetAudioPlaying(val isPlaying: Boolean) : AppAction()
     data class SetNoiseRunning(val isRunning: Boolean) : AppAction()
     data class UpdateAudioSource(val source: String) : AppAction()
+    object AudioSequenceCompleted : AppAction()
     
     // Settings Actions
     data class UpdateSettings(val settings: TrainingSettings) : AppAction()

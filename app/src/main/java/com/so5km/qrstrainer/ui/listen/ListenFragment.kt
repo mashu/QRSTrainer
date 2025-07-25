@@ -555,6 +555,7 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
                     sequenceCoordinator.onTTSComplete(settings)
                 }
                 
+                @Suppress("OVERRIDE_DEPRECATION")
                 override fun onError(utteranceId: String?) {
                     // Deprecated method - delegate to modern method
                     onError(utteranceId, -1)
