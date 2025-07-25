@@ -8,6 +8,7 @@ import android.animation.ValueAnimator
 import android.graphics.Color
 import android.os.Bundle
 import android.text.SpannableString
+import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
 import android.util.Log
@@ -208,8 +209,8 @@ class TrainerFragment : Fragment() {
             try {
                 updateUIForState(TrainingState.PLAYING)
                 audioManager.playSequence(currentSequence, settings)
-                delay(100) // Reduced delay for faster keyboard activation
-                // DON'T clear user input here - preserve what user typed during playback
+                // Audio now uses event-driven callbacks - no blocking or delays needed
+                // User can type immediately during playback
                 updateUIForState(TrainingState.WAITING)
             } catch (e: Exception) {
                 showMessage("Audio playback error: ${e.message}")
@@ -284,39 +285,72 @@ class TrainerFragment : Fragment() {
     }
     
     private fun updateSequenceDisplayWithInput() {
+        val morseCharsOnly = currentSequence.filter { it != ' ' }
+        
         if (userInput.isEmpty()) {
+            // Show placeholder for empty input
             binding.sequenceDisplay.text = "_"
             return
         }
         
-        // Show the user input with color coding
-        val spannableString = SpannableString(userInput)
+        // Create two-row alignment: typed characters on top, correct characters below
+        val typedRowBuilder = SpannableStringBuilder()
+        val correctRowBuilder = SpannableStringBuilder()
         
-        // Apply colors based on comparison with morse characters only (exclude spaces)
-        val morseCharsOnly = currentSequence.filter { it != ' ' }
-        if (morseCharsOnly.isNotEmpty()) {
-            userInput.forEachIndexed { index, userChar ->
-                if (index < morseCharsOnly.length) {
-                    val expectedChar = morseCharsOnly[index]
-                    val isCorrect = userChar.uppercaseChar() == expectedChar.uppercaseChar()
-                    val color = if (isCorrect) {
-                        ContextCompat.getColor(requireContext(), R.color.md_theme_light_primary)
-                    } else {
-                        ContextCompat.getColor(requireContext(), R.color.md_theme_light_error)
-                    }
-                    
-                    spannableString.setSpan(
-                        ForegroundColorSpan(color),
-                        index,
-                        index + 1,
-                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                    )
+        // Build both rows character by character - only show correct chars up to typed position
+        for (i in 0 until userInput.length) {
+            val typedChar = userInput[i]
+            val correctChar = if (i < morseCharsOnly.length) morseCharsOnly[i] else ' '
+            
+            // Add typed character to top row
+            typedRowBuilder.append(typedChar)
+            
+            // Add correct character to bottom row (only reveal as user types)
+            correctRowBuilder.append(correctChar)
+            
+            // Color code the typed character based on correctness
+            if (i < morseCharsOnly.length) {
+                val isCorrect = typedChar.uppercaseChar() == correctChar.uppercaseChar()
+                val color = if (isCorrect) {
+                    ContextCompat.getColor(requireContext(), R.color.md_theme_light_primary)
+                } else {
+                    ContextCompat.getColor(requireContext(), R.color.md_theme_light_error)
                 }
+                
+                // Color the typed character
+                typedRowBuilder.setSpan(
+                    ForegroundColorSpan(color),
+                    i,
+                    i + 1,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                
+                // Color the correct character with same color if correct, neutral if wrong
+                val correctColor = if (isCorrect) {
+                    color
+                } else {
+                    ContextCompat.getColor(requireContext(), R.color.md_theme_light_onSurface)
+                }
+                
+                correctRowBuilder.setSpan(
+                    ForegroundColorSpan(correctColor),
+                    i,
+                    i + 1,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
             }
         }
         
-        binding.sequenceDisplay.text = spannableString
+        // Combine both rows with a newline
+        val alignmentDisplay = SpannableStringBuilder()
+        alignmentDisplay.append(typedRowBuilder)
+        alignmentDisplay.append("\n")
+        alignmentDisplay.append(correctRowBuilder)
+        
+        binding.sequenceDisplay.text = alignmentDisplay
     }
+    
+    // Real-time alignment is now shown in the main sequence display
     
 
     
@@ -353,7 +387,7 @@ class TrainerFragment : Fragment() {
         
         storeViewModel.dispatch(AppAction.SubmitAnswer(userInput))
         
-        // Record character attempts for history
+        // Record character attempts for progress tracking (history moved to progress tab)
         if (!isCorrect) {
             morseCharsOnly.forEachIndexed { index, correctChar ->
                 val userChar = if (userInput.length > index) userInput[index] else '?'
@@ -366,8 +400,10 @@ class TrainerFragment : Fragment() {
                     characterHistory.removeAt(0)
                 }
             }
-            updateCharacterHistoryDisplay()
         }
+        
+        // Keep the final alignment visible for a moment after submission
+        // (Real-time alignment is already shown during typing)
         
         // Show completion feedback with progress bar
         if (isCorrect) {
@@ -375,7 +411,7 @@ class TrainerFragment : Fragment() {
             showProgressMessage("✅ Correct! Well done!", true)
         } else {
             showIncorrectAnswerAnimation()
-            showProgressMessage("❌ Incorrect! The answer was: $morseCharsOnly", false)
+            showProgressMessage("❌ Incorrect!", false)
         }
         
         updateProgressDisplay()
@@ -400,7 +436,6 @@ class TrainerFragment : Fragment() {
             TrainingState.READY -> {
                 Log.d(TAG, "READY state: disabling keyboard")
                 binding.sequenceDisplay.text = ""
-                binding.characterHistory.visibility = View.GONE
                 binding.buttonStart.isEnabled = true
                 binding.buttonStart.visibility = View.VISIBLE
                 binding.buttonStop.isEnabled = false
@@ -682,32 +717,7 @@ class TrainerFragment : Fragment() {
         animator.start()
     }
     
-    private fun updateCharacterHistoryDisplay() {
-        if (characterHistory.isEmpty()) {
-            binding.characterHistory.visibility = View.GONE
-            return
-        }
-        
-        // Show only the most recent incorrect attempts
-        val recentAttempts = characterHistory.takeLast(5)
-        val historyText = recentAttempts.joinToString(" | ") { attempt ->
-            val style = if (attempt.wasCorrect) "✓" else "✗"
-            "$style ${attempt.userInput}→${attempt.correctChar}"
-        }
-        
-        binding.characterHistory.text = "Recent: $historyText"
-        binding.characterHistory.visibility = View.VISIBLE
-        
-        // Auto-hide after a delay
-        binding.characterHistory.postDelayed({
-            if (binding.characterHistory.visibility == View.VISIBLE) {
-                binding.characterHistory.animate()
-                    .alpha(0.3f)
-                    .setDuration(2000)
-                    .start()
-            }
-        }, 3000)
-    }
+    // Character history display moved to progress tracking tab
     
     override fun onDestroyView() {
         super.onDestroyView()

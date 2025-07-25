@@ -24,6 +24,24 @@ class SequenceGenerator(private val progressTracker: ProgressTracker) {
     }
     
     /**
+     * Determine the number of groups for a sequence based on settings
+     * Uses min/max range if available, falls back to fixed sequenceLength for backward compatibility
+     */
+    private fun determineSequenceLength(settings: TrainingSettings): Int {
+        return if (settings.minSequenceLength != 0 && settings.maxSequenceLength != 0) {
+            // Use variable sequence length
+            if (settings.minSequenceLength == settings.maxSequenceLength) {
+                settings.minSequenceLength
+            } else {
+                Random.nextInt(settings.minSequenceLength, settings.maxSequenceLength + 1)
+            }
+        } else {
+            // Fall back to fixed sequence length for backward compatibility
+            settings.sequenceLength
+        }
+    }
+
+    /**
      * Generate a training sequence with groups based on settings
      * @param settings Training settings including group sizes and sequence length
      * @return A string with groups separated by spaces
@@ -34,21 +52,11 @@ class SequenceGenerator(private val progressTracker: ProgressTracker) {
         
         val groups = mutableListOf<String>()
         
-        // Determine sequence length (number of groups)
-        val sequenceLength = if (settings.listenMinSequenceLength != 0 && settings.listenMaxSequenceLength != 0) {
-            // Use variable sequence length for listen mode
-            if (settings.listenMinSequenceLength == settings.listenMaxSequenceLength) {
-                settings.listenMinSequenceLength
-            } else {
-                Random.nextInt(settings.listenMinSequenceLength, settings.listenMaxSequenceLength + 1)
-            }
-        } else {
-            // Fall back to fixed sequence length for backward compatibility
-            settings.sequenceLength
-        }
+        // Always use the current settings values (trainer or listen mode should prepare settings appropriately)
+        val sequenceLength = determineSequenceLength(settings)
         
         android.util.Log.d("SequenceGenerator", "generateGroupSequence - minGroupSize: ${settings.minGroupSize}, maxGroupSize: ${settings.maxGroupSize}")
-        android.util.Log.d("SequenceGenerator", "generateGroupSequence - sequenceLength: $sequenceLength (range: ${settings.listenMinSequenceLength}-${settings.listenMaxSequenceLength})")
+        android.util.Log.d("SequenceGenerator", "generateGroupSequence - sequenceLength: $sequenceLength (range: ${settings.minSequenceLength}-${settings.maxSequenceLength})")
         
         // Generate the determined number of groups
         repeat(sequenceLength) {
@@ -128,8 +136,12 @@ class SequenceGenerator(private val progressTracker: ProgressTracker) {
         
         val groups = mutableListOf<String>()
         
+        // Use variable sequence length
+        val sequenceLength = determineSequenceLength(settings)
+        android.util.Log.d("SequenceGenerator", "generateAdaptiveSequence - sequenceLength: $sequenceLength (range: ${settings.minSequenceLength}-${settings.maxSequenceLength})")
+        
         // Generate adaptive groups
-        repeat(settings.sequenceLength) {
+        repeat(sequenceLength) {
             val groupSize = if (settings.adaptiveGroupSize) {
                 // Smaller groups for difficult characters
                 val avgDifficulty = charsToUse.mapNotNull { char ->
@@ -183,7 +195,11 @@ class SequenceGenerator(private val progressTracker: ProgressTracker) {
         
         val groups = mutableListOf<String>()
         
-        repeat(settings.sequenceLength) {
+        // Use variable sequence length
+        val sequenceLength = determineSequenceLength(settings)
+        android.util.Log.d("SequenceGenerator", "generateReviewSequence - sequenceLength: $sequenceLength (range: ${settings.minSequenceLength}-${settings.maxSequenceLength})")
+        
+        repeat(sequenceLength) {
             val groupSize = Random.nextInt(settings.minGroupSize, settings.maxGroupSize + 1)
             val group = (1..groupSize).map {
                 selectWeightedRandomCharacter(distinctChars, weights)
@@ -259,7 +275,10 @@ class SequenceGenerator(private val progressTracker: ProgressTracker) {
         
         val groups = mutableListOf<String>()
         
-        repeat(settings.sequenceLength) { groupIndex ->
+        // Use variable sequence length
+        val sequenceLength = determineSequenceLength(settings)
+        
+        repeat(sequenceLength) { groupIndex ->
             val groupSize = Random.nextInt(settings.minGroupSize, settings.maxGroupSize + 1)
             val group = (1..groupSize).map { charIndex ->
                 if ((groupIndex + charIndex) % 2 == 0) char1 else char2
@@ -285,7 +304,10 @@ class SequenceGenerator(private val progressTracker: ProgressTracker) {
         
         val groups = mutableListOf<String>()
         
-        repeat(settings.sequenceLength) {
+        // Use variable sequence length
+        val sequenceLength = determineSequenceLength(settings)
+        
+        repeat(sequenceLength) {
             val groupSize = Random.nextInt(settings.minGroupSize, settings.maxGroupSize + 1)
             val group = (1..groupSize).map {
                 selectWeightedRandomCharacter(selectedGroup, weights)

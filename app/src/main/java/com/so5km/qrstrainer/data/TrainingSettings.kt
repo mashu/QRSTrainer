@@ -13,7 +13,9 @@ data class TrainingSettings(
     // Group Settings
     val minGroupSize: Int = 1,
     val maxGroupSize: Int = 5,
-    val sequenceLength: Int = 5, // number of groups per sequence
+    val sequenceLength: Int = 5, // number of groups per sequence - kept for backward compatibility
+    val minSequenceLength: Int = 1, // minimum number of groups per sequence (1-50)
+    val maxSequenceLength: Int = 3, // maximum number of groups per sequence (1-50)
     
     // Timing & Repeats
     val sequenceDelayMs: Long = 1000, // delay between sequences
@@ -76,8 +78,8 @@ data class TrainingSettings(
     val listenMinGroupSize: Int = 1,         // Minimum characters per group (1-10)
     val listenMaxGroupSize: Int = 5,         // Maximum characters per group (1-10)
     val listenSequenceLength: Int = 5,       // Number of groups per sequence (1-15) - kept for compatibility
-    val listenMinSequenceLength: Int = 3,    // Minimum number of groups per sequence (1-15)
-    val listenMaxSequenceLength: Int = 7,    // Maximum number of groups per sequence (1-15)
+    val listenMinSequenceLength: Int = 1,    // Minimum number of groups per sequence (1-15)
+    val listenMaxSequenceLength: Int = 3,    // Maximum number of groups per sequence (1-15)
     val listenNumberOfRepeats: Int = 1,      // How many times to repeat each sequence (1-5)
     val listenSequenceDelayMs: Long = 500,   // Delay after sequence playback completes (0-3000ms)
     val listenRepeatDelayMs: Long = 300,     // Delay between repeats of same sequence (0-2000ms)
@@ -142,6 +144,10 @@ data class TrainingSettings(
             val validMinGroupSize = settings.minGroupSize.coerceIn(1, 10)
             val validMaxGroupSize = settings.maxGroupSize.coerceIn(validMinGroupSize, 20)
             
+            // Ensure main sequence lengths are valid
+            val validMinSequenceLength = settings.minSequenceLength.coerceIn(1, 50)
+            val validMaxSequenceLength = settings.maxSequenceLength.coerceIn(validMinSequenceLength, 50)
+            
             // Ensure listen sequence lengths are valid
             val validListenMinSequenceLength = settings.listenMinSequenceLength.coerceIn(1, 15)
             val validListenMaxSequenceLength = settings.listenMaxSequenceLength.coerceIn(validListenMinSequenceLength, 15)
@@ -180,6 +186,8 @@ data class TrainingSettings(
                 maxLevel = validMaxLevel,
                 minGroupSize = validMinGroupSize,
                 maxGroupSize = validMaxGroupSize,
+                minSequenceLength = validMinSequenceLength,
+                maxSequenceLength = validMaxSequenceLength,
                 listenMinSequenceLength = validListenMinSequenceLength,
                 listenMaxSequenceLength = validListenMaxSequenceLength,
                 wpm = validWpm,
@@ -219,6 +227,8 @@ fun TrainingSettings.toJson(): String {
     json.put("minGroupSize", minGroupSize)
     json.put("maxGroupSize", maxGroupSize)
     json.put("sequenceLength", sequenceLength)
+    json.put("minSequenceLength", minSequenceLength)
+    json.put("maxSequenceLength", maxSequenceLength)
     
     // Timing & Repeats
     json.put("sequenceDelayMs", sequenceDelayMs)
@@ -324,6 +334,8 @@ fun TrainingSettings.Companion.fromJson(json: String): TrainingSettings {
         minGroupSize = getIntOrDefault("minGroupSize", 1),
         maxGroupSize = getIntOrDefault("maxGroupSize", 5),
         sequenceLength = getIntOrDefault("sequenceLength", 5),
+        minSequenceLength = getIntOrDefault("minSequenceLength", 1),
+        maxSequenceLength = getIntOrDefault("maxSequenceLength", 3),
         
         // Timing & Repeats
         sequenceDelayMs = getLongOrDefault("sequenceDelayMs", 1000),
@@ -386,8 +398,8 @@ fun TrainingSettings.Companion.fromJson(json: String): TrainingSettings {
         listenMinGroupSize = getIntOrDefault("listenMinGroupSize", 1),
         listenMaxGroupSize = getIntOrDefault("listenMaxGroupSize", 5),
         listenSequenceLength = getIntOrDefault("listenSequenceLength", 5),
-        listenMinSequenceLength = getIntOrDefault("listenMinSequenceLength", 3),
-        listenMaxSequenceLength = getIntOrDefault("listenMaxSequenceLength", 7),
+        listenMinSequenceLength = getIntOrDefault("listenMinSequenceLength", 1),
+        listenMaxSequenceLength = getIntOrDefault("listenMaxSequenceLength", 3),
         listenNumberOfRepeats = getIntOrDefault("listenNumberOfRepeats", 1),
         listenSequenceDelayMs = getLongOrDefault("listenSequenceDelayMs", 500L),
         listenRepeatDelayMs = getLongOrDefault("listenRepeatDelayMs", 300L),

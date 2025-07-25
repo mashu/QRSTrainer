@@ -3,6 +3,8 @@ package com.so5km.qrstrainer.audio
 import com.so5km.qrstrainer.data.TrainingSettings
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.yield
+import android.os.Handler
+import android.os.Looper
 
 /**
  * High-level Morse code player that coordinates audio generation and playback
@@ -15,6 +17,13 @@ class MorsePlayer(
 ) {
     
     private var isSequencePlaying = false
+    private var completionListener: AudioCompletionListener? = null
+    private var completionHandler: Handler = Handler(Looper.getMainLooper())
+    private var completionRunnable: Runnable? = null
+    
+    fun setCompletionListener(listener: AudioCompletionListener?) {
+        completionListener = listener
+    }
     
     suspend fun playSequence(
         sequence: String,
@@ -57,18 +66,17 @@ class MorsePlayer(
                 val totalDurationMs = symbols.sumOf { it.durationMs }
                 android.util.Log.d("MorsePlayer", "Total sequence duration: ${totalDurationMs}ms")
                 
-                // Wait for sequence to complete with small chunks to allow cancellation
-                var remainingMs = totalDurationMs
-                val checkIntervalMs = 100L
+                // Add buffer silence at the end to ensure last character plays completely
+                val endBufferMs = (settings.riseTimeMs * 40).toInt() // Use parametric buffer based on rise time
+                val endBufferData = generateSilence(endBufferMs)
+                audioEngine.queueAudio(endBufferData)
                 
-                while (remainingMs > 0 && isSequencePlaying) {
-                    val sleepTime = minOf(checkIntervalMs, remainingMs.toLong())
-                    delay(sleepTime)
-                    remainingMs -= sleepTime.toInt()
-                    
-                    // Allow other coroutines to run
-                    yield()
-                }
+                // Schedule completion callback instead of polling
+                val totalDurationWithBuffer = totalDurationMs + endBufferMs
+                scheduleCompletion(totalDurationWithBuffer)
+                
+                // Wait for the duration without polling - just a simple delay
+                delay(totalDurationWithBuffer.toLong())
                 
                 // Add delay between repeats (except after the last repeat)
                 if (repeatNum < settings.numberOfRepeats && isSequencePlaying && settings.repeatDelayMs > 0) {
@@ -78,14 +86,8 @@ class MorsePlayer(
                     val silenceData = generateSilence(settings.repeatDelayMs.toInt())
                     audioEngine.queueAudio(silenceData)
                     
-                    // Wait for the delay
-                    var delayRemaining = settings.repeatDelayMs
-                    while (delayRemaining > 0 && isSequencePlaying) {
-                        val sleepTime = minOf(100L, delayRemaining)
-                        delay(sleepTime)
-                        delayRemaining -= sleepTime
-                        yield()
-                    }
+                    // Schedule delay completion instead of polling
+                    delay(settings.repeatDelayMs)
                 }
             }
             
@@ -94,6 +96,12 @@ class MorsePlayer(
             audioEngine.stopStreaming()
             isSequencePlaying = false
             android.util.Log.d("MorsePlayer", "Finished playing sequence")
+            
+            // Cancel any pending completion callbacks
+            completionRunnable?.let { completionHandler.removeCallbacks(it) }
+            
+            // Notify completion
+            completionListener?.onSequenceCompleted()
         }
     }
     
@@ -172,7 +180,28 @@ class MorsePlayer(
     fun stopSequence() {
         android.util.Log.d("MorsePlayer", "Stopping sequence playback")
         isSequencePlaying = false
+        
+        // Cancel any pending completion callbacks
+        completionRunnable?.let { completionHandler.removeCallbacks(it) }
+        
+        // Notify that playback was stopped
+        completionListener?.onPlaybackStopped()
+        
         // Note: AudioEngine streaming will be stopped by the playSequence method
+    }
+    
+    private fun scheduleCompletion(durationMs: Int) {
+        // Cancel any existing completion callback
+        completionRunnable?.let { completionHandler.removeCallbacks(it) }
+        
+        // Schedule new completion callback for timing accuracy
+        completionRunnable = Runnable {
+            android.util.Log.d("MorsePlayer", "Scheduled completion callback triggered")
+            // The actual completion notification happens in the finally block
+        }
+        
+        completionHandler.postDelayed(completionRunnable!!, durationMs.toLong())
+        android.util.Log.d("MorsePlayer", "Scheduled completion callback in ${durationMs}ms")
     }
     
     private fun floatToShortArray(floatArray: FloatArray): ShortArray {

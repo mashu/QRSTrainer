@@ -29,8 +29,43 @@ class AudioManager(private val context: Context) {
     private val scope = CoroutineScope(Dispatchers.Default)
     private var playbackJob: Job? = null
     
+    private var externalCompletionListener: AudioCompletionListener? = null
+    
+    fun setAudioCompletionListener(listener: AudioCompletionListener?) {
+        externalCompletionListener = listener
+    }
+    
     suspend fun playSequence(sequence: String, settings: TrainingSettings) {
         playbackJob?.cancel()
+        
+        // Set up completion listener for event-driven completion
+        val completionListener = object : AudioCompletionListener {
+            override fun onSequenceCompleted() {
+                store.dispatch(AppAction.SetAudioPlaying(false))
+                android.util.Log.d("AudioManager", "Sequence completed via callback")
+                
+                // Notify external listener (e.g., ListenFragment)
+                externalCompletionListener?.onSequenceCompleted()
+            }
+            
+            override fun onPlaybackStopped() {
+                store.dispatch(AppAction.SetAudioPlaying(false))
+                android.util.Log.d("AudioManager", "Playback stopped via callback")
+                
+                // Notify external listener
+                externalCompletionListener?.onPlaybackStopped()
+            }
+            
+            override fun onPlaybackError(error: Exception) {
+                store.dispatch(AppAction.SetAudioPlaying(false))
+                android.util.Log.e("AudioManager", "Playback error via callback", error)
+                
+                // Notify external listener
+                externalCompletionListener?.onPlaybackError(error)
+            }
+        }
+        
+        morsePlayer.setCompletionListener(completionListener)
         
         playbackJob = scope.launch {
             store.dispatch(AppAction.SetAudioPlaying(true))
@@ -38,15 +73,14 @@ class AudioManager(private val context: Context) {
             try {
                 morsePlayer.playSequence(sequence, settings)
             } catch (e: Exception) {
-                // Log error but don't throw
+                // Log error and notify via callback
                 android.util.Log.e("AudioManager", "Error playing sequence", e)
-            } finally {
-                store.dispatch(AppAction.SetAudioPlaying(false))
+                completionListener.onPlaybackError(e)
             }
         }
         
-        // Wait for the job to complete
-        playbackJob?.join()
+        // Return immediately - completion handled via callbacks
+        // This allows typing during playback without blocking
     }
     
     fun stopPlayback() {

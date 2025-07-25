@@ -403,7 +403,37 @@ class SettingsFragment : Fragment() {
             }
         }
         
-        // Sequence Length (groups per sequence)
+        // Min Sequence Length
+        binding.sliderMinSequenceLength.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                binding.textMinSequenceLengthValue.text = value.toInt().toString()
+                // Ensure max is not less than min
+                if (binding.sliderMaxSequenceLength.value < value) {
+                    binding.sliderMaxSequenceLength.value = value
+                    binding.textMaxSequenceLengthValue.text = value.toInt().toString()
+                    updateSettings { it.copy(minSequenceLength = value.toInt(), maxSequenceLength = value.toInt()) }
+                } else {
+                    updateSettings { it.copy(minSequenceLength = value.toInt()) }
+                }
+            }
+        }
+        
+        // Max Sequence Length
+        binding.sliderMaxSequenceLength.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                binding.textMaxSequenceLengthValue.text = value.toInt().toString()
+                // Ensure min is not greater than max
+                if (binding.sliderMinSequenceLength.value > value) {
+                    binding.sliderMinSequenceLength.value = value
+                    binding.textMinSequenceLengthValue.text = value.toInt().toString()
+                    updateSettings { it.copy(minSequenceLength = value.toInt(), maxSequenceLength = value.toInt()) }
+                } else {
+                    updateSettings { it.copy(maxSequenceLength = value.toInt()) }
+                }
+            }
+        }
+        
+        // Keep old single sequence length slider for backward compatibility (hidden)
         binding.sliderSequenceLength.addOnChangeListener { _, value, fromUser ->
             if (fromUser) {
                 val length = value.toInt()
@@ -868,10 +898,14 @@ class SettingsFragment : Fragment() {
             sliderMinGroupSize.value = settings.minGroupSize.toFloat()
             sliderMaxGroupSize.value = settings.maxGroupSize.toFloat()
             sliderSequenceLength.value = settings.sequenceLength.toFloat()
+            sliderMinSequenceLength.value = settings.minSequenceLength.toFloat()
+            sliderMaxSequenceLength.value = settings.maxSequenceLength.toFloat()
             
             textMinGroupSizeValue.text = getString(R.string.value_chars, settings.minGroupSize)
             textMaxGroupSizeValue.text = getString(R.string.value_chars, settings.maxGroupSize)
             textSequenceLengthValue.text = "${settings.sequenceLength} groups"
+            textMinSequenceLengthValue.text = settings.minSequenceLength.toString()
+            textMaxSequenceLengthValue.text = settings.maxSequenceLength.toString()
             
             // Timing settings
             sliderNumberOfRepeats.value = settings.numberOfRepeats.toFloat()
