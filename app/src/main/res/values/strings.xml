@@ -189,7 +189,7 @@
     <!-- About Screen -->
     <string name="about_title">About QRS Trainer</string>
     <string name="about_version">Version %1$s</string>
-    <string name="about_description">QRS Trainer is a modern Morse code training application designed to help you master CW communication skills.</string>
+    <string name="about_description">Created during my personal journey learning CW Morse code. Shared as a contribution that may or may not be useful, provided without warranty or guarantee of fitness for any purpose.</string>
     
     <!-- Error Messages -->
     <string name="error_audio_playback">Audio playback error: %1$s</string>

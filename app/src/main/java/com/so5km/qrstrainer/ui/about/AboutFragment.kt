@@ -50,11 +50,7 @@ class AboutFragment : Fragment() {
     private fun setupClickListeners() {
         binding.apply {
             cardGithub.setOnClickListener {
-                openUrl("https://github.com/so5km/qrstrainer")
-            }
-            
-            cardContact.setOnClickListener {
-                sendEmail()
+                openUrl("https://github.com/mashu/QRSTrainer")
             }
             
             cardLicense.setOnClickListener {
@@ -101,18 +97,7 @@ class AboutFragment : Fragment() {
         }
     }
     
-    private fun sendEmail() {
-        try {
-            val intent = Intent(Intent.ACTION_SENDTO).apply {
-                data = Uri.parse("mailto:so5km@example.com")
-                putExtra(Intent.EXTRA_SUBJECT, "QRS Trainer Feedback")
-                putExtra(Intent.EXTRA_TEXT, "App Version: ${getVersionName()}\nDevice: ${android.os.Build.MODEL}\nAndroid: ${android.os.Build.VERSION.RELEASE}\n\nFeedback:\n")
-            }
-            startActivity(Intent.createChooser(intent, "Send Email"))
-        } catch (e: Exception) {
-            showMessage("No email app found")
-        }
-    }
+
     
     private fun openPlayStore() {
         try {
