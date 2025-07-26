@@ -4,37 +4,29 @@
     android:viewportWidth="108"
     android:viewportHeight="108"
     android:tint="@android:color/white">
-    <!-- QRS Trainer Morse Code Icon -->
-    <!-- Centered and scaled morse pattern representing signal bars -->
+    <!-- QRS Trainer Morse Code Icon - Consistent with in-app design -->
     <group
         android:translateX="54"
-        android:translateY="54">
+        android:translateY="54"
+        android:scaleX="2.5"
+        android:scaleY="2.5">
         
-        <!-- Morse pattern scaled up for better visibility as app icon -->
+        <!-- Morse code signal pattern scaled for app icon -->
+        <!-- Represents the classic morse code visual pattern -->
         <path
             android:fillColor="@android:color/white"
-            android:pathData="M-36,-18h6v36h-6V-18z"/>
+            android:pathData="M-10,-8h2v16h-2V-8z"/>
         <path
             android:fillColor="@android:color/white"
-            android:pathData="M-24,-27h12v54h-12V-27z"/>
+            android:pathData="M-6,-12h4v24h-4V-12z"/>
         <path
             android:fillColor="@android:color/white"
-            android:pathData="M-6,-36h6v72h-6V-36z"/>
+            android:pathData="M2,-18h2v36h-2V-18z"/>
         <path
             android:fillColor="@android:color/white"
-            android:pathData="M6,-21h12v42h-12V-21z"/>
+            android:pathData="M6,-9h4v18h-4V-9z"/>
         <path
             android:fillColor="@android:color/white"
-            android:pathData="M24,-12h6v24h-6V-12z"/>
-        
-        <!-- Additional decorative elements for app icon -->
-        <path
-            android:fillColor="@android:color/white"
-            android:pathData="M30,-6h6v12h-6V-6z"
-            android:alpha="0.7"/>
-        <path
-            android:fillColor="@android:color/white"
-            android:pathData="M-42,-9h6v18h-6V-9z"
-            android:alpha="0.7"/>
+            android:pathData="M12,-4h2v8h-2V-4z"/>
     </group>
 </vector> 

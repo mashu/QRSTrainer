@@ -115,26 +115,15 @@ class AboutFragment : Fragment() {
     private fun shareApp() {
         val appName = getString(R.string.app_name)
         val shareText = """
-            🎧 Check out $appName - Master Morse Code Like a Pro! 📻
+            $appName - A Morse code training app using the Koch method.
             
-            ✨ Features:
-            • Progressive Koch method training
-            • Real-time progress tracking  
-            • Realistic HF noise simulation
-            • Listen & learn mode
-            • Modern, intuitive interface
-            
-            Perfect for ham radio operators, scouts, and morse code enthusiasts!
-            
-            📱 Download: https://play.google.com/store/apps/details?id=${requireContext().packageName}
-            
-            #MorseCode #HamRadio #CW #RadioTraining
+            📱 https://play.google.com/store/apps/details?id=${requireContext().packageName}
         """.trimIndent()
         
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
             putExtra(Intent.EXTRA_TEXT, shareText)
-            putExtra(Intent.EXTRA_SUBJECT, "$appName - Morse Code Training")
+            putExtra(Intent.EXTRA_SUBJECT, appName)
         }
         
         try {
