@@ -424,7 +424,6 @@ class NoiseGenerator(private val sampleRate: Int = AudioEngine.SAMPLE_RATE) {
         
         // Apply filter to create output spectrum
         val outputSpectrum = FloatArray(fftSize / 2)
-        val filter = designButterworthBandpass(centerFreq, bandwidth, filterOrder)
         
         for (i in spectrum.indices) {
             val freq = i * freqBinWidth

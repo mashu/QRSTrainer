@@ -169,9 +169,7 @@ class SpectrumVisualizationView @JvmOverloads constructor(
         }
     }
     
-    private fun drawFilterRegion(canvas: Canvas, width: Float, height: Float) {
-        // Removed - we'll show the actual filter response instead
-    }
+
     
     private fun drawSpectrum(
         canvas: Canvas, 
