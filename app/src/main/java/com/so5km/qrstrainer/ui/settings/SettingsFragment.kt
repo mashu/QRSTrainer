@@ -529,7 +529,7 @@ class SettingsFragment : Fragment() {
             }
         }
         
-        // Incorrect Answers to Drop Level
+        // Incorrect Answers to Drop Level - FIX: Only update when changed by user
         binding.sliderIncorrectToDrop.addOnChangeListener { _, value, fromUser ->
             if (fromUser) {
                 val count = value.toInt()

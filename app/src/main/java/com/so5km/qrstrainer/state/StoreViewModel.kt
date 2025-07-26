@@ -39,7 +39,7 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = TrainingSettings()
+            initialValue = store.state.value.settings // Use actual store state, not defaults
         )
     
     fun dispatch(action: AppAction) {

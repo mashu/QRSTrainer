@@ -100,6 +100,7 @@ data class TrainingSettings(
     val sessionTimeMinutes: Int = 15,         // target session length
     val breakReminderMinutes: Int = 60        // remind for breaks
 ) {
+    
     companion object {
         /**
          * Calculate the maximum valid level based on character settings
@@ -177,7 +178,7 @@ data class TrainingSettings(
             
             // Ensure level progression values are reasonable
             val validCorrectAnswersToLevelUp = settings.correctAnswersToLevelUp.coerceIn(3, 20)
-            val validIncorrectAnswersToDropLevel = settings.incorrectAnswersToDropLevel.coerceIn(2, 10)
+            val validIncorrectAnswersToDropLevel = settings.incorrectAnswersToDropLevel.coerceIn(1, 10) // Allow minimum 1, not 2
             
             // Ensure theme mode is valid
             val validThemeMode = if (settings.themeMode in listOf("light", "dark", "system")) {
@@ -200,13 +201,13 @@ data class TrainingSettings(
                 frequency = validFrequency,
                 volume = validVolume,
                 noiseVolume = validNoiseVolume,
-                correctAnswersToLevelUp = validCorrectAnswersToLevelUp,
-                incorrectAnswersToDropLevel = validIncorrectAnswersToDropLevel,
                 ttsVolume = validTtsVolume,
                 ttsSpeechRate = validTtsSpeechRate,
                 ttsPitch = validTtsPitch,
                 ttsDelayMs = validTtsDelayMs,
                 autoRevealDelayMs = validAutoRevealDelayMs,
+                correctAnswersToLevelUp = validCorrectAnswersToLevelUp,
+                incorrectAnswersToDropLevel = validIncorrectAnswersToDropLevel,
                 themeMode = validThemeMode
             )
         }

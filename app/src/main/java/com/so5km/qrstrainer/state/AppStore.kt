@@ -25,7 +25,7 @@ class AppStore private constructor() {
      */
     fun initialize(context: Context) {
         sharedPreferences = context.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
-        loadSettings()
+        loadSettings() // Load settings synchronously during initialization
     }
     
     fun dispatch(action: AppAction) {
@@ -72,8 +72,8 @@ class AppStore private constructor() {
                     trainingState = state.trainingState.copy(
                         previousSequence = state.trainingState.currentSequence,
                         previousUserInput = action.answer,
-                        previousWasCorrect = isCorrect,
-                        state = TrainingState.FINISHED
+                        previousWasCorrect = isCorrect
+                        // Don't automatically set to FINISHED - let UI manage the transition
                     ),
                     progressState = if (isCorrect) {
                         state.progressState.copy(

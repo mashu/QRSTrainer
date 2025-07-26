@@ -264,6 +264,10 @@ class TrainerFragment : Fragment() {
     }
     
     private fun stopTraining() {
+        // CRITICAL: Clear audio completion listener FIRST to prevent callback interference
+        audioManager.setAudioCompletionListener(null)
+        
+        // Cancel any ongoing audio playback
         audioManager.stopPlayback()
         audioManager.stopContinuousNoise() // Stop background noise
         
@@ -281,9 +285,35 @@ class TrainerFragment : Fragment() {
     
     private fun replaySequence() {
         if (currentSequence.isNotEmpty()) {
+            // Check if audio is already playing
+            if (storeViewModel.audioState.value.isPlaying) {
+                showMessage("Audio is already playing. Please wait for it to finish.")
+                return
+            }
+            
             val settings = storeViewModel.settings.value
             lifecycleScope.launch {
                 try {
+                    // Set up completion listener for replay
+                    val replayCompletionListener = object : com.so5km.qrstrainer.audio.AudioCompletionListener {
+                        override fun onSequenceCompleted() {
+                            Log.d(TAG, "Replay sequence completed")
+                            storeViewModel.dispatch(AppAction.SetAudioPlaying(false))
+                        }
+                        
+                        override fun onPlaybackStopped() {
+                            Log.d(TAG, "Replay playback stopped")
+                            storeViewModel.dispatch(AppAction.SetAudioPlaying(false))
+                        }
+                        
+                        override fun onPlaybackError(error: Exception) {
+                            Log.e(TAG, "Replay playback error", error)
+                            storeViewModel.dispatch(AppAction.SetAudioPlaying(false))
+                            showMessage("Replay error: ${error.message}")
+                        }
+                    }
+                    
+                    audioManager.setAudioCompletionListener(replayCompletionListener)
                     audioManager.playSequence(currentSequence, settings)
                 } catch (e: Exception) {
                     showMessage("Audio playback error: ${e.message}")
@@ -499,6 +529,10 @@ class TrainerFragment : Fragment() {
         
         updateProgressDisplay()
         
+        // IMPORTANT: Keep UI in WAITING state during sequence delay, not FINISHED
+        // This ensures stop button stays visible and keyboard remains enabled during countdown
+        updateUIForState(TrainingState.WAITING)
+        
         // Automatically continue to next sequence after delay, but coordinate with audio
         val advanceAction: () -> Unit = {
             lifecycleScope.launch {
@@ -560,6 +594,7 @@ class TrainerFragment : Fragment() {
             }
             TrainingState.WAITING -> {
                 Log.d(TAG, "WAITING state: enabling keyboard")
+                // Don't change sequence display text here - let it show the completion message
                 binding.buttonStart.isEnabled = false
                 binding.buttonStart.visibility = View.GONE
                 binding.buttonStop.isEnabled = true
@@ -569,13 +604,16 @@ class TrainerFragment : Fragment() {
                 binding.morseKeyboard.alpha = 1.0f
                 setKeyboardEnabled(true)
                 // DON'T clear userInput here - preserve what user typed during playback
-                // Show current input or placeholder
-                updateSequenceDisplayWithInput()
+                // Show current input or placeholder only if not showing completion feedback
+                if (!binding.sequenceDisplay.text.toString().contains("✅") && 
+                    !binding.sequenceDisplay.text.toString().contains("❌")) {
+                    updateSequenceDisplayWithInput()
+                }
                 // Do NOT reset keyboard state here - preserve selection during input
             }
             TrainingState.FINISHED -> {
                 Log.d(TAG, "FINISHED state: disabling keyboard")
-                binding.sequenceDisplay.text = "Sequence complete!"
+                binding.sequenceDisplay.text = "Training stopped"
                 binding.buttonStart.isEnabled = true
                 binding.buttonStart.visibility = View.VISIBLE
                 binding.buttonStop.isEnabled = false
