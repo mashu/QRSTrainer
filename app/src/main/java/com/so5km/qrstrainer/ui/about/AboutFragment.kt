@@ -136,7 +136,7 @@ class AboutFragment : Fragment() {
     private fun getVersionName(): String {
         return try {
             val packageInfo = requireContext().packageManager.getPackageInfo(requireContext().packageName, 0)
-            packageInfo.versionName
+            packageInfo.versionName ?: "1.0.0"
         } catch (e: Exception) {
             "1.0.0"
         }

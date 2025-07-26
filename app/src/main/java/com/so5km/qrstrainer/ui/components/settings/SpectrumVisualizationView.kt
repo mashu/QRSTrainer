@@ -182,6 +182,12 @@ class SpectrumVisualizationView @JvmOverloads constructor(
     ) {
         if (spectrum.isEmpty()) return
         
+        // Draw label
+        textPaint.textSize = 12f
+        textPaint.color = paint.color
+        textPaint.textAlign = Paint.Align.LEFT
+        canvas.drawText(label, 10f, if (label == "Input") 20f else 35f, textPaint)
+        
         val path = Path()
         val (minFreq, maxFreq) = getFrequencyRange()
         val freqRange = maxFreq - minFreq
@@ -372,6 +378,6 @@ class SpectrumVisualizationView @JvmOverloads constructor(
         textPaint.textAlign = Paint.Align.RIGHT
         textPaint.textSize = 14f
         val mode = if (showFullSpectrum) "Full Spectrum" else "Zoomed View"
-        canvas.drawText("Tap to toggle: $mode", width - 10f, 45f, textPaint)
+        canvas.drawText("Tap to toggle: $mode", width - 10f, height - 15f, textPaint)
     }
 } 

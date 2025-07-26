@@ -3,16 +3,31 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
+def getPasswordFromUser(String type) {
+    if (project.hasProperty("${type}Password")) {
+        return project.property("${type}Password")
+    }
+    def console = System.console()
+    if (console != null) {
+        return new String(console.readPassword("Enter ${type} password: "))
+    } else {
+        // Fallback for non-interactive environments
+        println "ERROR: No console available and no ${type}Password property set."
+        println "Run with: ./gradlew bundleRelease -P${type}Password=YOUR_PASSWORD"
+        throw new GradleException("Password required for ${type}")
+    }
+}
+
 android {
     namespace 'com.so5km.qrstrainer'
-    compileSdk 34
+    compileSdk 35
 
     defaultConfig {
         applicationId "com.so5km.qrstrainer"
         minSdk 26
-        targetSdk 34
-        versionCode 2
-        versionName "1.1.0"
+        targetSdk 35
+        versionCode 15
+        versionName "1.0.16"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
     }
@@ -20,9 +35,9 @@ android {
     signingConfigs {
         release {
             storeFile file('../qrstrainer-release-key.jks')
-            storePassword System.getenv('KEYSTORE_PASSWORD') ?: project.findProperty('KEYSTORE_PASSWORD') ?: 'android'
-            keyAlias System.getenv('KEY_ALIAS') ?: project.findProperty('KEY_ALIAS') ?: 'qrstrainer'
-            keyPassword System.getenv('KEY_PASSWORD') ?: project.findProperty('KEY_PASSWORD') ?: 'android'
+            storePassword project.findProperty('KEYSTORE_PASSWORD') ?: System.getenv('KEYSTORE_PASSWORD') ?: getPasswordFromUser('keystore')
+            keyAlias project.findProperty('KEY_ALIAS') ?: System.getenv('KEY_ALIAS') ?: 'qrstrainer'
+            keyPassword project.findProperty('KEY_PASSWORD') ?: System.getenv('KEY_PASSWORD') ?: getPasswordFromUser('key')
         }
     }
 
