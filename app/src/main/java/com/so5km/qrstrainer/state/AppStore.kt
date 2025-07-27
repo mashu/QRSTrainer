@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import com.so5km.qrstrainer.data.TrainingSettings
 import com.so5km.qrstrainer.data.fromJson
 import com.so5km.qrstrainer.data.toJson
+import com.so5km.qrstrainer.data.MorseCode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,19 +27,27 @@ class AppStore private constructor() {
     fun initialize(context: Context) {
         sharedPreferences = context.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
         loadSettings() // Load settings synchronously during initialization
+        loadProgress() // Load progress synchronously during initialization
     }
     
     fun dispatch(action: AppAction) {
         _state.update { currentState ->
             val newState = reduce(currentState, action)
             
-            // Save settings whenever they change
-            if (action is AppAction.UpdateSettings || 
-                action is AppAction.UpdateWpm || 
-                action is AppAction.UpdateEffectiveWpm ||
-                action is AppAction.ResetSettings) {
-                saveSettings(newState.settings)
-            }
+                    // Save settings whenever they change
+        if (action is AppAction.UpdateSettings || 
+            action is AppAction.UpdateWpm || 
+            action is AppAction.UpdateEffectiveWpm ||
+            action is AppAction.ResetSettings) {
+            saveSettings(newState.settings)
+        }
+        
+        // Save progress whenever it changes
+        if (action is AppAction.RecordCharacterAttempt ||
+            action is AppAction.RecordSequenceAttempt ||
+            action is AppAction.ResetProgress) {
+            saveProgress(newState.progressState)
+        }
             
             newState
         }
@@ -75,11 +84,7 @@ class AppStore private constructor() {
                         previousWasCorrect = isCorrect
                         // Don't automatically set to FINISHED - let UI manage the transition
                     ),
-                    progressState = if (isCorrect) {
-                        state.progressState.copy(
-                            correctAnswers = state.progressState.correctAnswers + 1
-                        )
-                    } else state.progressState
+                    progressState = state.progressState
                 )
             }
             
@@ -151,7 +156,74 @@ class AppStore private constructor() {
                     state = ListeningState.READY
                 )
             )
+            
+            // Progress Actions
+            is AppAction.RecordCharacterAttempt -> {
+                val currentStats = state.progressState.characterStats[action.character] ?: CharacterStats()
+                val updatedStats = currentStats.copy(
+                    attempts = currentStats.attempts + 1,
+                    correct = currentStats.correct + if (action.wasCorrect) 1 else 0,
+                    totalResponseTime = currentStats.totalResponseTime + action.responseTimeMs
+                )
+                state.copy(
+                    progressState = state.progressState.copy(
+                        characterStats = state.progressState.characterStats + (action.character to updatedStats)
+                    )
+                )
+            }
+            is AppAction.RecordSequenceAttempt -> {
+                val currentStreak = state.progressState.currentStreak
+                val newStreak = if (action.wasCorrect) {
+                    if (currentStreak < 0) 1 else currentStreak + 1
+                } else {
+                    if (currentStreak > 0) -1 else currentStreak - 1
+                }
+                val newBestStreak = if (newStreak > state.progressState.bestStreak) newStreak else state.progressState.bestStreak
+                
+                // Check for level progression
+                val newLevel = calculateLevelProgression(state.settings, newStreak)
+                val updatedSettings = if (newLevel != state.settings.currentLevel) {
+                    state.settings.copy(currentLevel = newLevel)
+                } else {
+                    state.settings
+                }
+                
+                state.copy(
+                    settings = updatedSettings,
+                    progressState = state.progressState.copy(
+                        currentStreak = if (newLevel != state.settings.currentLevel) 0 else newStreak, // Reset streak on level change
+                        bestStreak = newBestStreak,
+                        totalSequenceAttempts = state.progressState.totalSequenceAttempts + 1,
+                        totalSequenceCorrect = state.progressState.totalSequenceCorrect + if (action.wasCorrect) 1 else 0,
+                        totalSequenceResponseTime = state.progressState.totalSequenceResponseTime + action.responseTimeMs
+                    )
+                )
+            }
+            is AppAction.ResetProgress -> state.copy(
+                progressState = ProgressStateData(),
+                settings = state.settings.copy(currentLevel = 1)
+            )
         }
+    }
+    
+    /**
+     * Calculate level progression based on streak and settings
+     */
+    private fun calculateLevelProgression(settings: TrainingSettings, currentStreak: Int): Int {
+        if (settings.lockLevel) return settings.currentLevel
+        
+        val currentLevel = settings.currentLevel
+        
+        // Level up if positive streak meets requirement
+        if (currentStreak >= settings.correctAnswersToLevelUp && currentLevel < settings.maxLevel) {
+            return currentLevel + 1
+        }
+        // Level down if negative streak meets requirement
+        else if (currentStreak <= -settings.incorrectAnswersToDropLevel && currentLevel > 1) {
+            return currentLevel - 1
+        }
+        
+        return currentLevel
     }
     
     /**
@@ -202,6 +274,75 @@ class AppStore private constructor() {
         }
         saveSettings(defaultSettings)
         android.util.Log.d("AppStore", "Settings reset to defaults")
+    }
+    
+    /**
+     * Save progress to SharedPreferences
+     */
+    private fun saveProgress(progressState: ProgressStateData) {
+        try {
+            sharedPreferences?.edit()?.apply {
+                putInt("current_streak", progressState.currentStreak)
+                putInt("best_streak", progressState.bestStreak)
+                putInt("total_sequence_attempts", progressState.totalSequenceAttempts)
+                putInt("total_sequence_correct", progressState.totalSequenceCorrect)
+                putLong("total_sequence_response_time", progressState.totalSequenceResponseTime)
+                
+                // Save character stats
+                progressState.characterStats.forEach { (char, stats) ->
+                    putInt("${char}_attempts", stats.attempts)
+                    putInt("${char}_correct", stats.correct)
+                    putLong("${char}_total_time", stats.totalResponseTime)
+                }
+                
+                apply()
+            }
+            android.util.Log.d("AppStore", "Progress saved successfully")
+        } catch (e: Exception) {
+            android.util.Log.e("AppStore", "Failed to save progress", e)
+        }
+    }
+    
+    /**
+     * Load progress from SharedPreferences
+     */
+    private fun loadProgress() {
+        try {
+            val currentStreak = sharedPreferences?.getInt("current_streak", 0) ?: 0
+            val bestStreak = sharedPreferences?.getInt("best_streak", 0) ?: 0
+            val totalSequenceAttempts = sharedPreferences?.getInt("total_sequence_attempts", 0) ?: 0
+            val totalSequenceCorrect = sharedPreferences?.getInt("total_sequence_correct", 0) ?: 0
+            val totalSequenceResponseTime = sharedPreferences?.getLong("total_sequence_response_time", 0L) ?: 0L
+            
+            // Load character stats
+            val characterStats = mutableMapOf<Char, CharacterStats>()
+            for (char in MorseCode.MORSE_MAP.keys) {
+                val attempts = sharedPreferences?.getInt("${char}_attempts", 0) ?: 0
+                if (attempts > 0) {
+                    characterStats[char] = CharacterStats(
+                        attempts = attempts,
+                        correct = sharedPreferences?.getInt("${char}_correct", 0) ?: 0,
+                        totalResponseTime = sharedPreferences?.getLong("${char}_total_time", 0L) ?: 0L
+                    )
+                }
+            }
+            
+            _state.update { currentState ->
+                currentState.copy(
+                    progressState = ProgressStateData(
+                        currentStreak = currentStreak,
+                        bestStreak = bestStreak,
+                        totalSequenceAttempts = totalSequenceAttempts,
+                        totalSequenceCorrect = totalSequenceCorrect,
+                        totalSequenceResponseTime = totalSequenceResponseTime,
+                        characterStats = characterStats
+                    )
+                )
+            }
+            android.util.Log.d("AppStore", "Progress loaded successfully")
+        } catch (e: Exception) {
+            android.util.Log.e("AppStore", "Failed to load progress, using defaults", e)
+        }
     }
     
     companion object {

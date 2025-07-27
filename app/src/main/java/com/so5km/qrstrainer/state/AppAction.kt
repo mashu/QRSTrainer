@@ -30,4 +30,9 @@ sealed class AppAction {
     object SetListeningWaiting : AppAction()
     object RevealSequence : AppAction()
     object NextSequence : AppAction()
+    
+    // Progress Actions
+    data class RecordCharacterAttempt(val character: Char, val wasCorrect: Boolean, val responseTimeMs: Long) : AppAction()
+    data class RecordSequenceAttempt(val wasCorrect: Boolean, val responseTimeMs: Long) : AppAction()
+    object ResetProgress : AppAction()
 }

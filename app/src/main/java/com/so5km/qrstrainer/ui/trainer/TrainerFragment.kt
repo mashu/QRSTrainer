@@ -482,19 +482,19 @@ class TrainerFragment : Fragment() {
         
         Log.d(TAG, "Answer validation: userInput='$userInput', morseCharsOnly='$morseCharsOnly', isCorrect=$isCorrect")
         
-        // Record progress for each morse character (excluding spaces)
+        // Record progress for each morse character (excluding spaces) via AppStore
         morseCharsOnly.forEachIndexed { index, char ->
             val userChar = if (userInput.length > index) {
                 userInput[index]
             } else null
             
             val charCorrect = userChar?.uppercaseChar() == char.uppercaseChar()
-            progressTracker.recordAttempt(char, charCorrect, responseTime / morseCharsOnly.length)
+            storeViewModel.dispatch(AppAction.RecordCharacterAttempt(char, charCorrect, responseTime / morseCharsOnly.length))
         }
         
         // CRITICAL: Also record the overall sequence result for proper streak tracking
         // This ensures that if any character is wrong, the streak resets properly
-        progressTracker.recordSequenceAttempt(isCorrect, responseTime)
+        storeViewModel.dispatch(AppAction.RecordSequenceAttempt(isCorrect, responseTime))
         
         // Level changes are now handled automatically by the AppStore and settings observer
         
@@ -645,13 +645,21 @@ class TrainerFragment : Fragment() {
 
     
     private fun updateProgressDisplay() {
-        val level = storeViewModel.settings.value.currentLevel
-        val progress = progressTracker.getCurrentLevelProgress()
-        val streak = progressTracker.getCurrentStreak()
+        val appState = storeViewModel.state.value
+        val level = appState.settings.currentLevel
+        val streak = appState.progressState.currentStreak
+        
+        // Calculate progress percentage based on streak and level requirements
+        val requiredForNext = appState.settings.correctAnswersToLevelUp
+        val progress = if (requiredForNext > 0 && streak > 0) {
+            minOf(1.0f, streak.toFloat() / requiredForNext)
+        } else {
+            0.0f
+        }
+        val progressPercent = (progress * 100).toInt()
         
         // Show actual streak (can be negative) and progress percentage
         val streakText = if (streak >= 0) "Streak: $streak" else "Streak: $streak"
-        val progressPercent = (progress * 100).toInt()
         
         binding.progressIndicator.text = "Level $level - Progress: ${progressPercent}% - $streakText"
         

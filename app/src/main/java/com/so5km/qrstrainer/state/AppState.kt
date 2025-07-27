@@ -38,17 +38,22 @@ data class AudioStateData(
 )
 
 data class ProgressStateData(
-    val currentLevel: Int = 0,
-    val correctAnswers: Int = 0,
-    val totalAttempts: Int = 0,
+    val currentStreak: Int = 0,
+    val bestStreak: Int = 0,
+    val totalSequenceAttempts: Int = 0,
+    val totalSequenceCorrect: Int = 0,
+    val totalSequenceResponseTime: Long = 0L,
     val characterStats: Map<Char, CharacterStats> = emptyMap()
 )
 
 data class CharacterStats(
     val attempts: Int = 0,
     val correct: Int = 0,
-    val averageResponseTime: Long = 0
-)
+    val totalResponseTime: Long = 0L
+) {
+    val accuracy: Float get() = if (attempts > 0) correct.toFloat() / attempts else 0f
+    val averageResponseTime: Long get() = if (attempts > 0) totalResponseTime / attempts else 0L
+}
 
 enum class TrainingState {
     READY, PLAYING, PAUSED, WAITING, FINISHED

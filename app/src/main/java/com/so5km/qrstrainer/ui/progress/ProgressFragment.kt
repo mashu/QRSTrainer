@@ -11,6 +11,9 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.so5km.qrstrainer.databinding.FragmentProgressBinding
 import com.so5km.qrstrainer.data.ProgressTracker
 import com.so5km.qrstrainer.state.StoreViewModel
+import com.so5km.qrstrainer.state.AppState
+import com.so5km.qrstrainer.state.AppAction
+import com.so5km.qrstrainer.state.CharacterStats
 import kotlinx.coroutines.launch
 
 class ProgressFragment : Fragment() {
@@ -67,20 +70,31 @@ class ProgressFragment : Fragment() {
         }
         
         viewLifecycleOwner.lifecycleScope.launch {
-            progressTracker.currentStreak.collect { streak ->
-                updateStreakDisplay(streak)
+            storeViewModel.progressState.collect { progressState ->
+                updateStreakDisplay(progressState.currentStreak)
+                loadProgressData()
             }
         }
     }
     
     private fun loadProgressData() {
-        // Load all progress data
-        val currentLevel = storeViewModel.settings.value.currentLevel
-        val currentStreak = progressTracker.getCurrentStreak()
-        val bestStreak = progressTracker.getBestStreak()
-        val levelProgress = progressTracker.getCurrentLevelProgress()
-        val requiredForNext = progressTracker.getRequiredForNextLevel()
-        val allStats = progressTracker.getAllCharacterStats()
+        updateProgressData(storeViewModel.state.value)
+    }
+    
+    private fun updateProgressData(appState: AppState) {
+        // Load all progress data from AppStore
+        val currentLevel = appState.settings.currentLevel
+        val currentStreak = appState.progressState.currentStreak
+        val bestStreak = appState.progressState.bestStreak
+        val requiredForNext = appState.settings.correctAnswersToLevelUp
+        val allStats = appState.progressState.characterStats
+        
+        // Calculate level progress
+        val levelProgress = if (requiredForNext > 0 && currentStreak > 0) {
+            minOf(1.0f, currentStreak.toFloat() / requiredForNext)
+        } else {
+            0.0f
+        }
         
         // Calculate overall statistics
         val totalAttempts = allStats.values.sumOf { it.attempts }
@@ -126,7 +140,7 @@ class ProgressFragment : Fragment() {
         }
     }
     
-    private fun updateCharacterStats(stats: Map<Char, ProgressTracker.CharacterStats>) {
+    private fun updateCharacterStats(stats: Map<Char, CharacterStats>) {
         // Convert to list and sort by accuracy (worst first for focus)
         val statsList = stats.map { (char, stat) ->
             CharacterStatsItem(
@@ -174,8 +188,7 @@ class ProgressFragment : Fragment() {
             .setTitle("Reset Progress")
             .setMessage("Are you sure you want to reset all progress? This action cannot be undone.")
             .setPositiveButton("Reset") { _, _ ->
-                progressTracker.resetProgress()
-                loadProgressData()
+                storeViewModel.dispatch(AppAction.ResetProgress)
                 androidx.core.content.ContextCompat.getMainExecutor(requireContext()).execute {
                     com.google.android.material.snackbar.Snackbar.make(
                         binding.root,

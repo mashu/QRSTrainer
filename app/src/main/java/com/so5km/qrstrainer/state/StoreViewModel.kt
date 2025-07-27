@@ -10,14 +10,14 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
 /**
- * ViewModel that provides access to the store and computed values
+ * ViewModel that provides access to the store
  */
 class StoreViewModel(application: Application) : AndroidViewModel(application) {
     private val store = AppStore.getInstance()
     
     val state: StateFlow<AppState> = store.state
     
-    // Computed values with proper state management
+    // Reactive StateFlows for components that need to observe changes
     val trainingState: StateFlow<TrainingStateData> = store.state
         .map { it.trainingState }
         .stateIn(
@@ -39,7 +39,15 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = store.state.value.settings // Use actual store state, not defaults
+            initialValue = store.state.value.settings
+        )
+    
+    val progressState: StateFlow<ProgressStateData> = store.state
+        .map { it.progressState }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = ProgressStateData()
         )
     
     fun dispatch(action: AppAction) {

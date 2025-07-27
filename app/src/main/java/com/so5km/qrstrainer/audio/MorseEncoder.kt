@@ -2,15 +2,34 @@ package com.so5km.qrstrainer.audio
 
 import com.so5km.qrstrainer.data.MorseCode
 import com.so5km.qrstrainer.data.TrainingSettings
+import com.so5km.qrstrainer.utils.ObjectPool
+import com.so5km.qrstrainer.utils.Poolable
 
 /**
  * Encodes text to Morse code timing sequences
  */
 class MorseEncoder {
     
-    data class MorseSymbol(
-        val type: SymbolType,
-        val durationMs: Int
+    class MorseSymbol(
+        var type: SymbolType = SymbolType.DIT,
+        var durationMs: Int = 0
+    ) : Poolable {
+        override fun reset() {
+            type = SymbolType.DIT
+            durationMs = 0
+        }
+        
+        fun set(type: SymbolType, durationMs: Int): MorseSymbol {
+            this.type = type
+            this.durationMs = durationMs
+            return this
+        }
+    }
+    
+    private val symbolPool = ObjectPool(
+        factory = { MorseSymbol() },
+        reset = { it.reset() },
+        maxSize = 100
     )
     
     enum class SymbolType {
@@ -29,7 +48,7 @@ class MorseEncoder {
                 ' ' -> {
                     // Handle space as word separator
                     if (index < sequence.length - 1) {
-                        symbols.add(MorseSymbol(SymbolType.WORD_SPACE, timings.wordSpaceMs))
+                        symbols.add(symbolPool.acquire().set(SymbolType.WORD_SPACE, timings.wordSpaceMs))
                     }
                 }
                 else -> {
@@ -38,19 +57,19 @@ class MorseEncoder {
                         // Add morse pattern for character
                         morsePattern.forEachIndexed { patternIndex, element ->
                             when (element) {
-                                '.' -> symbols.add(MorseSymbol(SymbolType.DIT, timings.ditMs))
-                                '-' -> symbols.add(MorseSymbol(SymbolType.DAH, timings.dahMs))
+                                '.' -> symbols.add(symbolPool.acquire().set(SymbolType.DIT, timings.ditMs))
+                                '-' -> symbols.add(symbolPool.acquire().set(SymbolType.DAH, timings.dahMs))
                             }
                             
                             // Add element space except after last element
                             if (patternIndex < morsePattern.length - 1) {
-                                symbols.add(MorseSymbol(SymbolType.ELEMENT_SPACE, timings.elementSpaceMs))
+                                symbols.add(symbolPool.acquire().set(SymbolType.ELEMENT_SPACE, timings.elementSpaceMs))
                             }
                         }
                         
                         // Add character space except after last character and before spaces
                         if (index < sequence.length - 1 && sequence[index + 1] != ' ') {
-                            symbols.add(MorseSymbol(SymbolType.CHARACTER_SPACE, timings.charSpaceMs))
+                            symbols.add(symbolPool.acquire().set(SymbolType.CHARACTER_SPACE, timings.charSpaceMs))
                         }
                     }
                     // If character not in MORSE_MAP, skip it (don't add anything)
@@ -59,6 +78,22 @@ class MorseEncoder {
         }
         
         return symbols
+    }
+    
+    /**
+     * Release symbols back to pool when no longer needed
+     */
+    fun releaseSymbols(symbols: List<MorseSymbol>) {
+        symbols.forEach { symbol ->
+            symbolPool.release(symbol)
+        }
+    }
+    
+    /**
+     * Clear the symbol pool to free memory
+     */
+    fun clearPool() {
+        symbolPool.clear()
     }
     
     data class MorseTimings(
