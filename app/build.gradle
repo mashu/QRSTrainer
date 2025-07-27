@@ -11,6 +11,10 @@ def getPasswordFromUser(String type) {
     if (console != null) {
         return new String(console.readPassword("Enter ${type} password: "))
     } else {
+        // For debug builds, return null (signing not required)
+        if (gradle.startParameter.taskNames.any { it.contains('Debug') || it.contains('debug') }) {
+            return null
+        }
         // Fallback for non-interactive environments
         println "ERROR: No console available and no ${type}Password property set."
         println "Run with: ./gradlew bundleRelease -P${type}Password=YOUR_PASSWORD"
@@ -21,13 +25,14 @@ def getPasswordFromUser(String type) {
 android {
     namespace 'com.so5km.qrstrainer'
     compileSdk 35
+    buildToolsVersion '35.0.1'
 
     defaultConfig {
         applicationId "com.so5km.qrstrainer"
-        minSdk 26
+        minSdk 35
         targetSdk 35
-        versionCode 15
-        versionName "1.0.16"
+        versionCode 17
+        versionName "1.0.17"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
     }
@@ -35,9 +40,16 @@ android {
     signingConfigs {
         release {
             storeFile file('../qrstrainer-release-key.jks')
-            storePassword project.findProperty('KEYSTORE_PASSWORD') ?: System.getenv('KEYSTORE_PASSWORD') ?: getPasswordFromUser('keystore')
             keyAlias project.findProperty('KEY_ALIAS') ?: System.getenv('KEY_ALIAS') ?: 'qrstrainer'
-            keyPassword project.findProperty('KEY_PASSWORD') ?: System.getenv('KEY_PASSWORD') ?: getPasswordFromUser('key')
+            
+            // Only set passwords when building release
+            if (project.hasProperty('KEYSTORE_PASSWORD') || System.getenv('KEYSTORE_PASSWORD') || 
+                project.hasProperty('keystorePassword') || project.hasProperty('keyPassword')) {
+                storePassword project.findProperty('KEYSTORE_PASSWORD') ?: System.getenv('KEYSTORE_PASSWORD') ?: 
+                             project.findProperty('keystorePassword') ?: getPasswordFromUser('keystore')
+                keyPassword project.findProperty('KEY_PASSWORD') ?: System.getenv('KEY_PASSWORD') ?: 
+                           project.findProperty('keyPassword') ?: getPasswordFromUser('key')
+            }
         }
     }
 
