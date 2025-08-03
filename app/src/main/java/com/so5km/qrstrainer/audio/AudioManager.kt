@@ -1,41 +1,113 @@
 package com.so5km.qrstrainer.audio
 
+import android.content.ComponentName
 import android.content.Context
-import com.so5km.qrstrainer.data.TrainingSettings
-import com.so5km.qrstrainer.state.AppAction
+import android.content.Intent
+import android.content.ServiceConnection
+import android.os.IBinder
 import com.so5km.qrstrainer.state.AppStore
+import com.so5km.qrstrainer.state.AppAction
+import com.so5km.qrstrainer.data.TrainingSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 /**
- * High-level audio manager that coordinates all audio components
+ * High-level audio manager that coordinates between MorsePlayer and AudioEngine
+ * Now uses MorseAudioService for background playback like music apps
  */
 class AudioManager(private val context: Context) {
     
+    private val store = AppStore.getInstance()
+    private val scope = CoroutineScope(Dispatchers.Main)
+    
+    // For non-background playback (trainer mode, etc.)
     private val audioEngine = AudioEngine()
     private val signalGenerator = SignalGenerator()
     private val morseEncoder = MorseEncoder()
     private val noiseGenerator = NoiseGenerator()
-    private val morsePlayer = MorsePlayer(
-        audioEngine,
-        signalGenerator,
-        morseEncoder,
-        null // Remove noise generator from MorsePlayer
-    )
+    private val morsePlayer = MorsePlayer(audioEngine, signalGenerator, morseEncoder, noiseGenerator)
     
-    private val store = AppStore.getInstance()
-    private val scope = CoroutineScope(Dispatchers.Default)
     private var playbackJob: Job? = null
-    
     private var externalCompletionListener: AudioCompletionListener? = null
+    
+    // Service connection for background playback
+    private var morseAudioService: MorseAudioService? = null
+    private var isServiceBound = false
+    private var isUsingBackgroundService = false
+    
+    private val serviceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            android.util.Log.d("AudioManager", "Service connected")
+            val binder = service as MorseAudioService.MorseAudioBinder
+            morseAudioService = binder.getService()
+            isServiceBound = true
+            
+            // Set up completion listener
+            morseAudioService?.setCompletionListener(externalCompletionListener)
+        }
+        
+        override fun onServiceDisconnected(name: ComponentName?) {
+            android.util.Log.d("AudioManager", "Service disconnected")
+            morseAudioService = null
+            isServiceBound = false
+        }
+    }
     
     fun setAudioCompletionListener(listener: AudioCompletionListener?) {
         externalCompletionListener = listener
+        morseAudioService?.setCompletionListener(listener)
     }
     
+    /**
+     * Start background-enabled playback using foreground service
+     * Use this for Listen mode to enable hands-free operation
+     */
+    suspend fun playSequenceInBackground(sequence: String, settings: TrainingSettings) {
+        android.util.Log.d("AudioManager", "Starting background playback with foreground service")
+        
+        // DON'T stop current playback - just send new sequence to running service
+        // This prevents Android from blocking foreground service restarts
+        
+        isUsingBackgroundService = true
+        
+        // Bind to service if not already bound
+        if (!isServiceBound) {
+            val intent = Intent(context, MorseAudioService::class.java)
+            context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+        }
+        
+        // Send new sequence to already-running service (or start if first time)
+        val intent = Intent(context, MorseAudioService::class.java).apply {
+            action = MorseAudioService.ACTION_START_PLAYBACK
+            putExtra(MorseAudioService.EXTRA_SEQUENCE, sequence)
+            putExtra(MorseAudioService.EXTRA_SETTINGS, settings)
+        }
+        
+        // Always use startForegroundService on API 26+
+        // Service will handle if it's already foreground
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            context.startForegroundService(intent)
+        } else {
+            context.startService(intent)
+        }
+        
+        store.dispatch(AppAction.SetAudioPlaying(true))
+        android.util.Log.d("AudioManager", "New sequence sent to foreground service")
+    }
+    
+    /**
+     * Regular playback without background service
+     * Use this for Trainer mode and other non-background scenarios
+     */
     suspend fun playSequence(sequence: String, settings: TrainingSettings) {
+        android.util.Log.d("AudioManager", "Starting regular playback")
+        isUsingBackgroundService = false
+        
+        // Stop any background service playback
+        stopBackgroundPlayback()
+        
         playbackJob?.cancel()
         
         // Set up completion listener for event-driven completion
@@ -84,23 +156,61 @@ class AudioManager(private val context: Context) {
     }
     
     fun stopPlayback() {
-        playbackJob?.cancel()
-        morsePlayer.stopSequence()
-        audioEngine.stop()
+        if (isUsingBackgroundService) {
+            stopBackgroundPlayback()
+        } else {
+            // Stop regular playback
+            playbackJob?.cancel()
+            morsePlayer.stopSequence()
+            audioEngine.stop()
+            store.dispatch(AppAction.SetAudioPlaying(false))
+        }
+    }
+    
+    private fun stopBackgroundPlayback() {
+        android.util.Log.d("AudioManager", "Stopping background playback completely")
+        if (isServiceBound && morseAudioService != null) {
+            val intent = Intent(context, MorseAudioService::class.java).apply {
+                action = MorseAudioService.ACTION_STOP_PLAYBACK
+            }
+            context.startService(intent)
+        }
+        isUsingBackgroundService = false
         store.dispatch(AppAction.SetAudioPlaying(false))
+        android.util.Log.d("AudioManager", "Background service stopped")
     }
     
     fun pause() {
-        audioEngine.pause()
+        if (isUsingBackgroundService) {
+            val intent = Intent(context, MorseAudioService::class.java).apply {
+                action = MorseAudioService.ACTION_PAUSE_PLAYBACK
+            }
+            context.startService(intent)
+        } else {
+            audioEngine.pause()
+        }
     }
     
     fun resume() {
-        audioEngine.resume()
+        if (isUsingBackgroundService) {
+            val intent = Intent(context, MorseAudioService::class.java).apply {
+                action = MorseAudioService.ACTION_RESUME_PLAYBACK
+            }
+            context.startService(intent)
+        } else {
+            audioEngine.resume()
+        }
     }
     
     fun release() {
         stopPlayback()
         stopContinuousNoise()
+        
+        // Unbind from service if bound
+        if (isServiceBound) {
+            context.unbindService(serviceConnection)
+            isServiceBound = false
+        }
         
         // Launch coroutine to handle suspend release
         scope.launch {
@@ -150,5 +260,17 @@ class AudioManager(private val context: Context) {
                 .coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
                 .toShort()
         }
+    }
+    
+    // Legacy methods for backward compatibility - these now do nothing
+    // since background playback is handled by the service
+    @Deprecated("Use playSequenceInBackground for Listen mode")
+    fun acquireWakeLock() {
+        android.util.Log.d("AudioManager", "acquireWakeLock called - use playSequenceInBackground for Listen mode")
+    }
+    
+    @Deprecated("Background playback is handled by the service")
+    fun releaseWakeLock() {
+        android.util.Log.d("AudioManager", "releaseWakeLock called - background playback handled by service")
     }
 }

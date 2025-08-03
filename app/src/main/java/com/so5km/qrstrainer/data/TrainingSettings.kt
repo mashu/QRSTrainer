@@ -1,7 +1,10 @@
 package com.so5km.qrstrainer.data
 
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
 import org.json.JSONObject
 
+@Parcelize
 data class TrainingSettings(
     // Audio Settings
     val wpm: Int = 20,
@@ -99,7 +102,7 @@ data class TrainingSettings(
     val saveProgress: Boolean = true,
     val sessionTimeMinutes: Int = 15,         // target session length
     val breakReminderMinutes: Int = 60        // remind for breaks
-) {
+) : Parcelable {
     
     companion object {
         /**

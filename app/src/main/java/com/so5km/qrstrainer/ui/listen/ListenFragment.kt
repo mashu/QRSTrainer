@@ -105,24 +105,22 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
     }
     
     private fun startListening() {
-        // Stop any ongoing coordination - user wants to start new sequence
-        sequenceCoordinator.cancel()
-        
-        // Stop TTS if speaking
-        if (isTtsSpeaking && ::textToSpeech.isInitialized) {
-            android.util.Log.d("ListenFragment", "Stopping TTS for new sequence")
-            textToSpeech.stop()
-            isTtsSpeaking = false
-        }
-        
-        // Start the coordinator for this session
-        sequenceCoordinator.start()
-        
-        startListeningInternal()
-    }
-    
-    private fun startListeningInternal() {
         try {
+            android.util.Log.d("ListenFragment", "Starting listen mode with background service for hands-free listening")
+            
+            // Stop any ongoing coordination - user wants to start new sequence
+            sequenceCoordinator.cancel()
+            
+            // Stop TTS if speaking
+            if (isTtsSpeaking && ::textToSpeech.isInitialized) {
+                android.util.Log.d("ListenFragment", "Stopping TTS for new sequence")
+                textToSpeech.stop()
+                isTtsSpeaking = false
+            }
+            
+            // Start the coordinator for this session
+            sequenceCoordinator.start()
+            
             val settings = storeViewModel.settings.value
             // Create listen-specific settings for sequence generation
             val listenSettings = settings.copy(
@@ -193,10 +191,10 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
                     // Set up the completion listener before starting audio
                     audioManager.setAudioCompletionListener(audioCompletionListener)
                     
-                    // Start audio playback (non-blocking)
-                    audioManager.playSequence(currentSequence, listenSettings)
+                    // Start background audio playback with foreground service for hands-free listening
+                    audioManager.playSequenceInBackground(currentSequence, listenSettings)
                     
-                    android.util.Log.d("ListenFragment", "Audio playback started - waiting for completion callback")
+                    android.util.Log.d("ListenFragment", "Background audio playback started - waiting for completion callback")
                 } catch (e: Exception) {
                     android.util.Log.e("ListenFragment", "Error starting audio playback", e)
                     updateUIForState(ListeningState.READY)
@@ -627,6 +625,8 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
     
     override fun onDestroyView() {
         super.onDestroyView()
+        
+        android.util.Log.d("ListenFragment", "onDestroyView - cleaning up listen fragment")
         
         // Cancel any ongoing audio playback
         audioPlaybackJob?.cancel()
