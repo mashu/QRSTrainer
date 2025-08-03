@@ -54,7 +54,7 @@
     <dimen name="chip_spacing_vertical">0dp</dimen>
     <dimen name="chip_stroke_width">1dp</dimen>
     <dimen name="chip_corner_radius">6dp</dimen>
-    <dimen name="chip_min_height">28dp</dimen>
+    <dimen name="chip_min_height">24dp</dimen>
     <dimen name="chip_width">26dp</dimen>
     
 </resources>

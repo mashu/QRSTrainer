@@ -12,6 +12,7 @@ import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
 import android.util.Log
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -33,6 +34,8 @@ import com.so5km.qrstrainer.training.SequenceGenerator
 import com.so5km.qrstrainer.audio.AudioManager
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import com.so5km.qrstrainer.ui.common.showMessage
+import com.so5km.qrstrainer.ui.common.showErrorMessage
 
 class TrainerFragment : Fragment() {
     
@@ -400,67 +403,14 @@ class TrainerFragment : Fragment() {
     private fun updateSequenceDisplayWithInput() {
         val morseCharsOnly = currentSequence.filter { it != ' ' }
         
-        if (userInput.isEmpty()) {
-            // Show placeholder for empty input
-            binding.sequenceDisplay.text = "_"
-            return
+        val display = if (userInput.isEmpty()) {
+            "_\n?"
+        } else {
+            val correctPart = morseCharsOnly.take(userInput.length)
+            "$userInput\n$correctPart"
         }
         
-        // Create two-row alignment: typed characters on top, correct characters below
-        val typedRowBuilder = SpannableStringBuilder()
-        val correctRowBuilder = SpannableStringBuilder()
-        
-        // Build both rows character by character - only show correct chars up to typed position
-        for (i in 0 until userInput.length) {
-            val typedChar = userInput[i]
-            val correctChar = if (i < morseCharsOnly.length) morseCharsOnly[i] else ' '
-            
-            // Add typed character to top row
-            typedRowBuilder.append(typedChar)
-            
-            // Add correct character to bottom row (only reveal as user types)
-            correctRowBuilder.append(correctChar)
-            
-            // Color code the typed character based on correctness
-            if (i < morseCharsOnly.length) {
-                val isCorrect = typedChar.uppercaseChar() == correctChar.uppercaseChar()
-                val color = if (isCorrect) {
-                    ContextCompat.getColor(requireContext(), R.color.md_theme_light_primary)
-                } else {
-                    ContextCompat.getColor(requireContext(), R.color.md_theme_light_error)
-                }
-                
-                // Color the typed character
-                typedRowBuilder.setSpan(
-                    ForegroundColorSpan(color),
-                    i,
-                    i + 1,
-                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                )
-                
-                // Color the correct character with same color if correct, neutral if wrong
-                val correctColor = if (isCorrect) {
-                    color
-                } else {
-                    ContextCompat.getColor(requireContext(), R.color.md_theme_light_onSurface)
-                }
-                
-                correctRowBuilder.setSpan(
-                    ForegroundColorSpan(correctColor),
-                    i,
-                    i + 1,
-                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                )
-            }
-        }
-        
-        // Combine both rows with a newline
-        val alignmentDisplay = SpannableStringBuilder()
-        alignmentDisplay.append(typedRowBuilder)
-        alignmentDisplay.append("\n")
-        alignmentDisplay.append(correctRowBuilder)
-        
-        binding.sequenceDisplay.text = alignmentDisplay
+        binding.sequenceDisplay.text = display
     }
     
     // Real-time alignment is now shown in the main sequence display
@@ -521,10 +471,10 @@ class TrainerFragment : Fragment() {
         // Show completion feedback with progress bar
         if (isCorrect) {
             showCorrectAnswerAnimation()
-            showProgressMessage("✅ Correct! Well done!", true)
+            showProgressCountdown(true)
         } else {
             showIncorrectAnswerAnimation()
-            showProgressMessage("❌ Incorrect!", false)
+            showProgressCountdown(false)
         }
         
         updateProgressDisplay()
@@ -565,7 +515,12 @@ class TrainerFragment : Fragment() {
         when (state) {
             TrainingState.READY -> {
                 Log.d(TAG, "READY state: disabling keyboard")
-                binding.sequenceDisplay.text = ""
+                // Show user input if they have any, otherwise show placeholder
+                if (userInput.isNotEmpty()) {
+                    updateSequenceDisplayWithInput()
+                } else {
+                    binding.sequenceDisplay.text = "Ready to start"
+                }
                 binding.buttonStart.isEnabled = true
                 binding.buttonStart.visibility = View.VISIBLE
                 binding.buttonStop.isEnabled = false
@@ -579,7 +534,8 @@ class TrainerFragment : Fragment() {
             }
             TrainingState.PLAYING -> {
                 Log.d(TAG, "PLAYING state: enabling keyboard for concurrent input")
-                binding.sequenceDisplay.text = "🎵 Listen..."
+                // Always show dual-row input display, even during audio playback
+                updateSequenceDisplayWithInput()
                 binding.buttonStart.isEnabled = false
                 binding.buttonStart.visibility = View.GONE
                 binding.buttonStop.isEnabled = true
@@ -669,6 +625,15 @@ class TrainerFragment : Fragment() {
     
     private fun setupAnimations() {
         Log.d(TAG, "Setting up animations")
+        
+        // Debug progress bar initial state
+        binding.sequenceProgressBar.apply {
+            Log.d(TAG, "Initial progress bar state: visibility=$visibility, alpha=$alpha, progress=$progress")
+            Log.d(TAG, "Progress bar dimensions: width=$width, height=$height")
+            Log.d(TAG, "Progress bar position: x=$x, y=$y")
+
+        }
+        
         val views = listOf(
             binding.progressIndicator,
             binding.sequenceDisplay,
@@ -777,85 +742,79 @@ class TrainerFragment : Fragment() {
     
 
     
-    private fun showMessage(message: String) {
-        Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT).show()
-    }
+    // showMessage now available as extension function
 
-    private fun showProgressMessage(message: String, isCorrect: Boolean) {
+    private fun showProgressCountdown(isCorrect: Boolean) {
         val settings = storeViewModel.settings.value
-        
-        // Create a custom snackbar with progress bar
-        val snackbar = com.google.android.material.snackbar.Snackbar.make(
-            binding.root, 
-            message, 
-            com.google.android.material.snackbar.Snackbar.LENGTH_INDEFINITE
-        )
-        
-        // Customize the snackbar appearance
-        val snackbarView = snackbar.view
-        val textView = snackbarView.findViewById<android.widget.TextView>(com.google.android.material.R.id.snackbar_text)
-        
-        // Set colors based on correctness
-        val backgroundColor = if (isCorrect) {
-            androidx.core.content.ContextCompat.getColor(requireContext(), R.color.md_theme_light_primary)
-        } else {
-            androidx.core.content.ContextCompat.getColor(requireContext(), R.color.md_theme_light_error)
-        }
-        
-        val textColor = if (isCorrect) {
-            androidx.core.content.ContextCompat.getColor(requireContext(), R.color.md_theme_light_onPrimary)
-        } else {
-            androidx.core.content.ContextCompat.getColor(requireContext(), R.color.md_theme_light_onError)
-        }
-        
-        snackbarView.setBackgroundColor(backgroundColor)
-        textView.setTextColor(textColor)
-        textView.textSize = 16f
-        
-        // Create progress bar
-        val progressBar = com.google.android.material.progressindicator.LinearProgressIndicator(requireContext())
-        progressBar.isIndeterminate = false
-        progressBar.max = 100
-        progressBar.progress = 100
-        
-        // Set progress bar colors
-        progressBar.setIndicatorColor(textColor)
-        progressBar.trackColor = backgroundColor
-        
-        // Add progress bar to snackbar
-        val layout = snackbarView as com.google.android.material.snackbar.Snackbar.SnackbarLayout
-        val progressParams = android.view.ViewGroup.LayoutParams(
-            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-            8 // 8dp height
-        )
-        layout.addView(progressBar, progressParams)
-        
-        snackbar.show()
-        
-        // Use actual sequence delay setting for progress bar countdown
         val duration = settings.sequenceDelayMs
         
-        // Handle zero delay case
-        if (duration <= 0) {
-            snackbar.dismiss()
+        Log.d(TAG, "showProgressCountdown: isCorrect=$isCorrect, duration=${duration}ms")
+        
+        // Show progress bar for any delay > 100ms (to make it visible)
+        if (duration <= 100) {
+            Log.d(TAG, "Duration too short, skipping progress bar")
             return
         }
         
-        val animator = android.animation.ValueAnimator.ofInt(100, 0)
+        // Use high-contrast colors for better visibility
+        val indicatorColor = if (isCorrect) {
+            Color.parseColor("#4CAF50") // Bright green
+        } else {
+            Color.parseColor("#F44336") // Bright red
+        }
+        
+        val trackColor = Color.parseColor("#E0E0E0") // Light gray
+        
+        Log.d(TAG, "Setting progress bar colors: indicator=0x${Integer.toHexString(indicatorColor)}, track=0x${Integer.toHexString(trackColor)}")
+        
+        // Configure the integrated progress bar
+        binding.sequenceProgressBar.apply {
+            Log.d(TAG, "Progress bar before config: visibility=$visibility, alpha=$alpha, progress=$progress")
+            
+            setIndicatorColor(indicatorColor)
+            setTrackColor(trackColor)
+            progress = 100
+            visibility = View.VISIBLE
+            
+            Log.d(TAG, "Progress bar after config: visibility=$visibility, alpha=$alpha, progress=$progress")
+            
+            // Force immediate visibility for testing
+            alpha = 1f
+            Log.d(TAG, "Progress bar forced visible: alpha=$alpha")
+        }
+        
+        // Animate the progress countdown
+        val animator = ValueAnimator.ofInt(100, 0)
         animator.duration = duration
-        animator.interpolator = android.view.animation.LinearInterpolator()
+        animator.interpolator = LinearInterpolator()
         
         animator.addUpdateListener { animation ->
             val progress = animation.animatedValue as Int
-            progressBar.progress = progress
+            binding.sequenceProgressBar.progress = progress
+            if (progress % 20 == 0) { // Log every 20% for debugging
+                Log.d(TAG, "Progress update: $progress%")
+            }
         }
         
-        animator.addListener(object : android.animation.AnimatorListenerAdapter() {
-            override fun onAnimationEnd(animation: android.animation.Animator) {
-                snackbar.dismiss()
+        animator.addListener(object : AnimatorListenerAdapter() {
+            override fun onAnimationStart(animation: Animator) {
+                Log.d(TAG, "Progress countdown animation STARTED")
+            }
+            
+            override fun onAnimationEnd(animation: Animator) {
+                Log.d(TAG, "Progress countdown animation ENDED, hiding progress bar")
+                // Hide with fade out animation
+                binding.sequenceProgressBar.animate()
+                    .alpha(0f)
+                    .setDuration(200)
+                    .withEndAction {
+                        Log.d(TAG, "Progress bar fade-out completed")
+                    }
+                    .start()
             }
         })
         
+        Log.d(TAG, "Starting progress countdown animation...")
         animator.start()
     }
     

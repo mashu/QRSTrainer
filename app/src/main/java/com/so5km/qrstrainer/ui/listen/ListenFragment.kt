@@ -517,110 +517,111 @@ class ListenFragment : Fragment(), TextToSpeech.OnInitListener {
             if (textToSpeech.isSpeaking) {
                 android.util.Log.w("ListenFragment", "TTS already speaking, stopping previous speech")
                 textToSpeech.stop()
-            }
-            
-            // Configure TTS parameters
-            android.util.Log.d("ListenFragment", "Configuring TTS - rate: ${settings.ttsSpeechRate}, pitch: ${settings.ttsPitch}, volume: ${settings.ttsVolume}")
-            textToSpeech.setSpeechRate(settings.ttsSpeechRate)
-            textToSpeech.setPitch(settings.ttsPitch)
-            
-            // Set up TTS completion listener using modern API
-            textToSpeech.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
-                override fun onStart(utteranceId: String?) {
-                    android.util.Log.d("ListenFragment", "TTS started speaking for utterance: $utteranceId")
-                    isTtsSpeaking = true
-                    
-                    // Update UI to show TTS is speaking
-                    lifecycleScope.launch {
-                        val currentState = storeViewModel.state.value.listenState.state
-                        if (currentState == ListeningState.REVEALED) {
-                            binding.textSequence.text = "🗣️ $currentSequence"
-                        }
-                    }
+                // Give TTS a moment to stop before starting new speech
+                lifecycleScope.launch {
+                    delay(100)
+                    startTTS(sequence, settings)
                 }
-                
-                override fun onDone(utteranceId: String?) {
-                    android.util.Log.d("ListenFragment", "TTS finished speaking for utterance: $utteranceId")
-                    isTtsSpeaking = false
-                    
-                    // Update UI to remove TTS indicator
-                    lifecycleScope.launch {
-                        val currentState = storeViewModel.state.value.listenState.state
-                        if (currentState == ListeningState.REVEALED) {
-                            binding.textSequence.text = "$currentSequence"
-                        }
-                    }
-                    
-                    // Notify coordinator that TTS is complete
-                    sequenceCoordinator.onTTSComplete(settings)
-                }
-                
-                @Suppress("OVERRIDE_DEPRECATION")
-                override fun onError(utteranceId: String?) {
-                    // Deprecated method - delegate to modern method
-                    onError(utteranceId, -1)
-                }
-                
-                override fun onError(utteranceId: String?, errorCode: Int) {
-                    android.util.Log.e("ListenFragment", "TTS error occurred for utterance: $utteranceId, errorCode: $errorCode")
-                    isTtsSpeaking = false
-                    
-                    // Update UI to remove TTS indicator
-                    lifecycleScope.launch {
-                        val currentState = storeViewModel.state.value.listenState.state
-                        if (currentState == ListeningState.REVEALED) {
-                            binding.textSequence.text = "$currentSequence"
-                        }
-                    }
-                    
-                    // TTS failed - notify coordinator to continue sequence
-                    android.util.Log.d("ListenFragment", "TTS error - notifying coordinator to continue")
-                    sequenceCoordinator.onTTSComplete(settings)
-                }
-                
-                override fun onStop(utteranceId: String?, interrupted: Boolean) {
-                    android.util.Log.d("ListenFragment", "TTS stopped for utterance: $utteranceId, interrupted: $interrupted")
-                    isTtsSpeaking = false
-                    
-                    // Update UI to remove TTS indicator
-                    lifecycleScope.launch {
-                        val currentState = storeViewModel.state.value.listenState.state
-                        if (currentState == ListeningState.REVEALED) {
-                            binding.textSequence.text = "$currentSequence"
-                        }
-                    }
-                    
-                    // Only notify coordinator if TTS stopped naturally (not interrupted by user)
-                    if (!interrupted) {
-                        android.util.Log.d("ListenFragment", "TTS stopped naturally - notifying coordinator")
-                        sequenceCoordinator.onTTSComplete(settings)
-                    } else {
-                        android.util.Log.d("ListenFragment", "TTS stopped by user - not continuing sequence")
-                    }
-                }
-            })
-            
-            // Speak the sequence as individual characters with spaces
-            val spokenText = sequence.toCharArray().joinToString(" ")
-            android.util.Log.d("ListenFragment", "About to speak TTS text: '$spokenText'")
-            
-            val params = android.os.Bundle()
-            val utteranceId = "listen_sequence_${System.currentTimeMillis()}"
-            
-            val result = textToSpeech.speak(spokenText, TextToSpeech.QUEUE_FLUSH, params, utteranceId)
-            
-            android.util.Log.d("ListenFragment", "TTS speak() call result: $result")
-            if (result == TextToSpeech.ERROR) {
-                android.util.Log.e("ListenFragment", "TTS speak() returned ERROR")
-                isTtsSpeaking = false
-                // Notify coordinator that TTS failed so sequence can continue
-                sequenceCoordinator.onTTSComplete(settings)
             } else {
-                android.util.Log.d("ListenFragment", "TTS speak() called successfully, should be speaking now")
+                startTTS(sequence, settings)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("ListenFragment", "Error in speakSequence", e)
+            sequenceCoordinator.onTTSComplete(settings)
+        }
+    }
+    
+    private fun startTTS(sequence: String, settings: TrainingSettings) {
+        // Configure TTS parameters
+        android.util.Log.d("ListenFragment", "Configuring TTS - rate: ${settings.ttsSpeechRate}, pitch: ${settings.ttsPitch}, volume: ${settings.ttsVolume}")
+        textToSpeech.setSpeechRate(settings.ttsSpeechRate)
+        textToSpeech.setPitch(settings.ttsPitch)
+        
+        // Set up TTS completion listener using modern API
+        textToSpeech.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
+            override fun onStart(utteranceId: String?) {
+                android.util.Log.d("ListenFragment", "TTS started speaking for utterance: $utteranceId")
+                isTtsSpeaking = true
+                
+                // Update UI to show TTS is speaking
+                lifecycleScope.launch {
+                    val currentState = storeViewModel.state.value.listenState.state
+                    if (currentState == ListeningState.REVEALED) {
+                        binding.textSequence.text = "🗣️ $currentSequence"
+                    }
+                }
             }
             
-        } catch (e: Exception) {
-            android.util.Log.e("ListenFragment", "Exception in speakSequence", e)
+            override fun onDone(utteranceId: String?) {
+                android.util.Log.d("ListenFragment", "TTS finished speaking for utterance: $utteranceId")
+                handleTTSCompletion(settings, false)
+            }
+            
+            @Suppress("OVERRIDE_DEPRECATION")
+            override fun onError(utteranceId: String?) {
+                // Deprecated method - delegate to modern method
+                onError(utteranceId, -1)
+            }
+            
+            override fun onError(utteranceId: String?, errorCode: Int) {
+                android.util.Log.e("ListenFragment", "TTS error occurred for utterance: $utteranceId, errorCode: $errorCode")
+                handleTTSCompletion(settings, true)
+            }
+            
+            override fun onStop(utteranceId: String?, interrupted: Boolean) {
+                android.util.Log.d("ListenFragment", "TTS stopped for utterance: $utteranceId, interrupted: $interrupted")
+                
+                // Only notify coordinator if TTS stopped naturally (not interrupted by user)
+                if (!interrupted) {
+                    android.util.Log.d("ListenFragment", "TTS stopped naturally - notifying coordinator")
+                    handleTTSCompletion(settings, false)
+                } else {
+                    android.util.Log.d("ListenFragment", "TTS stopped by user - not continuing sequence")
+                    isTtsSpeaking = false
+                    updateSequenceDisplayAfterTTS()
+                }
+            }
+        })
+        
+        // Speak the sequence as individual characters with spaces
+        val spokenText = sequence.toCharArray().joinToString(" ")
+        android.util.Log.d("ListenFragment", "About to speak TTS text: '$spokenText'")
+        
+        val params = android.os.Bundle()
+        val utteranceId = "listen_sequence_${System.currentTimeMillis()}"
+        
+        val result = textToSpeech.speak(spokenText, TextToSpeech.QUEUE_FLUSH, params, utteranceId)
+        
+        android.util.Log.d("ListenFragment", "TTS speak() call result: $result")
+        if (result == TextToSpeech.ERROR) {
+            android.util.Log.e("ListenFragment", "TTS speak() returned ERROR")
+            handleTTSCompletion(settings, true)
+        } else {
+            android.util.Log.d("ListenFragment", "TTS speak() called successfully, should be speaking now")
+        }
+    }
+    
+    private fun handleTTSCompletion(settings: TrainingSettings, isError: Boolean) {
+        isTtsSpeaking = false
+        updateSequenceDisplayAfterTTS()
+        
+        if (isError) {
+            android.util.Log.d("ListenFragment", "TTS error - notifying coordinator to continue")
+        } else {
+            android.util.Log.d("ListenFragment", "TTS completed successfully - notifying coordinator")
+        }
+        
+        // Notify coordinator that TTS is complete
+        sequenceCoordinator.onTTSComplete(settings)
+    }
+    
+    private fun updateSequenceDisplayAfterTTS() {
+        // Update UI to remove TTS indicator
+        lifecycleScope.launch {
+            val currentState = storeViewModel.state.value.listenState.state
+            if (currentState == ListeningState.REVEALED) {
+                binding.textSequence.text = "$currentSequence"
+            }
         }
     }
     

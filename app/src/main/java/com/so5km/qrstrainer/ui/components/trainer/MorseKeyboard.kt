@@ -200,6 +200,12 @@ class MorseKeyboard @JvmOverloads constructor(
                     view.setChipBackgroundColorResource(R.color.md_theme_light_primaryContainer)
                     view.setTextColor(ContextCompat.getColor(context, R.color.md_theme_light_onPrimaryContainer))
                     selectedCharacter = character
+                    
+                    // Auto-reset the chip after a short delay for better UX
+                    view.postDelayed({
+                        resetChipToDefault(view)
+                        selectedCharacter = null
+                    }, 150) // 150ms debounce delay
                 } else {
                     // Reset other chips to default
                     resetChipToDefault(view)

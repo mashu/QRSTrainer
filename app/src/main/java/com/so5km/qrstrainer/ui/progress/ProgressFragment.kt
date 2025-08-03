@@ -14,6 +14,7 @@ import com.so5km.qrstrainer.state.StoreViewModel
 import com.so5km.qrstrainer.state.AppState
 import com.so5km.qrstrainer.state.AppAction
 import com.so5km.qrstrainer.state.CharacterStats
+import com.so5km.qrstrainer.ui.common.AnimationUtils
 import kotlinx.coroutines.launch
 
 class ProgressFragment : Fragment() {
@@ -156,7 +157,7 @@ class ProgressFragment : Fragment() {
     }
     
     private fun setupAnimations() {
-        // Staggered entrance animations for cards
+        // Staggered entrance animations for cards using centralized utility
         val cards = listOf(
             binding.cardLevel,
             binding.cardStreak,
@@ -165,16 +166,7 @@ class ProgressFragment : Fragment() {
             binding.cardOverview
         )
         
-        cards.forEachIndexed { index, card ->
-            card.alpha = 0f
-            card.translationY = 100f
-            card.animate()
-                .alpha(1f)
-                .translationY(0f)
-                .setDuration(300)
-                .setStartDelay((index * 100).toLong())
-                .start()
-        }
+        AnimationUtils.animateEntranceStaggered(cards)
     }
     
     override fun onResume() {

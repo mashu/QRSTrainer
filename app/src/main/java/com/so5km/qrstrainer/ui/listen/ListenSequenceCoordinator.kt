@@ -13,6 +13,7 @@ class ListenSequenceCoordinator(
     private val onStartTTS: (sequence: String, settings: TrainingSettings) -> Unit
 ) {
     private var currentJob: Job? = null
+    private var ttsTimeoutJob: Job? = null
     private var isActive = false
     
     /**
@@ -24,6 +25,7 @@ class ListenSequenceCoordinator(
         Log.d("ListenCoordinator", "Sequence playback completed: '$sequence'")
         
         currentJob?.cancel()
+        ttsTimeoutJob?.cancel()
         currentJob = CoroutineScope(Dispatchers.Main).launch {
             try {
                 // Step 1: Wait for TTS delay (parametric)
@@ -36,7 +38,16 @@ class ListenSequenceCoordinator(
                 if (settings.ttsSpeakInListenMode) {
                     Log.d("ListenCoordinator", "Starting TTS for sequence: '$sequence'")
                     onStartTTS(sequence, settings)
-                    // TTS will call onTTSComplete when done
+                    
+                    // Set up a timeout for TTS in case it fails to complete
+                    ttsTimeoutJob = CoroutineScope(Dispatchers.Main).launch {
+                        delay(10000) // 10 second timeout for TTS
+                        if (isActive) {
+                            Log.w("ListenCoordinator", "TTS timeout - proceeding without TTS completion")
+                            onTTSComplete(settings)
+                        }
+                    }
+                    // TTS will call onTTSComplete when done (or timeout will trigger)
                 } else {
                     Log.d("ListenCoordinator", "TTS disabled - proceeding to post-reveal delay")
                     onTTSComplete(settings)
@@ -56,6 +67,7 @@ class ListenSequenceCoordinator(
         Log.d("ListenCoordinator", "TTS completed")
         
         currentJob?.cancel()
+        ttsTimeoutJob?.cancel() // Cancel timeout since TTS completed normally
         currentJob = CoroutineScope(Dispatchers.Main).launch {
             try {
                 // Step 3: Wait for post-reveal delay (parametric)
@@ -88,7 +100,9 @@ class ListenSequenceCoordinator(
         Log.d("ListenCoordinator", "Stopping sequence coordination")
         isActive = false
         currentJob?.cancel()
+        ttsTimeoutJob?.cancel()
         currentJob = null
+        ttsTimeoutJob = null
     }
     
     /**
@@ -97,6 +111,8 @@ class ListenSequenceCoordinator(
     fun cancel() {
         Log.d("ListenCoordinator", "Cancelling current coordination")
         currentJob?.cancel()
+        ttsTimeoutJob?.cancel()
         currentJob = null
+        ttsTimeoutJob = null
     }
 } 

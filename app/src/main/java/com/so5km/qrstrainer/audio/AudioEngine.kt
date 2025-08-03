@@ -9,6 +9,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.TimeUnit
 
 /**
  * Core audio engine responsible for low-level audio playback with continuous streaming
@@ -30,6 +31,11 @@ class AudioEngine {
     private val isStreaming = AtomicBoolean(false)
     private val streamingMutex = Mutex()
     private var streamingThread: Thread? = null
+    
+    // Add completion callback mechanism
+    private var streamCompletionCallback: (() -> Unit)? = null
+    private var lastQueueTime = 0L
+    private val queueEmptyCheckDelayMs = 100L // Check if queue stays empty
     
     init {
         android.util.Log.d(TAG, "AudioEngine initializing...")
@@ -165,11 +171,19 @@ class AudioEngine {
     }
     
     /**
+     * Set a callback to be notified when all queued audio has finished playing
+     */
+    fun setStreamCompletionCallback(callback: (() -> Unit)?) {
+        streamCompletionCallback = callback
+    }
+    
+    /**
      * Queue audio data for streaming playback
      */
     fun queueAudio(audioData: ShortArray) {
         if (isStreaming.get() && audioData.isNotEmpty()) {
             audioQueue.offer(audioData)
+            lastQueueTime = System.currentTimeMillis()
             android.util.Log.d(TAG, "Queued ${audioData.size} audio samples")
         }
     }
@@ -182,8 +196,20 @@ class AudioEngine {
         
         while (isStreaming.get()) {
             try {
-                // Wait for audio data (blocking)
-                val audioData = audioQueue.take()
+                // Wait for audio data (blocking with timeout)
+                val audioData = audioQueue.poll(50, TimeUnit.MILLISECONDS)
+                
+                if (audioData == null) {
+                    // No audio data available - check if we should signal completion
+                    val timeSinceLastQueue = System.currentTimeMillis() - lastQueueTime
+                    if (timeSinceLastQueue > queueEmptyCheckDelayMs && audioQueue.isEmpty()) {
+                        // Queue has been empty for a while - likely done playing
+                        android.util.Log.d(TAG, "Audio queue drained - notifying completion")
+                        streamCompletionCallback?.invoke()
+                        streamCompletionCallback = null // Only notify once
+                    }
+                    continue
+                }
                 
                 // Check if this is a stop signal
                 if (audioData.isEmpty()) {

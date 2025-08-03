@@ -24,6 +24,11 @@ import com.so5km.qrstrainer.data.ProgressTracker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.so5km.qrstrainer.audio.NoiseGenerator
+import com.so5km.qrstrainer.ui.settings.components.AudioSettingsComponent
+import com.so5km.qrstrainer.ui.settings.components.GroupSettingsComponent
+import com.so5km.qrstrainer.ui.settings.components.NoiseSettingsComponent
+import com.so5km.qrstrainer.ui.settings.components.LevelAndCharacterSettingsComponent
+import com.so5km.qrstrainer.ui.common.AnimationUtils
 
 class SettingsFragment : Fragment() {
     
@@ -34,6 +39,12 @@ class SettingsFragment : Fragment() {
     private lateinit var audioManager: AudioManager
     private lateinit var progressTracker: ProgressTracker
     private lateinit var noiseGenerator: NoiseGenerator
+    
+    // Component instances
+    private lateinit var audioSettingsComponent: AudioSettingsComponent
+    private lateinit var groupSettingsComponent: GroupSettingsComponent
+    private lateinit var noiseSettingsComponent: NoiseSettingsComponent
+    private lateinit var levelAndCharacterSettingsComponent: LevelAndCharacterSettingsComponent
     
     private var testJob: Job? = null
     private var isContinuousTestRunning = false
@@ -58,16 +69,10 @@ class SettingsFragment : Fragment() {
         initializeComponents()
         setupCollapsibleSections()
         setupThemeControls()
-        setupAudioSliders()
-        setupGroupSliders()
         setupTimingSliders()
-        setupLevelSliders()
-        setupCharacterSwitches()
-        setupTrainerBehaviorSwitches()
         setupTtsControls()
         setupListenLevelControls()
         setupAutoRevealControls()
-        setupNoiseControls()
         setupButtons()
         observeSettings()
         setupAnimations()
@@ -75,19 +80,27 @@ class SettingsFragment : Fragment() {
     }
     
     private fun initializeComponents() {
-        // Components are already initialized in onViewCreated
-        setupAudioSliders()
-        setupGroupSliders()
-        setupTimingSliders()
-        setupLevelSliders()
-        setupCharacterSwitches()
-        setupTrainerBehaviorSwitches()
-        setupTtsControls()
-        setupListenLevelControls()
-        setupNoiseControls()
-        setupButtons()
-        observeSettings()
-        setupAnimations()
+        // Initialize component instances with update callback
+        val updateCallback: ((TrainingSettings) -> TrainingSettings) -> Unit = { updater ->
+            val currentSettings = storeViewModel.settings.value
+            val newSettings = updater(currentSettings)
+            val validatedSettings = TrainingSettings.validate(newSettings)
+            storeViewModel.dispatch(AppAction.UpdateSettings(validatedSettings))
+        }
+        
+        // Create component instances
+        audioSettingsComponent = AudioSettingsComponent(binding, updateCallback)
+        groupSettingsComponent = GroupSettingsComponent(binding, updateCallback)
+        noiseSettingsComponent = NoiseSettingsComponent(binding, updateCallback) {
+            updateSpectrumVisualization()
+        }
+        levelAndCharacterSettingsComponent = LevelAndCharacterSettingsComponent(binding, updateCallback)
+        
+        // Setup all components
+        audioSettingsComponent.setup()
+        groupSettingsComponent.setup()
+        noiseSettingsComponent.setup()
+        levelAndCharacterSettingsComponent.setup()
     }
     
     private fun setupCollapsibleSections() {
@@ -165,28 +178,14 @@ class SettingsFragment : Fragment() {
             val isExpanded = view.visibility == View.VISIBLE
             
             if (isExpanded) {
-                // Collapse with animation
-                view.animate()
-                    .alpha(0f)
-                    .translationY(-20f)
-                    .setDuration(200)
-                    .withEndAction {
-                        view.visibility = View.GONE
-                    }
-                    .start()
+                // Collapse with animation using centralized utility
+                AnimationUtils.collapseSection(view)
             } else {
                 // Collapse all other sections first
                 collapseAllSections()
                 
-                // Expand with animation
-                view.alpha = 0f
-                view.translationY = -20f
-                view.visibility = View.VISIBLE
-                view.animate()
-                    .alpha(1f)
-                    .translationY(0f)
-                    .setDuration(200)
-                    .start()
+                // Expand with animation using centralized utility
+                AnimationUtils.expandSection(view)
                 
                 // Save the opened section
                 saveLastOpenedSection(view)
@@ -298,87 +297,7 @@ class SettingsFragment : Fragment() {
             .show()
     }
     
-    private fun setupAudioSliders() {
-        // Character Speed (WPM) Slider
-        binding.sliderWpm.addOnChangeListener { _, value, fromUser ->
-            val wpm = value.toInt()
-            binding.textWpmValue.text = getString(R.string.value_wpm, wpm)
-            
-            if (fromUser) {
-                updateSettings { it.copy(wpm = wpm) }
-                
-                // Ensure effective WPM doesn't exceed character WPM
-                if (binding.sliderEffectiveWpm.value > value) {
-                    binding.sliderEffectiveWpm.value = value
-                    // Update effective WPM text since it was changed programmatically
-                    binding.textEffectiveWpmValue.text = getString(R.string.value_wpm, value.toInt())
-                    updateSettings { it.copy(effectiveWpm = value.toInt()) }
-                }
-            }
-        }
-        
-        // Effective Speed (Farnsworth) Slider
-        binding.sliderEffectiveWpm.addOnChangeListener { _, value, fromUser ->
-            val effectiveWpm = value.toInt()
-            binding.textEffectiveWpmValue.text = getString(R.string.value_wpm, effectiveWpm)
-            
-            if (fromUser) {
-                updateSettings { it.copy(effectiveWpm = effectiveWpm) }
-                
-                // Ensure effective WPM doesn't exceed character WPM
-                if (value > binding.sliderWpm.value) {
-                    binding.sliderWpm.value = value
-                    // Update WPM text since it was changed programmatically
-                    binding.textWpmValue.text = getString(R.string.value_wpm, value.toInt())
-                    updateSettings { it.copy(wpm = value.toInt()) }
-                }
-            }
-        }
-        
-        // Frequency Slider
-        binding.sliderFrequency.addOnChangeListener { _, value, fromUser ->
-            if (fromUser) {
-                val frequency = value.toInt()
-                binding.textFrequencyValue.text = getString(R.string.value_hz, frequency)
-                updateSettings { it.copy(frequency = frequency) }
-                
-                // Update both visualizations
-                binding.filterResponseView.setCenterFrequency(value)
-                binding.waveformVisualization.setFrequency(value)
-                
-                // Update spectrum if visible
-                if (binding.spectrumVisualizationView.visibility == View.VISIBLE) {
-                    updateSpectrumVisualization()
-                }
-            }
-        }
-        
-        // Volume Slider
-        binding.sliderVolume.addOnChangeListener { _, value, fromUser ->
-            if (fromUser) {
-                val volume = value / 100f
-                binding.textVolumeValue.text = getString(R.string.value_percent, value.toInt())
-                updateSettings { it.copy(volume = volume) }
-            }
-        }
-        
-        // Rise Time Slider
-        binding.sliderRiseTime.addOnChangeListener { _, value, fromUser ->
-            if (fromUser) {
-                binding.textRiseTimeValue.text = getString(R.string.value_ms, value.toInt())
-                updateSettings { it.copy(riseTimeMs = value.toDouble()) }
-                
-                // Update waveform visualization
-                binding.waveformVisualization.setRiseTime(value)
-            }
-        }
-        
-        // Initialize waveform visualization
-        binding.waveformVisualization.apply {
-            setFrequency(binding.sliderFrequency.value)
-            setRiseTime(binding.sliderRiseTime.value)
-        }
-    }
+    // setupAudioSliders now handled by AudioSettingsComponent
     
     private fun setupGroupSliders() {
         // Min Group Size
@@ -920,33 +839,14 @@ class SettingsFragment : Fragment() {
     }
     
     private fun updateUI(settings: TrainingSettings) {
-        // Prevent triggering listeners while updating UI
+        // Delegate to components
+        audioSettingsComponent.updateUI(settings)
+        groupSettingsComponent.updateUI(settings)
+        noiseSettingsComponent.updateUI(settings)
+        levelAndCharacterSettingsComponent.updateUI(settings)
+        
+        // Handle remaining settings that aren't in components yet
         binding.apply {
-            // Audio settings
-            sliderWpm.value = settings.wpm.toFloat()
-            sliderEffectiveWpm.value = settings.effectiveWpm.toFloat()
-            sliderFrequency.value = settings.frequency.toFloat()
-            sliderVolume.value = (settings.volume * 100)
-            sliderRiseTime.value = settings.riseTimeMs.toFloat()
-            
-            textWpmValue.text = getString(R.string.value_wpm, settings.wpm)
-            textEffectiveWpmValue.text = getString(R.string.value_wpm, settings.effectiveWpm)
-            textFrequencyValue.text = getString(R.string.value_hz, settings.frequency)
-            textVolumeValue.text = getString(R.string.value_percent, (settings.volume * 100).toInt())
-            textRiseTimeValue.text = getString(R.string.value_ms, settings.riseTimeMs.toInt())
-            
-            // Group settings
-            sliderMinGroupSize.value = settings.minGroupSize.toFloat()
-            sliderMaxGroupSize.value = settings.maxGroupSize.toFloat()
-            sliderSequenceLength.value = settings.sequenceLength.toFloat()
-            sliderMinSequenceLength.value = settings.minSequenceLength.toFloat()
-            sliderMaxSequenceLength.value = settings.maxSequenceLength.toFloat()
-            
-            textMinGroupSizeValue.text = getString(R.string.value_chars, settings.minGroupSize)
-            textMaxGroupSizeValue.text = getString(R.string.value_chars, settings.maxGroupSize)
-            textSequenceLengthValue.text = "${settings.sequenceLength} groups"
-            textMinSequenceLengthValue.text = settings.minSequenceLength.toString()
-            textMaxSequenceLengthValue.text = settings.maxSequenceLength.toString()
             
             // Timing settings
             sliderNumberOfRepeats.value = settings.numberOfRepeats.toFloat()
@@ -1230,7 +1130,7 @@ class SettingsFragment : Fragment() {
     }
     
     private fun setupAnimations() {
-        // Staggered entrance animations
+        // Staggered entrance animations using centralized utility
         val cards = listOf(
             binding.cardAudioSettings,
             binding.cardGroupSettings,
@@ -1241,16 +1141,7 @@ class SettingsFragment : Fragment() {
             binding.cardNoiseSettings
         )
         
-        cards.forEachIndexed { index, card ->
-            card.alpha = 0f
-            card.translationY = 100f
-            card.animate()
-                .alpha(1f)
-                .translationY(0f)
-                .setDuration(300)
-                .setStartDelay((index * 100).toLong())
-                .start()
-        }
+        AnimationUtils.animateEntranceStaggered(cards)
     }
     
     private fun preventSliderScrolling() {
