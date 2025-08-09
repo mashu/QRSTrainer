@@ -839,6 +839,9 @@ class SettingsFragment : Fragment() {
     }
     
     private fun updateUI(settings: TrainingSettings) {
+        // Provide current settings to components
+        levelAndCharacterSettingsComponent.setCurrentSettings(settings)
+        
         // Delegate to components
         audioSettingsComponent.updateUI(settings)
         groupSettingsComponent.updateUI(settings)

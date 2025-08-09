@@ -49,12 +49,13 @@
 
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Sequence Display Card - Fixed height to prevent keyboard space loss -->
+    <!-- Sequence Display Card - allow two lines while preserving minimum space -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/sequence_card"
         style="@style/Widget.App.CardView"
         android:layout_width="0dp"
-        android:layout_height="80dp"
+        android:layout_height="wrap_content"
+        android:minHeight="96dp"
         android:layout_marginStart="4dp"
         android:layout_marginEnd="4dp"
         android:layout_marginBottom="1dp"
@@ -78,12 +79,14 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_centerInParent="true"
-                android:gravity="center_horizontal"
+                android:gravity="center"
                 android:text=""
                 android:textAppearance="@style/TextAppearance.App.HeadlineMedium"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:fontFamily="monospace"
                 android:lineSpacingMultiplier="1.2"
+                android:maxLines="2"
+                android:includeFontPadding="false"
                 android:minHeight="60dp" />
 
 

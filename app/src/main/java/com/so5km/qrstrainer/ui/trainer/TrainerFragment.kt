@@ -402,15 +402,58 @@ class TrainerFragment : Fragment() {
     
     private fun updateSequenceDisplayWithInput() {
         val morseCharsOnly = currentSequence.filter { it != ' ' }
-        
-        val display = if (userInput.isEmpty()) {
-            "_\n?"
-        } else {
-            val correctPart = morseCharsOnly.take(userInput.length)
-            "$userInput\n$correctPart"
+
+        if (userInput.isEmpty()) {
+            binding.sequenceDisplay.text = "_\n?"
+            return
         }
-        
-        binding.sequenceDisplay.text = display
+
+        val expectedPart = morseCharsOnly.take(userInput.length)
+
+        val typedUpper = userInput.uppercase()
+        val expectedUpper = expectedPart.uppercase()
+
+        val builder = SpannableStringBuilder()
+
+        // Top row: what the user typed
+        builder.append(typedUpper)
+        builder.append("\n")
+        val secondLineStart = builder.length
+
+        // Bottom row: expected characters (same length as typed)
+        builder.append(expectedUpper)
+
+        // Resolve theme error color for mismatches
+        val typedValue = TypedValue()
+        requireContext().theme.resolveAttribute(
+            com.google.android.material.R.attr.colorError,
+            typedValue,
+            true
+        )
+        val errorColor = typedValue.data
+
+        // Color mismatched characters in both rows
+        for (i in typedUpper.indices) {
+            if (typedUpper[i] != expectedUpper[i]) {
+                // Top row span
+                builder.setSpan(
+                    ForegroundColorSpan(errorColor),
+                    i,
+                    i + 1,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                // Bottom row span
+                val bottomStart = secondLineStart + i
+                builder.setSpan(
+                    ForegroundColorSpan(errorColor),
+                    bottomStart,
+                    bottomStart + 1,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            }
+        }
+
+        binding.sequenceDisplay.text = builder
     }
     
     // Real-time alignment is now shown in the main sequence display

@@ -1227,6 +1227,28 @@
                             android:textAlignment="center" />
                     </LinearLayout>
 
+                    <!-- Characters for Current Level -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Characters at this level:"
+                        android:textSize="12sp"
+                        android:textColor="?android:attr/textColorSecondary"
+                        android:layout_marginBottom="4dp" />
+                    
+                    <TextView
+                        android:id="@+id/text_current_level_characters"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="K M"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:fontFamily="monospace"
+                        android:padding="8dp"
+                        android:background="?attr/colorSurfaceVariant"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:layout_marginBottom="16dp" />
+
                     <!-- Lock Level Switch -->
                     <com.google.android.material.switchmaterial.SwitchMaterial
                         android:id="@+id/switch_lock_level"
@@ -2074,6 +2096,28 @@
                             android:textAlignment="center" />
                     </LinearLayout>
 
+                    <!-- Characters for Current Level -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Characters at this level:"
+                        android:textSize="12sp"
+                        android:textColor="?android:attr/textColorSecondary"
+                        android:layout_marginBottom="4dp" />
+                    
+                                        <TextView
+                        android:id="@+id/text_listen_level_characters"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="K M"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:fontFamily="monospace"
+                        android:padding="8dp"
+                        android:background="?attr/colorSurfaceVariant"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:layout_marginBottom="16dp" />
+ 
                     <!-- Sequences to Level Up -->
                     <TextView
                         android:layout_width="wrap_content"
