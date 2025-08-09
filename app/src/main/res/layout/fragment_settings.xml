@@ -297,7 +297,8 @@
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="@string/settings_custom_character_set_hint">
+                        android:hint="@string/settings_custom_character_set_hint"
+                        android:visibility="gone">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/edit_custom_characters"
@@ -308,22 +309,41 @@
 
                     </com.google.android.material.textfield.TextInputLayout>
 
-                    <LinearLayout
+                <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:paddingTop="8dp">
-                        <Button
-                            android:id="@+id/buttonSelectAlphabetPreset"
-                            android:layout_width="0dp"
+                        android:paddingTop="12dp"
+                        android:layout_marginBottom="8dp"
+                        android:baselineAligned="true">
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/alphabetPresetDropdownLayout"
+                        style="@style/Widget.Material3.TextInputLayout.FilledBox.Dense.ExposedDropdownMenu"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        android:hint="Alphabet preset">
+
+                        <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                            android:id="@+id/dropdownAlphabetPreset"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Alphabet preset"/>
-                        <Button
+                            android:inputType="none"
+                            android:importantForAutofill="no"
+                            android:editable="false"/>
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.button.MaterialButton
                             android:id="@+id/buttonEditAlphabetOrder"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Edit order"/>
+                        style="@style/Widget.Material3.Button"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:minWidth="0dp"
+                        android:layout_marginStart="8dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                            android:text="Edit"/>
                     </LinearLayout>
 
                 </LinearLayout>

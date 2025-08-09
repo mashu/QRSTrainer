@@ -46,6 +46,9 @@ data class TrainingSettings(
     val useNumbers: Boolean = false,
     val usePunctuation: Boolean = false,
     val customCharacterSet: String = "",      // custom characters to practice
+    // Custom subsets (optional) used when user selects specific digits/punctuation in custom mode
+    val customNumbers: String = "",            // e.g., "0125"
+    val customPunctuation: String = "",        // e.g., ".,/"
 
     // Alphabet Order & Presets
     val alphabetPreset: String = "KOCH",      // KOCH, MORSEMANIA, ALPHABETICAL
@@ -137,8 +140,20 @@ data class TrainingSettings(
         fun calculateMaxLevel(settings: TrainingSettings): Int {
             val letterCount = settings.getLetterOrder().size
             var totalChars = letterCount
-            if (settings.useNumbers) totalChars += 10
-            if (settings.usePunctuation) totalChars += 7
+            // Numbers: prefer custom subset length if provided
+            val numbersCount = when {
+                settings.customNumbers.isNotEmpty() -> settings.customNumbers.length
+                settings.useNumbers -> 10
+                else -> 0
+            }
+            totalChars += numbersCount
+            // Punctuation: prefer custom subset length if provided
+            val punctCount = when {
+                settings.customPunctuation.isNotEmpty() -> settings.customPunctuation.length
+                settings.usePunctuation -> 7
+                else -> 0
+            }
+            totalChars += punctCount
             if (settings.useProsigns) totalChars += 3
             totalChars += settings.customCharacterSet.length
             return (totalChars - 1).coerceAtLeast(1)
@@ -217,6 +232,21 @@ data class TrainingSettings(
                 }
             }
 
+            // Sanitize custom subsets
+            val dedupedNumbers = buildString {
+                val seenN = mutableSetOf<Char>()
+                for (c in settings.customNumbers) {
+                    if (c in '0'..'9' && seenN.add(c)) append(c)
+                }
+            }
+            val allowedPunct = setOf('.', ',', '?', '/', '=', '+', '-')
+            val dedupedPunct = buildString {
+                val seenP = mutableSetOf<Char>()
+                for (c in settings.customPunctuation) {
+                    if (allowedPunct.contains(c) && seenP.add(c)) append(c)
+                }
+            }
+
             return settings.copy(
                 currentLevel = validCurrentLevel,
                 maxLevel = validMaxLevel,
@@ -240,7 +270,9 @@ data class TrainingSettings(
                 incorrectAnswersToDropLevel = validIncorrectAnswersToDropLevel,
                 themeMode = validThemeMode,
                 alphabetPreset = validAlphabetPreset,
-                alphabetOrderOverride = dedupedLetters
+                alphabetOrderOverride = dedupedLetters,
+                customNumbers = dedupedNumbers,
+                customPunctuation = dedupedPunct
             )
         }
         
@@ -294,6 +326,8 @@ fun TrainingSettings.toJson(): String {
     json.put("useNumbers", useNumbers)
     json.put("usePunctuation", usePunctuation)
     json.put("customCharacterSet", customCharacterSet)
+    json.put("customNumbers", customNumbers)
+    json.put("customPunctuation", customPunctuation)
     // Alphabet Preset & Order
     json.put("alphabetPreset", alphabetPreset)
     json.put("alphabetOrderOverride", alphabetOrderOverride)
@@ -409,6 +443,8 @@ fun TrainingSettings.Companion.fromJson(json: String): TrainingSettings {
         useNumbers = getBooleanOrDefault("useNumbers", false),
         usePunctuation = getBooleanOrDefault("usePunctuation", false),
         customCharacterSet = getStringOrDefault("customCharacterSet", ""),
+        customNumbers = getStringOrDefault("customNumbers", ""),
+        customPunctuation = getStringOrDefault("customPunctuation", ""),
         // Alphabet Preset & Order
         alphabetPreset = getStringOrDefault("alphabetPreset", "KOCH"),
         alphabetOrderOverride = getStringOrDefault("alphabetOrderOverride", ""),
@@ -509,12 +545,14 @@ fun TrainingSettings.buildMasterSequence(): List<Char> {
 
     // Numbers
     if (useNumbers) {
-        ('0'..'9').forEach { if (existing.add(it)) sequence.add(it) }
+        val digits: List<Char> = if (customNumbers.isNotEmpty()) customNumbers.toList() else ('0'..'9').toList()
+        digits.forEach { if (existing.add(it)) sequence.add(it) }
     }
 
     // Punctuation
     if (usePunctuation) {
-        val punct = listOf('.', ',', '?', '/', '=', '+', '-')
+        val defaultPunct = listOf('.', ',', '?', '/', '=', '+', '-')
+        val punct: List<Char> = if (customPunctuation.isNotEmpty()) customPunctuation.toList() else defaultPunct
         punct.forEach { if (existing.add(it)) sequence.add(it) }
     }
 

@@ -74,7 +74,6 @@ class LevelAndCharacterSettingsComponent(
         setupLevelSliders()
         setupCharacterSwitches()
         setupTrainerBehaviorSwitches()
-        setupAlphabetPresetControls()
     }
     
     private fun setupLevelSliders() {
@@ -207,34 +206,7 @@ class LevelAndCharacterSettingsComponent(
         }
     }
 
-    private fun setupAlphabetPresetControls() {
-        // If buttons exist in layout, wire them. Safe guards for null via try/catch.
-        try {
-            binding.buttonSelectAlphabetPreset.setOnClickListener {
-                // Delegate to fragment via callback by mutating a marker setting; fragment adds dialog
-                // As a fallback, we can cycle presets quickly
-                val current = getCurrentSettings().alphabetPreset.uppercase()
-                val next = when (current) {
-                    "KOCH" -> "MORSEMANIA"
-                    "MORSEMANIA" -> "ALPHABETICAL"
-                    else -> "KOCH"
-                }
-                onSettingsUpdate { it.copy(alphabetPreset = next, alphabetOrderOverride = it.alphabetOrderOverride) }
-                updateLevelSliderRange()
-                binding.sliderCurrentLevel.post {
-                    val s = getCurrentSettings()
-                    updateCharacterDisplay(s.currentLevel, s, isListenMode = false)
-                    updateCharacterDisplay(s.listenCurrentLevel, s, isListenMode = true)
-                }
-            }
-        } catch (_: Throwable) { }
-
-        try {
-            binding.buttonEditAlphabetOrder.setOnClickListener {
-                // No-op here; fragment exposes the dialog.
-            }
-        } catch (_: Throwable) { }
-    }
+    // Alphabet preset selection is handled in SettingsFragment via dropdown
     
     /**
      * Update the level slider range when character settings change

@@ -29,6 +29,8 @@ import com.so5km.qrstrainer.ui.settings.components.GroupSettingsComponent
 import com.so5km.qrstrainer.ui.settings.components.NoiseSettingsComponent
 import com.so5km.qrstrainer.ui.settings.components.LevelAndCharacterSettingsComponent
 import com.so5km.qrstrainer.ui.settings.components.AlphabetEditorDialog
+import com.so5km.qrstrainer.data.getLetterOrder
+import android.widget.ArrayAdapter
 import com.so5km.qrstrainer.ui.common.AnimationUtils
 
 class SettingsFragment : Fragment() {
@@ -75,6 +77,7 @@ class SettingsFragment : Fragment() {
         setupListenLevelControls()
         setupAutoRevealControls()
         setupButtons()
+        setupAlphabetPresetDropdown()
         observeSettings()
         setupAnimations()
         preventSliderScrolling()
@@ -104,27 +107,36 @@ class SettingsFragment : Fragment() {
         levelAndCharacterSettingsComponent.setup()
     }
 
-    // Simple preset selector and alphabet order editor hooks
-    private fun showAlphabetPresetDialog() {
-        val options = arrayOf("Koch", "MorseMania", "Alphabetical")
-        val current = when (storeViewModel.settings.value.alphabetPreset.uppercase()) {
-            "MORSEMANIA" -> 1
-            "ALPHABETICAL" -> 2
-            else -> 0
-        }
-        androidx.appcompat.app.AlertDialog.Builder(requireContext())
-            .setTitle("Alphabet preset")
-            .setSingleChoiceItems(options, current) { dialog, which ->
-                val preset = when (which) {
-                    1 -> "MORSEMANIA"
-                    2 -> "ALPHABETICAL"
-                    else -> "KOCH"
-                }
-                updateSettings { it.copy(alphabetPreset = preset) }
-                dialog.dismiss()
+    // Dropdown-based preset selector
+    private fun setupAlphabetPresetDropdown() {
+        val items = listOf("Koch", "MorseMania", "Alphabetical", "Custom")
+        binding.dropdownAlphabetPreset.setAdapter(ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1, items))
+
+        // Reflect current state
+        fun currentLabel(s: TrainingSettings): String {
+            return if (s.alphabetOrderOverride.isNotEmpty()) "Custom" else when (s.alphabetPreset.uppercase()) {
+                "MORSEMANIA" -> "MorseMania"
+                "ALPHABETICAL" -> "Alphabetical"
+                else -> "Koch"
             }
-            .setNegativeButton("Cancel", null)
-            .show()
+        }
+        binding.dropdownAlphabetPreset.setText(currentLabel(storeViewModel.settings.value), false)
+
+        binding.dropdownAlphabetPreset.setOnItemClickListener { _, _, position, _ ->
+            val selection = items[position]
+            if (selection == "Custom") {
+                // Do nothing immediate; user can open editor to customize
+                // Keep current override as-is (if any)
+                return@setOnItemClickListener
+            }
+            val preset = when (selection) {
+                "MorseMania" -> "MORSEMANIA"
+                "Alphabetical" -> "ALPHABETICAL"
+                else -> "KOCH"
+            }
+            // Apply preset and clear any override
+            updateSettings { it.copy(alphabetPreset = preset, alphabetOrderOverride = "") }
+        }
     }
 
     private fun showAlphabetOrderEditorDialog() {
@@ -859,11 +871,41 @@ class SettingsFragment : Fragment() {
             showResetConfirmation()
         }
         
-        // Alphabet preset and order editor
-        binding.buttonSelectAlphabetPreset.setOnClickListener { showAlphabetPresetDialog() }
+        // Alphabet order editor
         binding.buttonEditAlphabetOrder.setOnClickListener {
-            AlphabetEditorDialog(storeViewModel.settings.value) { newOrder ->
-                updateSettings { it.copy(alphabetOrderOverride = newOrder) }
+            AlphabetEditorDialog(storeViewModel.settings.value) { lettersOrder, extraChars ->
+                val current = storeViewModel.settings.value
+                val enabledOnly = lettersOrder.filter { it.isLetter() }.uppercase()
+                // Base order must be from preset, not including an existing override
+                val baseOrder = when (current.alphabetPreset.uppercase()) {
+                    "MORSEMANIA" -> com.so5km.qrstrainer.data.AlphabetPresets.MORSEMANIA_ORDER.joinToString("")
+                    "ALPHABETICAL" -> com.so5km.qrstrainer.data.AlphabetPresets.ALPHABETICAL_ORDER.joinToString("")
+                    else -> com.so5km.qrstrainer.data.AlphabetPresets.KOCH_LETTER_ORDER.joinToString("")
+                }
+                val overrideValue = if (enabledOnly == baseOrder) "" else enabledOnly
+                // Derive numbers/punctuation toggles from extraChars
+                val extras = extraChars.toSet()
+                val usedNumbers = ('0'..'9').filter { it in extras }
+                val usedPunct = listOf('.', ',', '?', '/', '=', '+', '-').filter { it in extras }
+                val useNumbers = usedNumbers.isNotEmpty()
+                val usePunct = usedPunct.isNotEmpty()
+                updateSettings { it.copy(
+                    alphabetOrderOverride = overrideValue,
+                    customCharacterSet = "",
+                    useNumbers = useNumbers,
+                    usePunctuation = usePunct,
+                    customNumbers = usedNumbers.joinToString(""),
+                    customPunctuation = usedPunct.joinToString("")
+                ) }
+                // Update dropdown label to Custom if override now exists
+                binding.dropdownAlphabetPreset.setText(
+                    if (overrideValue.isNotEmpty()) "Custom" else when (current.alphabetPreset.uppercase()) {
+                        "MORSEMANIA" -> "MorseMania"
+                        "ALPHABETICAL" -> "Alphabetical"
+                        else -> "Koch"
+                    },
+                    false
+                )
             }.show(parentFragmentManager, "alphabet_editor")
         }
 
@@ -923,6 +965,17 @@ class SettingsFragment : Fragment() {
             switchUseNumbers.isChecked = settings.useNumbers
             switchUsePunctuation.isChecked = settings.usePunctuation
             editCustomCharacters.setText(settings.customCharacterSet)
+
+            // Reflect preset/custom state in dropdown
+            val dropdownLabel = if (settings.alphabetOrderOverride.isNotEmpty()) {
+                "Custom"
+            } else when (settings.alphabetPreset.uppercase()) {
+                "MORSEMANIA" -> "MorseMania"
+                "ALPHABETICAL" -> "Alphabetical"
+                else -> "Koch"
+            }
+            // Avoid triggering item click; use setText(text, false)
+            binding.dropdownAlphabetPreset.setText(dropdownLabel, false)
             
             // Trainer Behavior settings
             switchFailOnFirstIncorrect.isChecked = settings.failOnFirstIncorrect

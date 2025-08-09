@@ -8,25 +8,25 @@
     <group
         android:translateX="54"
         android:translateY="54"
-        android:scaleX="2.5"
-        android:scaleY="2.5">
+        android:scaleX="2.0"
+        android:scaleY="2.0">
         
         <!-- Morse code signal pattern scaled for app icon -->
         <!-- Represents the classic morse code visual pattern -->
         <path
             android:fillColor="@android:color/white"
-            android:pathData="M-10,-8h2v16h-2V-8z"/>
+            android:pathData="M-12,-10h2v20h-2V-10z"/>
         <path
             android:fillColor="@android:color/white"
-            android:pathData="M-6,-12h4v24h-4V-12z"/>
+            android:pathData="M-8,-12h4v24h-4V-12z"/>
         <path
             android:fillColor="@android:color/white"
-            android:pathData="M2,-18h2v36h-2V-18z"/>
+            android:pathData="M0,-16h2v32h-2V-16z"/>
         <path
             android:fillColor="@android:color/white"
-            android:pathData="M6,-9h4v18h-4V-9z"/>
+            android:pathData="M6,-8h4v16h-4V-8z"/>
         <path
             android:fillColor="@android:color/white"
-            android:pathData="M12,-4h2v8h-2V-4z"/>
+            android:pathData="M10,-4h2v8h-2V-4z"/>
     </group>
 </vector> 
