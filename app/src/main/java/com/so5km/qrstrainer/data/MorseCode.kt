@@ -1,5 +1,21 @@
 package com.so5km.qrstrainer.data
 
+object AlphabetPresets {
+    // Traditional Koch letter-only order (letters subset, not including punctuation/numbers)
+    val KOCH_LETTER_ORDER: List<Char> = listOf(
+        'K','M','R','S','U','A','P','T','L','O','W','I','N','J','E','F','Y','V','G','Z','H','B','C','D','X','Q'
+    )
+
+    // MorseMania order (letters-first). Reference order adapted; can be adjusted if a different canonical list is preferred.
+    val MORSEMANIA_ORDER: List<Char> = listOf(
+        'E','T','A','O','N','I','S','H','R','D','L','C','U','M','W','F','G','Y','P','B','V','K','J','X','Z','Q'
+    )
+
+    val ALPHABETICAL_ORDER: List<Char> = ('A'..'Z').toList()
+
+    // All characters supported by the app's Morse map (letters, digits, punctuation, prosigns)
+    val ALL_MORSE_CHARS: Set<Char> = MorseCode.MORSE_MAP.keys
+}
 /**
  * Morse code mappings and utilities
  */

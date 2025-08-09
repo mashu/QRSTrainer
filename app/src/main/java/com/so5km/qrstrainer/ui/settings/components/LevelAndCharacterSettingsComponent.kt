@@ -4,6 +4,7 @@ import com.so5km.qrstrainer.R
 import com.so5km.qrstrainer.data.TrainingSettings
 import com.so5km.qrstrainer.databinding.FragmentSettingsBinding
 import android.widget.TextView
+import com.so5km.qrstrainer.data.buildMasterSequence
 
 /**
  * Component that handles level progression and character set settings
@@ -19,43 +20,9 @@ class LevelAndCharacterSettingsComponent(
      * Characters are drawn from a master sequence based on enabled settings
      */
     private fun getCharactersForLevel(level: Int, settings: TrainingSettings): List<Char> {
-        // Master Koch sequence in traditional learning order
-        // Based on the original Koch method with numbers and punctuation interspersed
-        val masterKochSequence = listOf(
-            // Traditional Koch sequence
-            'K', 'M', 'R', 'S', 'U', 'A', 'P', 'T', 'L', 'O', 
-            'W', 'I', '.', 'N', 'J', 'E', 'F', '0', 'Y', ',', 
-            'V', 'G', '5', '/', 'Q', '9', 'Z', 'H', '3', '8', 
-            'B', '?', '4', '2', '7', 'C', '1', 'D', '6', 'X',
-            // Additional characters for completeness
-            '=', '+', '-',
-            // Prosigns (if enabled)
-            '<', '>', '@'  // Representing AR, SK, AS
-        )
-        
-        // Filter the master sequence based on current settings
-        val availableSequence = masterKochSequence.filter { char ->
-            when {
-                char.isLetter() -> true // Letters always available
-                char.isDigit() -> settings.useNumbers
-                char in listOf('.', ',', '?', '/', '=', '+', '-') -> settings.usePunctuation
-                char in listOf('<', '>', '@') -> settings.useProsigns
-                else -> settings.customCharacterSet.contains(char)
-            }
-        }
-        
-        // Add custom characters at the end if enabled
-        val customChars = settings.customCharacterSet.toList().filter { 
-            it !in masterKochSequence 
-        }
-        val finalSequence = availableSequence + customChars
-        
-        // Progressive character count: Level 1 = 2 chars, Level 2 = 3 chars, Level 3 = 4 chars, etc.
-        // Traditional Koch method: Start with 2 characters, then add 1 per level
-        val characterCount = level + 1
-        
-        // Return the first N characters from the filtered sequence
-        return finalSequence.take(characterCount.coerceAtMost(finalSequence.size))
+        val masterSequence = settings.buildMasterSequence()
+        val characterCount = (level + 1).coerceAtLeast(1)
+        return masterSequence.take(characterCount.coerceAtMost(masterSequence.size))
     }
     
     /**
@@ -107,6 +74,7 @@ class LevelAndCharacterSettingsComponent(
         setupLevelSliders()
         setupCharacterSwitches()
         setupTrainerBehaviorSwitches()
+        setupAlphabetPresetControls()
     }
     
     private fun setupLevelSliders() {
@@ -117,12 +85,7 @@ class LevelAndCharacterSettingsComponent(
                 val currentSettings = getCurrentSettings()
                 
                 // Calculate max level based on current character settings
-                val maxLevel = TrainingSettings.calculateMaxLevel(
-                    useNumbers = currentSettings.useNumbers,
-                    usePunctuation = currentSettings.usePunctuation,
-                    useProsigns = currentSettings.useProsigns,
-                    customCharacterSet = currentSettings.customCharacterSet
-                )
+                val maxLevel = TrainingSettings.calculateMaxLevel(currentSettings)
                 
                 binding.textCurrentLevelValue.text = binding.root.context.getString(R.string.value_level, level) + " / $maxLevel"
                 
@@ -140,12 +103,7 @@ class LevelAndCharacterSettingsComponent(
                 val currentSettings = getCurrentSettings()
                 
                 // Calculate max level based on current character settings
-                val maxLevel = TrainingSettings.calculateMaxLevel(
-                    useNumbers = currentSettings.useNumbers,
-                    usePunctuation = currentSettings.usePunctuation,
-                    useProsigns = currentSettings.useProsigns,
-                    customCharacterSet = currentSettings.customCharacterSet
-                )
+                val maxLevel = TrainingSettings.calculateMaxLevel(currentSettings)
                 
                 binding.textListenCurrentLevelValue.text = binding.root.context.getString(R.string.value_level, level) + " / $maxLevel"
                 
@@ -248,18 +206,42 @@ class LevelAndCharacterSettingsComponent(
             onSettingsUpdate { it.copy(failOnFirstIncorrect = isChecked) }
         }
     }
+
+    private fun setupAlphabetPresetControls() {
+        // If buttons exist in layout, wire them. Safe guards for null via try/catch.
+        try {
+            binding.buttonSelectAlphabetPreset.setOnClickListener {
+                // Delegate to fragment via callback by mutating a marker setting; fragment adds dialog
+                // As a fallback, we can cycle presets quickly
+                val current = getCurrentSettings().alphabetPreset.uppercase()
+                val next = when (current) {
+                    "KOCH" -> "MORSEMANIA"
+                    "MORSEMANIA" -> "ALPHABETICAL"
+                    else -> "KOCH"
+                }
+                onSettingsUpdate { it.copy(alphabetPreset = next, alphabetOrderOverride = it.alphabetOrderOverride) }
+                updateLevelSliderRange()
+                binding.sliderCurrentLevel.post {
+                    val s = getCurrentSettings()
+                    updateCharacterDisplay(s.currentLevel, s, isListenMode = false)
+                    updateCharacterDisplay(s.listenCurrentLevel, s, isListenMode = true)
+                }
+            }
+        } catch (_: Throwable) { }
+
+        try {
+            binding.buttonEditAlphabetOrder.setOnClickListener {
+                // No-op here; fragment exposes the dialog.
+            }
+        } catch (_: Throwable) { }
+    }
     
     /**
      * Update the level slider range when character settings change
      */
     private fun updateLevelSliderRange() {
         val currentSettings = getCurrentSettings()
-        val maxLevel = TrainingSettings.calculateMaxLevel(
-            useNumbers = currentSettings.useNumbers,
-            usePunctuation = currentSettings.usePunctuation,
-            useProsigns = currentSettings.useProsigns,
-            customCharacterSet = currentSettings.customCharacterSet
-        )
+        val maxLevel = TrainingSettings.calculateMaxLevel(currentSettings)
         
         // Ensure current levels don't exceed new maximum
         val constrainedTrainerLevel = currentSettings.currentLevel.coerceIn(1, maxLevel)
@@ -329,12 +311,7 @@ class LevelAndCharacterSettingsComponent(
     fun updateUI(settings: TrainingSettings) {
         binding.apply {
             // Level settings - Dynamic max level based on available characters
-            val maxLevel = TrainingSettings.calculateMaxLevel(
-                useNumbers = settings.useNumbers,
-                usePunctuation = settings.usePunctuation,
-                useProsigns = settings.useProsigns,
-                customCharacterSet = settings.customCharacterSet
-            )
+            val maxLevel = TrainingSettings.calculateMaxLevel(settings)
             
             // Ensure levels are within valid range before setting sliders
             val constrainedTrainerLevel = settings.currentLevel.coerceIn(1, maxLevel)

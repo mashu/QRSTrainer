@@ -183,10 +183,8 @@ class AppStore private constructor() {
                 // Check for level progression
                 val newLevel = calculateLevelProgression(state.settings, newStreak)
                 val updatedSettings = if (newLevel != state.settings.currentLevel) {
-                    state.settings.copy(currentLevel = newLevel)
-                } else {
-                    state.settings
-                }
+                    updateCurrentLevel(state.settings, newLevel)
+                } else state.settings
                 
                 state.copy(
                     settings = updatedSettings,
@@ -201,8 +199,20 @@ class AppStore private constructor() {
             }
             is AppAction.ResetProgress -> state.copy(
                 progressState = ProgressStateData(),
-                settings = state.settings.copy(currentLevel = 1)
+                settings = updateCurrentLevel(state.settings, 1)
             )
+        }
+    }
+
+    // Avoid calling Kotlin data-class copy$default after constructor changes; rebuild via JSON
+    private fun updateCurrentLevel(settings: TrainingSettings, newLevel: Int): TrainingSettings {
+        return try {
+            val json = org.json.JSONObject(settings.toJson())
+            json.put("currentLevel", newLevel)
+            TrainingSettings.fromJson(json.toString())
+        } catch (e: Exception) {
+            // Fallback: use validate with minimal change
+            TrainingSettings.validate(settings.copy(currentLevel = newLevel))
         }
     }
     

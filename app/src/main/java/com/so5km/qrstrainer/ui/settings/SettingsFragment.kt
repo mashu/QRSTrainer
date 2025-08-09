@@ -28,6 +28,7 @@ import com.so5km.qrstrainer.ui.settings.components.AudioSettingsComponent
 import com.so5km.qrstrainer.ui.settings.components.GroupSettingsComponent
 import com.so5km.qrstrainer.ui.settings.components.NoiseSettingsComponent
 import com.so5km.qrstrainer.ui.settings.components.LevelAndCharacterSettingsComponent
+import com.so5km.qrstrainer.ui.settings.components.AlphabetEditorDialog
 import com.so5km.qrstrainer.ui.common.AnimationUtils
 
 class SettingsFragment : Fragment() {
@@ -101,6 +102,48 @@ class SettingsFragment : Fragment() {
         groupSettingsComponent.setup()
         noiseSettingsComponent.setup()
         levelAndCharacterSettingsComponent.setup()
+    }
+
+    // Simple preset selector and alphabet order editor hooks
+    private fun showAlphabetPresetDialog() {
+        val options = arrayOf("Koch", "MorseMania", "Alphabetical")
+        val current = when (storeViewModel.settings.value.alphabetPreset.uppercase()) {
+            "MORSEMANIA" -> 1
+            "ALPHABETICAL" -> 2
+            else -> 0
+        }
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Alphabet preset")
+            .setSingleChoiceItems(options, current) { dialog, which ->
+                val preset = when (which) {
+                    1 -> "MORSEMANIA"
+                    2 -> "ALPHABETICAL"
+                    else -> "KOCH"
+                }
+                updateSettings { it.copy(alphabetPreset = preset) }
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun showAlphabetOrderEditorDialog() {
+        val ctx = requireContext()
+        val input = android.widget.EditText(ctx)
+        input.hint = "Enter A-Z in desired order (leave empty to use preset)"
+        input.setText(storeViewModel.settings.value.alphabetOrderOverride)
+        androidx.appcompat.app.AlertDialog.Builder(ctx)
+            .setTitle("Custom alphabet order")
+            .setView(input)
+            .setPositiveButton("Save") { _, _ ->
+                val value = input.text?.toString()?.uppercase() ?: ""
+                updateSettings { it.copy(alphabetOrderOverride = value) }
+            }
+            .setNeutralButton("Clear") { _, _ ->
+                updateSettings { it.copy(alphabetOrderOverride = "") }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
     
     private fun setupCollapsibleSections() {
@@ -422,12 +465,7 @@ class SettingsFragment : Fragment() {
                 
                 // Calculate max level based on current character settings
                 val currentSettings = storeViewModel.settings.value
-                val maxLevel = TrainingSettings.calculateMaxLevel(
-                    useNumbers = currentSettings.useNumbers,
-                    usePunctuation = currentSettings.usePunctuation,
-                    useProsigns = currentSettings.useProsigns,
-                    customCharacterSet = currentSettings.customCharacterSet
-                )
+                val maxLevel = TrainingSettings.calculateMaxLevel(currentSettings)
                 
                 binding.textCurrentLevelValue.text = getString(R.string.value_level, level) + " / $maxLevel"
                 updateSettings { it.copy(currentLevel = level) }
@@ -492,12 +530,7 @@ class SettingsFragment : Fragment() {
      */
     private fun updateLevelSliderRange() {
         val currentSettings = storeViewModel.settings.value
-        val maxLevel = TrainingSettings.calculateMaxLevel(
-            useNumbers = currentSettings.useNumbers,
-            usePunctuation = currentSettings.usePunctuation,
-            useProsigns = currentSettings.useProsigns,
-            customCharacterSet = currentSettings.customCharacterSet
-        )
+        val maxLevel = TrainingSettings.calculateMaxLevel(currentSettings)
         
         // Update slider maximum
         binding.sliderCurrentLevel.valueTo = maxLevel.toFloat()
@@ -826,6 +859,14 @@ class SettingsFragment : Fragment() {
             showResetConfirmation()
         }
         
+        // Alphabet preset and order editor
+        binding.buttonSelectAlphabetPreset.setOnClickListener { showAlphabetPresetDialog() }
+        binding.buttonEditAlphabetOrder.setOnClickListener {
+            AlphabetEditorDialog(storeViewModel.settings.value) { newOrder ->
+                updateSettings { it.copy(alphabetOrderOverride = newOrder) }
+            }.show(parentFragmentManager, "alphabet_editor")
+        }
+
         // Add info about theme selection
         binding.buttonTestAudio.tooltipText = "Tap to test audio, long press to change theme"
     }
@@ -863,12 +904,7 @@ class SettingsFragment : Fragment() {
             textGroupDelayValue.text = getString(R.string.value_seconds, settings.groupDelayMs / 1000f)
             
             // Level settings - Dynamic max level based on available characters
-            val maxLevel = TrainingSettings.calculateMaxLevel(
-                useNumbers = settings.useNumbers,
-                usePunctuation = settings.usePunctuation,
-                useProsigns = settings.useProsigns,
-                customCharacterSet = settings.customCharacterSet
-            )
+            val maxLevel = TrainingSettings.calculateMaxLevel(settings)
             
             // Update slider maximum to reflect actual available levels
             sliderCurrentLevel.valueTo = maxLevel.toFloat()

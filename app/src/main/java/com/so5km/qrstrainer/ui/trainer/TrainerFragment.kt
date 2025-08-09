@@ -34,8 +34,7 @@ import com.so5km.qrstrainer.training.SequenceGenerator
 import com.so5km.qrstrainer.audio.AudioManager
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
-import com.so5km.qrstrainer.ui.common.showMessage
-import com.so5km.qrstrainer.ui.common.showErrorMessage
+// Removed extension imports to avoid resolution issues; using local helper instead
 
 class TrainerFragment : Fragment() {
     
@@ -131,6 +130,12 @@ class TrainerFragment : Fragment() {
         
         setupMorseKeyboard()
         updateUIForState(TrainingState.READY)
+    }
+
+    private fun showMessage(message: String) {
+        view?.let { rootView ->
+            Snackbar.make(rootView, message, Snackbar.LENGTH_SHORT).show()
+        }
     }
     
     private fun setupMorseKeyboard() {
@@ -377,6 +382,24 @@ class TrainerFragment : Fragment() {
         updateSequenceDisplayWithInput()
         Log.d(TAG, "updateSequenceDisplayWithInput completed")
         
+        // If fail-on-first-incorrect is disabled, still auto-submit immediately upon first
+        // mismatch so we don't wait for additional characters unnecessarily
+        if (!settings.failOnFirstIncorrect) {
+            val indexJustTyped = userInput.length - 1
+            if (indexJustTyped in morseCharsOnly.indices) {
+                val expectedChar = morseCharsOnly[indexJustTyped].uppercaseChar()
+                val typedChar = userInput[indexJustTyped].uppercaseChar()
+                if (typedChar != expectedChar) {
+                    Log.d(TAG, "First mismatch detected at index $indexJustTyped. Auto-submitting.")
+                    lifecycleScope.launch {
+                        delay(150)
+                        submitAnswer()
+                    }
+                    return
+                }
+            }
+        }
+
         // Auto-submit when we have enough characters for the actual morse characters
         Log.d(TAG, "Checking auto-submit: userInput.length (${userInput.length}) >= morseCharCount ($morseCharCount)")
         if (userInput.length >= morseCharCount) {
@@ -471,18 +494,25 @@ class TrainerFragment : Fragment() {
         
         // Compare against morse characters only (exclude spaces)
         val morseCharsOnly = currentSequence.filter { it != ' ' }
+        if (morseCharsOnly.isEmpty()) {
+            Log.e(TAG, "submitAnswer: morseCharsOnly is empty; aborting to avoid crash")
+            showMessage("No characters to validate. Please try again.")
+            updateUIForState(TrainingState.READY)
+            return
+        }
         val isCorrect = userInput.uppercase() == morseCharsOnly.uppercase()
         
         Log.d(TAG, "Answer validation: userInput='$userInput', morseCharsOnly='$morseCharsOnly', isCorrect=$isCorrect")
         
         // Record progress for each morse character (excluding spaces) via AppStore
+        val denom = maxOf(1, morseCharsOnly.length)
         morseCharsOnly.forEachIndexed { index, char ->
             val userChar = if (userInput.length > index) {
                 userInput[index]
             } else null
             
             val charCorrect = userChar?.uppercaseChar() == char.uppercaseChar()
-            storeViewModel.dispatch(AppAction.RecordCharacterAttempt(char, charCorrect, responseTime / morseCharsOnly.length))
+            storeViewModel.dispatch(AppAction.RecordCharacterAttempt(char, charCorrect, responseTime / denom))
         }
         
         // CRITICAL: Also record the overall sequence result for proper streak tracking

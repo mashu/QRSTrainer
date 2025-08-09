@@ -5,7 +5,7 @@ import com.so5km.qrstrainer.data.TrainingSettings
 data class AppState(
     val isAppInForeground: Boolean = true,
     val isForegroundServiceRunning: Boolean = false,
-    val settings: TrainingSettings = TrainingSettings(),
+    val settings: TrainingSettings = TrainingSettings.default(),
     val trainingState: TrainingStateData = TrainingStateData(),
     val listenState: ListenStateData = ListenStateData(),
     val audioState: AudioStateData = AudioStateData(),

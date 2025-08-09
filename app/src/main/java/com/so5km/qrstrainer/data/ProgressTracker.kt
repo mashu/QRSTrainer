@@ -180,43 +180,9 @@ class ProgressTracker(private val context: Context) {
      * Characters are drawn from a master sequence based on enabled settings
      */
     fun getCharactersForLevel(level: Int): List<Char> {
-        // Master Koch sequence in traditional learning order
-        // Based on the original Koch method with numbers and punctuation interspersed
-        val masterKochSequence = listOf(
-            // Traditional Koch sequence
-            'K', 'M', 'R', 'S', 'U', 'A', 'P', 'T', 'L', 'O', 
-            'W', 'I', '.', 'N', 'J', 'E', 'F', '0', 'Y', ',', 
-            'V', 'G', '5', '/', 'Q', '9', 'Z', 'H', '3', '8', 
-            'B', '?', '4', '2', '7', 'C', '1', 'D', '6', 'X',
-            // Additional characters for completeness
-            '=', '+', '-',
-            // Prosigns (if enabled)
-            '<', '>', '@'  // Representing AR, SK, AS
-        )
-        
-        // Filter the master sequence based on current settings
-        val availableSequence = masterKochSequence.filter { char ->
-            when {
-                char.isLetter() -> true // Letters always available
-                char.isDigit() -> currentSettings.useNumbers
-                char in listOf('.', ',', '?', '/', '=', '+', '-') -> currentSettings.usePunctuation
-                char in listOf('<', '>', '@') -> currentSettings.useProsigns
-                else -> currentSettings.customCharacterSet.contains(char)
-            }
-        }
-        
-        // Add custom characters at the end if enabled
-        val customChars = currentSettings.customCharacterSet.toList().filter { 
-            it !in masterKochSequence 
-        }
-        val finalSequence = availableSequence + customChars
-        
-        // Progressive character count: Level 1 = 2 chars, Level 2 = 3 chars, Level 3 = 4 chars, etc.
-        // Traditional Koch method: Start with 2 characters, then add 1 per level
-        val characterCount = level + 1
-        
-        // Return the first N characters from the filtered sequence
-        return finalSequence.take(characterCount.coerceAtMost(finalSequence.size))
+        val masterSequence = currentSettings.buildMasterSequence()
+        val characterCount = (level + 1).coerceAtLeast(1)
+        return masterSequence.take(characterCount.coerceAtMost(masterSequence.size))
     }
     
     /**

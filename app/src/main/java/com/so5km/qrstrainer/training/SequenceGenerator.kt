@@ -16,9 +16,7 @@ class SequenceGenerator(private val progressTracker: ProgressTracker) {
          * This now uses the corrected progressive Koch method
          */
         fun getAvailableCharacters(settings: TrainingSettings, progressTracker: ProgressTracker): List<Char> {
-            // Update progress tracker with current settings first
             progressTracker.updateSettings(settings)
-            // Use the corrected getCharactersForLevel method
             return progressTracker.getCharactersForLevel(settings.currentLevel)
         }
     }

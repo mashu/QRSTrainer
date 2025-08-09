@@ -46,6 +46,10 @@ data class TrainingSettings(
     val useNumbers: Boolean = false,
     val usePunctuation: Boolean = false,
     val customCharacterSet: String = "",      // custom characters to practice
+
+    // Alphabet Order & Presets
+    val alphabetPreset: String = "KOCH",      // KOCH, MORSEMANIA, ALPHABETICAL
+    val alphabetOrderOverride: String = "",   // optional override for base letters (A-Z) in desired order
     
     // Noise Settings
     val noiseEnabled: Boolean = false,
@@ -129,6 +133,16 @@ data class TrainingSettings(
             // This ensures we never exceed the available character set
             return totalChars - 1
         }
+
+        fun calculateMaxLevel(settings: TrainingSettings): Int {
+            val letterCount = settings.getLetterOrder().size
+            var totalChars = letterCount
+            if (settings.useNumbers) totalChars += 10
+            if (settings.usePunctuation) totalChars += 7
+            if (settings.useProsigns) totalChars += 3
+            totalChars += settings.customCharacterSet.length
+            return (totalChars - 1).coerceAtLeast(1)
+        }
         
         /**
          * Validate and adjust settings to ensure consistency
@@ -190,6 +204,19 @@ data class TrainingSettings(
                 "light"
             }
             
+            // Sanitize alphabet preset
+            val allowedPresets = setOf("KOCH", "MORSEMANIA", "ALPHABETICAL")
+            val validAlphabetPreset = if (settings.alphabetPreset.uppercase() in allowedPresets) settings.alphabetPreset.uppercase() else "KOCH"
+
+            // Sanitize override: keep only unique A-Z in the given order
+            val lettersOnly = settings.alphabetOrderOverride.uppercase().filter { it in 'A'..'Z' }
+            val seen = mutableSetOf<Char>()
+            val dedupedLetters = buildString {
+                for (c in lettersOnly) {
+                    if (seen.add(c)) append(c)
+                }
+            }
+
             return settings.copy(
                 currentLevel = validCurrentLevel,
                 maxLevel = validMaxLevel,
@@ -211,7 +238,9 @@ data class TrainingSettings(
                 autoRevealDelayMs = validAutoRevealDelayMs,
                 correctAnswersToLevelUp = validCorrectAnswersToLevelUp,
                 incorrectAnswersToDropLevel = validIncorrectAnswersToDropLevel,
-                themeMode = validThemeMode
+                themeMode = validThemeMode,
+                alphabetPreset = validAlphabetPreset,
+                alphabetOrderOverride = dedupedLetters
             )
         }
         
@@ -265,6 +294,9 @@ fun TrainingSettings.toJson(): String {
     json.put("useNumbers", useNumbers)
     json.put("usePunctuation", usePunctuation)
     json.put("customCharacterSet", customCharacterSet)
+    // Alphabet Preset & Order
+    json.put("alphabetPreset", alphabetPreset)
+    json.put("alphabetOrderOverride", alphabetOrderOverride)
     
     // Noise Settings
     json.put("noiseEnabled", noiseEnabled)
@@ -377,6 +409,9 @@ fun TrainingSettings.Companion.fromJson(json: String): TrainingSettings {
         useNumbers = getBooleanOrDefault("useNumbers", false),
         usePunctuation = getBooleanOrDefault("usePunctuation", false),
         customCharacterSet = getStringOrDefault("customCharacterSet", ""),
+        // Alphabet Preset & Order
+        alphabetPreset = getStringOrDefault("alphabetPreset", "KOCH"),
+        alphabetOrderOverride = getStringOrDefault("alphabetOrderOverride", ""),
         
         // Noise Settings
         noiseEnabled = getBooleanOrDefault("noiseEnabled", false),
@@ -434,4 +469,70 @@ fun TrainingSettings.Companion.fromJson(json: String): TrainingSettings {
         sessionTimeMinutes = getIntOrDefault("sessionTimeMinutes", 15),
         breakReminderMinutes = getIntOrDefault("breakReminderMinutes", 60)
     )
+}
+
+/**
+ * Get the base letter order (A-Z) according to preset or override
+ */
+fun TrainingSettings.getLetterOrder(): List<Char> {
+    // Use override if present
+    if (alphabetOrderOverride.isNotEmpty()) {
+        val letters: List<Char> = alphabetOrderOverride
+            .uppercase()
+            .asSequence()
+            .filter { it in 'A'..'Z' }
+            .toList()
+        val seen = mutableSetOf<Char>()
+        return letters.filter { seen.add(it) }
+    }
+
+    // Otherwise use preset
+    return when (alphabetPreset.uppercase()) {
+        "MORSEMANIA" -> AlphabetPresets.MORSEMANIA_ORDER
+        "ALPHABETICAL" -> AlphabetPresets.ALPHABETICAL_ORDER
+        else -> AlphabetPresets.KOCH_LETTER_ORDER
+    }
+}
+
+/**
+ * Build the full master sequence used for training progression:
+ * letters (ordered) + optional numbers + optional punctuation + optional prosigns + custom chars
+ */
+fun TrainingSettings.buildMasterSequence(): List<Char> {
+    val sequence = mutableListOf<Char>()
+    val existing = mutableSetOf<Char>()
+
+    // Base letters by order
+    getLetterOrder().forEach { c ->
+        if (existing.add(c)) sequence.add(c)
+    }
+
+    // Numbers
+    if (useNumbers) {
+        ('0'..'9').forEach { if (existing.add(it)) sequence.add(it) }
+    }
+
+    // Punctuation
+    if (usePunctuation) {
+        val punct = listOf('.', ',', '?', '/', '=', '+', '-')
+        punct.forEach { if (existing.add(it)) sequence.add(it) }
+    }
+
+    // Prosigns
+    if (useProsigns) {
+        val prosigns = listOf('<', '>', '@') // AR, SK, AS
+        prosigns.forEach { if (existing.add(it)) sequence.add(it) }
+    }
+
+    // Custom characters last
+    if (customCharacterSet.isNotEmpty()) {
+        customCharacterSet.toList().forEach { c ->
+            val upper = c.uppercaseChar()
+            if (AlphabetPresets.ALL_MORSE_CHARS.contains(upper) && existing.add(upper)) {
+                sequence.add(upper)
+            }
+        }
+    }
+
+    return sequence
 }
