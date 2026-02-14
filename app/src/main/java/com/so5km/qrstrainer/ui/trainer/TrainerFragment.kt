@@ -32,6 +32,7 @@ import com.so5km.qrstrainer.state.TrainingStateData
 import com.so5km.qrstrainer.data.ProgressTracker
 import com.so5km.qrstrainer.training.SequenceGenerator
 import com.so5km.qrstrainer.audio.AudioManager
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 // Removed extension imports to avoid resolution issues; using local helper instead
@@ -302,13 +303,16 @@ class TrainerFragment : Fragment() {
                     }
                     
                     override fun onPlaybackError(error: Exception) {
-                        Log.e(TAG, "Audio playback error", error)
                         storeViewModel.dispatch(AppAction.SetAudioPlaying(false))
-                        
-                        // Show error message needs main thread - dispatch to lifecycle scope
+                        // Cancellation is expected when we stop playback or start next sequence (e.g. after mistake)
+                        if (error is CancellationException || error.message?.contains("cancel", ignoreCase = true) == true) {
+                            Log.d(TAG, "Playback cancelled (expected): ${error.message}")
+                            return
+                        }
+                        Log.e(TAG, "Audio playback error", error)
                         lifecycleScope.launch {
                             showMessage("Audio playback error: ${error.message}")
-                            stopTraining()
+                            // Do not stop training: count as mistake/glitch, session continues
                         }
                     }
                 }
@@ -318,9 +322,13 @@ class TrainerFragment : Fragment() {
                 
                 // State transition to WAITING will be handled by AudioSequenceCompleted action
                 
+            } catch (e: CancellationException) {
+                // Expected when playback is stopped or next sequence starts
+                Log.d(TAG, "Training playback cancelled: ${e.message}")
             } catch (e: Exception) {
                 showMessage("Audio playback error: ${e.message}")
-                stopTraining()
+                storeViewModel.dispatch(AppAction.SetAudioPlaying(false))
+                // Do not stop training: session continues; user can tap Stop if they want
             }
         }
     }

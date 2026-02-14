@@ -8,6 +8,7 @@ import android.os.IBinder
 import com.so5km.qrstrainer.state.AppStore
 import com.so5km.qrstrainer.state.AppAction
 import com.so5km.qrstrainer.data.TrainingSettings
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -144,8 +145,11 @@ class AudioManager(private val context: Context) {
             
             try {
                 morsePlayer.playSequence(sequence, settings)
+            } catch (e: CancellationException) {
+                // Expected when stopPlayback() or next playSequence() cancels this job
+                android.util.Log.d("AudioManager", "Playback cancelled")
+                completionListener.onPlaybackStopped()
             } catch (e: Exception) {
-                // Log error and notify via callback
                 android.util.Log.e("AudioManager", "Error playing sequence", e)
                 completionListener.onPlaybackError(e)
             }
