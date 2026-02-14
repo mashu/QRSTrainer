@@ -160,30 +160,32 @@ class TrainerFragment : Fragment() {
     }
     
     /**
-     * Play the morse code for a single character when trainer is not active.
-     * This allows users to preview/learn character sounds.
+     * Play the morse code for exactly one character when trainer is not active.
+     * Stops any current preview so the tapped character always plays immediately.
+     * Uses single play (no repeats, no repeat delay) regardless of training settings.
      */
     private fun playCharacterPreview(character: Char) {
-        // Don't play if audio is already playing
-        if (storeViewModel.audioState.value.isPlaying) {
-            Log.d(TAG, "Audio already playing, skipping character preview")
-            return
-        }
-        
+        val charToPlay = character // single character only, no sequence
         val settings = storeViewModel.settings.value
-        Log.d(TAG, "Playing character preview: $character")
+        // Force one play only: ignore numberOfRepeats and repeatDelayMs so key plays once
+        val previewSettings = settings.copy(numberOfRepeats = 1, repeatDelayMs = 0L)
+        Log.d(TAG, "Playing character preview (single letter, once): $charToPlay")
         
         lifecycleScope.launch {
             try {
-                // Set up a simple completion listener for preview playback
+                // Stop any current playback so this character plays immediately (no wrong/previous letter)
+                audioManager.stopPlayback()
+                audioManager.setAudioCompletionListener(null)
+                storeViewModel.dispatch(AppAction.SetAudioPlaying(false))
+                
+                // Set completion listener for this preview only
                 val previewCompletionListener = object : com.so5km.qrstrainer.audio.AudioCompletionListener {
                     override fun onSequenceCompleted() {
-                        Log.d(TAG, "Character preview completed: $character")
+                        Log.d(TAG, "Character preview completed: $charToPlay")
                         storeViewModel.dispatch(AppAction.SetAudioPlaying(false))
                     }
                     
                     override fun onPlaybackStopped() {
-                        Log.d(TAG, "Character preview stopped")
                         storeViewModel.dispatch(AppAction.SetAudioPlaying(false))
                     }
                     
@@ -194,7 +196,8 @@ class TrainerFragment : Fragment() {
                 }
                 
                 audioManager.setAudioCompletionListener(previewCompletionListener)
-                audioManager.playSequence(character.toString(), settings)
+                // Play only this single character once (previewSettings has numberOfRepeats=1)
+                audioManager.playSequence(charToPlay.toString(), previewSettings)
             } catch (e: Exception) {
                 Log.e(TAG, "Error playing character preview", e)
             }
@@ -635,7 +638,7 @@ class TrainerFragment : Fragment() {
         Log.d(TAG, "Updating UI for state: $state")
         when (state) {
             TrainingState.READY -> {
-                Log.d(TAG, "READY state: disabling keyboard")
+                Log.d(TAG, "READY state: keyboard for preview only (clicks play character sound)")
                 // Show user input if they have any, otherwise show placeholder
                 if (userInput.isNotEmpty()) {
                     updateSequenceDisplayWithInput()
@@ -649,7 +652,7 @@ class TrainerFragment : Fragment() {
                 binding.buttonReplay.isEnabled = false
                 binding.buttonReplay.visibility = View.GONE
                 binding.morseKeyboard.alpha = 0.5f
-                setKeyboardEnabled(false)
+                setKeyboardEnabled(true) // keep enabled so taps play character preview
                 userInput = ""
                 binding.morseKeyboard.resetState()
             }
@@ -689,7 +692,7 @@ class TrainerFragment : Fragment() {
                 // Do NOT reset keyboard state here - preserve selection during input
             }
             TrainingState.FINISHED -> {
-                Log.d(TAG, "FINISHED state: disabling keyboard")
+                Log.d(TAG, "FINISHED state: keyboard for preview only (clicks play character sound)")
                 binding.sequenceDisplay.text = "Training stopped"
                 binding.buttonStart.isEnabled = true
                 binding.buttonStart.visibility = View.VISIBLE
@@ -698,7 +701,7 @@ class TrainerFragment : Fragment() {
                 binding.buttonReplay.isEnabled = true
                 binding.buttonReplay.visibility = View.VISIBLE
                 binding.morseKeyboard.alpha = 0.5f
-                setKeyboardEnabled(false)
+                setKeyboardEnabled(true) // keep enabled so taps play character preview
                 userInput = ""
             }
             TrainingState.PAUSED -> {
