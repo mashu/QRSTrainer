@@ -267,6 +267,9 @@ class TrainerFragment : Fragment() {
         shouldAdvanceAfterAudio = false
         pendingAdvanceAction = null
         
+        // Clear the field for the new round: show _\n? so old groups are not shown while new sequence plays
+        updateSequenceDisplayWithInput()
+        
         storeViewModel.dispatch(AppAction.StartTraining(currentSequence))
         
         // Start continuous noise if enabled
@@ -409,7 +412,7 @@ class TrainerFragment : Fragment() {
                 // Add the incorrect character first so user can see what they typed wrong
                 userInput += character
                 storeViewModel.dispatch(AppAction.UpdateUserInput(userInput))
-                updateSequenceDisplayWithInput()
+                binding.sequenceDisplay.post { updateSequenceDisplayWithInput() }
                 
                 // Fail immediately after a short delay to show the mistake
                 lifecycleScope.launch {
@@ -425,13 +428,11 @@ class TrainerFragment : Fragment() {
         userInput += character
         Log.d(TAG, "Updated userInput: '$userInput'")
         
-        Log.d(TAG, "About to dispatch UpdateUserInput action...")
         storeViewModel.dispatch(AppAction.UpdateUserInput(userInput))
-        Log.d(TAG, "UpdateUserInput action dispatched")
         
-        Log.d(TAG, "About to call updateSequenceDisplayWithInput...")
-        updateSequenceDisplayWithInput()
-        Log.d(TAG, "updateSequenceDisplayWithInput completed")
+        // Post display update so it runs after any synchronous state-flow handling;
+        // keeps typed input and display in sync (avoids stale overwrite from flow)
+        binding.sequenceDisplay.post { updateSequenceDisplayWithInput() }
         
         // If fail-on-first-incorrect is disabled, still auto-submit immediately upon first
         // mismatch so we don't wait for additional characters unnecessarily
@@ -658,8 +659,8 @@ class TrainerFragment : Fragment() {
             }
             TrainingState.PLAYING -> {
                 Log.d(TAG, "PLAYING state: enabling keyboard for concurrent input")
-                // Always show dual-row input display, even during audio playback
-                updateSequenceDisplayWithInput()
+                // Do not refresh display here: it is driven only by onCharacterSelected and startTraining
+                // so we stay in sync with what is typed (state flow can emit stale userInput)
                 binding.buttonStart.isEnabled = false
                 binding.buttonStart.visibility = View.GONE
                 binding.buttonStop.isEnabled = true
