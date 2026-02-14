@@ -42,15 +42,11 @@ android {
         release {
             storeFile file('../qrstrainer-release-key.jks')
             keyAlias project.findProperty('KEY_ALIAS') ?: System.getenv('KEY_ALIAS') ?: 'qrstrainer'
-            
-            // Only set passwords when building release
-            if (project.hasProperty('KEYSTORE_PASSWORD') || System.getenv('KEYSTORE_PASSWORD') || 
-                project.hasProperty('keystorePassword') || project.hasProperty('keyPassword')) {
-                storePassword project.findProperty('KEYSTORE_PASSWORD') ?: System.getenv('KEYSTORE_PASSWORD') ?: 
-                             project.findProperty('keystorePassword') ?: getPasswordFromUser('keystore')
-                keyPassword project.findProperty('KEY_PASSWORD') ?: System.getenv('KEY_PASSWORD') ?: 
-                           project.findProperty('keyPassword') ?: getPasswordFromUser('key')
-            }
+            // Always set passwords so signing does not get null (prompts if not in env/property)
+            storePassword project.findProperty('KEYSTORE_PASSWORD') ?: System.getenv('KEYSTORE_PASSWORD') ?:
+                         project.findProperty('keystorePassword') ?: getPasswordFromUser('keystore')
+            keyPassword project.findProperty('KEY_PASSWORD') ?: System.getenv('KEY_PASSWORD') ?:
+                       project.findProperty('keyPassword') ?: getPasswordFromUser('key')
         }
     }
 

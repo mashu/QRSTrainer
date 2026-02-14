@@ -75,6 +75,9 @@ class MorseAudioService : Service() {
     // Completion listener
     private var completionListener: AudioCompletionListener? = null
     
+    // Track foreground state without using deprecated getRunningServices()
+    private var isForegroundService = false
+    
     // Persistent state storage for restart recovery
     private fun storePlaybackState(sequence: String, settings: TrainingSettings) {
         try {
@@ -126,33 +129,10 @@ class MorseAudioService : Service() {
     }
     
     /**
-     * Check if this service is actually running as a foreground service
-     * Let Android be the source of truth
+     * Whether this service is currently running as a foreground service.
+     * Tracked locally to avoid deprecated getRunningServices().
      */
-    private fun isActuallyForegroundService(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            try {
-                val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-                val runningServices = activityManager.getRunningServices(Integer.MAX_VALUE)
-                val serviceInfo = runningServices.find { 
-                    it.service.className == this::class.java.name 
-                }
-                serviceInfo?.foreground == true
-            } catch (e: Exception) {
-                android.util.Log.e(TAG, "Error checking foreground service state: ${e.message}")
-                false
-            }
-        } else {
-            // For older Android versions, assume we're foreground if we have notification
-            try {
-                val notificationManager = getSystemService(NotificationManager::class.java)
-                // If we have an active notification, we're likely foreground
-                true // This is a reasonable assumption for older versions
-            } catch (e: Exception) {
-                false
-            }
-        }
-    }
+    private fun isActuallyForegroundService(): Boolean = isForegroundService
     
     inner class MorseAudioBinder : Binder() {
         fun getService(): MorseAudioService = this@MorseAudioService
@@ -180,6 +160,7 @@ class MorseAudioService : Service() {
     private fun initializeMediaSession() {
         mediaSession = MediaSessionCompat(this, TAG)
         mediaSession.setCallback(mediaSessionCallback)
+        @Suppress("DEPRECATION")
         mediaSession.setFlags(
             MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS or
             MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS
@@ -275,7 +256,12 @@ class MorseAudioService : Service() {
         when (intent?.action) {
             ACTION_START_PLAYBACK -> {
                 val sequence = intent.getStringExtra(EXTRA_SEQUENCE) ?: ""
-                val settings = intent.getParcelableExtra<TrainingSettings>(EXTRA_SETTINGS)
+                val settings = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    intent.getParcelableExtra(EXTRA_SETTINGS, TrainingSettings::class.java)
+                } else {
+                    @Suppress("DEPRECATION")
+                    intent.getParcelableExtra(EXTRA_SETTINGS)
+                }
                 if (settings != null) {
                     // Only start foreground if we're not already foreground
                     // This prevents Android's "not allowed" errors on subsequent sequences
@@ -283,6 +269,7 @@ class MorseAudioService : Service() {
                         android.util.Log.d(TAG, "Starting as foreground service (first time)")
                         try {
                             startForeground(NOTIFICATION_ID, createNotification())
+                            isForegroundService = true
                             android.util.Log.d(TAG, "Started as foreground service")
                         } catch (e: Exception) {
                             android.util.Log.e(TAG, "Failed to start foreground: ${e.message}")
@@ -325,6 +312,7 @@ class MorseAudioService : Service() {
                     android.util.Log.d(TAG, "Recovering playback: ${storedState.first}")
                     try {
                         startForeground(NOTIFICATION_ID, createNotification())
+                        isForegroundService = true
                         startMorsePlayback(storedState.first, storedState.second)
                     } catch (e: Exception) {
                         android.util.Log.e(TAG, "Failed to recover playback: ${e.message}")
@@ -332,7 +320,7 @@ class MorseAudioService : Service() {
                 }
             }
             else -> {
-                android.util.Log.w(TAG, "Unknown action: ${intent?.action}")
+                android.util.Log.w(TAG, "Unknown action: ${intent.action}")
             }
         }
         
@@ -475,6 +463,7 @@ class MorseAudioService : Service() {
             // Check if we're actually running as foreground and stop accordingly
             if (isActuallyForegroundService()) {
                 android.util.Log.d(TAG, "Stopping foreground service")
+                isForegroundService = false
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                     stopForeground(Service.STOP_FOREGROUND_REMOVE)
                 } else {

@@ -140,7 +140,13 @@ class TrainerFragment : Fragment() {
     
     private fun setupMorseKeyboard() {
         binding.morseKeyboard.setOnCharacterClickListener { char ->
-            onCharacterSelected(char)
+            val currentState = storeViewModel.trainingState.value.state
+            // If trainer is not active, play the character's morse code
+            if (currentState == TrainingState.READY || currentState == TrainingState.FINISHED) {
+                playCharacterPreview(char)
+            } else {
+                onCharacterSelected(char)
+            }
         }
         
         // Initialize keyboard with characters that match what sequence generator uses
@@ -151,6 +157,48 @@ class TrainerFragment : Fragment() {
         
         binding.morseKeyboard.setAvailableCharacters(availableChars.toSet())
         keyboardLevel = settings.currentLevel // Track what level keyboard was built for
+    }
+    
+    /**
+     * Play the morse code for a single character when trainer is not active.
+     * This allows users to preview/learn character sounds.
+     */
+    private fun playCharacterPreview(character: Char) {
+        // Don't play if audio is already playing
+        if (storeViewModel.audioState.value.isPlaying) {
+            Log.d(TAG, "Audio already playing, skipping character preview")
+            return
+        }
+        
+        val settings = storeViewModel.settings.value
+        Log.d(TAG, "Playing character preview: $character")
+        
+        lifecycleScope.launch {
+            try {
+                // Set up a simple completion listener for preview playback
+                val previewCompletionListener = object : com.so5km.qrstrainer.audio.AudioCompletionListener {
+                    override fun onSequenceCompleted() {
+                        Log.d(TAG, "Character preview completed: $character")
+                        storeViewModel.dispatch(AppAction.SetAudioPlaying(false))
+                    }
+                    
+                    override fun onPlaybackStopped() {
+                        Log.d(TAG, "Character preview stopped")
+                        storeViewModel.dispatch(AppAction.SetAudioPlaying(false))
+                    }
+                    
+                    override fun onPlaybackError(error: Exception) {
+                        Log.e(TAG, "Character preview error", error)
+                        storeViewModel.dispatch(AppAction.SetAudioPlaying(false))
+                    }
+                }
+                
+                audioManager.setAudioCompletionListener(previewCompletionListener)
+                audioManager.playSequence(character.toString(), settings)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error playing character preview", e)
+            }
+        }
     }
     
     private fun observeState() {

@@ -211,6 +211,7 @@ object AnimationUtils {
     /**
      * Progress bar animation
      */
+    @Suppress("UNUSED_PARAMETER")
     fun animateProgress(
         progressView: View,
         fromProgress: Int,

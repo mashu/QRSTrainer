@@ -89,8 +89,7 @@ class TrainingCoordinator(
         when {
             // When training is active and audio completes, advance automatically
             trainingState.state == TrainingState.WAITING && 
-            !audioState.isPlaying && 
-            trainingState.previousWasCorrect != null -> {
+            !audioState.isPlaying -> {
                 
                 Log.d(TAG, "Audio completed, scheduling automatic advancement")
                 scheduleAutomaticAdvancement(settings)
@@ -155,6 +154,7 @@ class TrainingCoordinator(
     /**
      * Handle training completion (answer submitted)
      */
+    @Suppress("UNUSED_PARAMETER")
     fun onTrainingCompleted(isCorrect: Boolean, settings: TrainingSettings) {
         scope.launch {
             // Let the state management handle the submission
